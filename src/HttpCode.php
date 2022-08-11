@@ -2,6 +2,8 @@
 
 namespace TinyBlocks\Http;
 
+use BackedEnum;
+
 /**
  * HTTP response status codes indicate whether a specific HTTP request has been successfully completed.
  * Responses are grouped in five classes:
@@ -94,5 +96,12 @@ enum HttpCode: int
         $template = '%s %s';
 
         return sprintf($template, $this->value, $message);
+    }
+
+    public static function isHttpCode(int $httpCode): bool
+    {
+        $mapper = fn(BackedEnum $enum) => $enum->value;
+
+        return in_array($httpCode, array_map($mapper, self::cases()));
     }
 }

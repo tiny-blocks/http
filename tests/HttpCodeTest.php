@@ -16,6 +16,16 @@ final class HttpCodeTest extends TestCase
         self::assertEquals($expected, $actual);
     }
 
+    /**
+     * @dataProvider providerForTestIsHttpCode
+     */
+    public function testIsHttpCode(int $httpCode, bool $expected): void
+    {
+        $actual = HttpCode::isHttpCode(httpCode: $httpCode);
+
+        self::assertEquals($expected, $actual);
+    }
+
     public function providerForTestMessage(): array
     {
         return [
@@ -50,6 +60,36 @@ final class HttpCodeTest extends TestCase
             [
                 'httpCode' => HttpCode::INTERNAL_SERVER_ERROR,
                 'expected' => '500 Internal Server Error'
+            ]
+        ];
+    }
+
+    public function providerForTestIsHttpCode(): array
+    {
+        return [
+            [
+                'httpCode' => HttpCode::CONTINUE->value,
+                'expected' => true
+            ],
+            [
+                'httpCode' => HttpCode::OK->value,
+                'expected' => true
+            ],
+            [
+                'httpCode' => 1054,
+                'expected' => false
+            ],
+            [
+                'httpCode' => 0,
+                'expected' => false
+            ],
+            [
+                'httpCode' => -1,
+                'expected' => false
+            ],
+            [
+                'httpCode' => HttpCode::INTERNAL_SERVER_ERROR->value,
+                'expected' => true
             ]
         ];
     }
