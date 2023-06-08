@@ -3,7 +3,7 @@
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/tiny-blocks/http",
-    "description": "HTTP response status codes.",
+    "description": "Common implementations for HTTP protocol.",
     "prefer-stable": true,
     "minimum-stability": "stable",
     "keywords": [
@@ -38,7 +38,7 @@
         }
     },
     "require": {
-        "php": "^8.1",
+        "php": "^8.1||^8.2",
         "ext-mbstring": "*"
     },
     "require-dev": {
@@ -46,6 +46,9 @@
         "phpmd/phpmd": "^2.12",
         "phpunit/phpunit": "^9.5",
         "squizlabs/php_codesniffer": "^3.7"
+    },
+    "suggest": {
+        "ext-mbstring": "Provides multibyte-specific string functions that help us deal with multibyte encodings in PHP."
     },
     "scripts": {
         "phpcs": "phpcs --standard=PSR12 --extensions=php ./src",
