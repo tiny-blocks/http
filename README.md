@@ -43,7 +43,7 @@ echo $httpCode->message(); # 201 Created
 
 ### Using the HttpMethod
 
-The library exposes a concrete implementation via the `HttpMethod` enumeration. You can get a set of HTTP methods.
+The library exposes a concrete implementation via the `HttpMethod` enum. You can get a set of HTTP methods.
 
 ```php
 $method = HttpMethod::GET;
