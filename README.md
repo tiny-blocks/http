@@ -52,6 +52,21 @@ echo $method->name;  # GET
 echo $method->value; # GET
 ```
 
+### Using the HttpResponse
+
+The library exposes a concrete implementation for HTTP responses via the `HttpResponse` class. Responses are of the
+[ResponseInterface](https://github.com/php-fig/http-message/blob/master/src/ResponseInterface.php) type, according to
+the specifications defined in [PSR-7](https://www.php-fig.org/psr/psr-7).
+
+```php
+$data = new Xyz(value: 10);
+$response = HttpResponse::ok(data: $data);
+
+$response->getStatusCode();          # 200
+$response->getReasonPhrase();        # 200 Ok
+$response->getBody()->getContents(); # {"value":10}
+```
+
 ## License
 
 Math is licensed under [MIT](/LICENSE).
