@@ -36,9 +36,9 @@ corresponding messages.
 ```php
 $httpCode = HttpCode::CREATED;
 
-echo $httpCode->name;      # CREATED
-echo $httpCode->value;     # 201
-echo $httpCode->message(); # 201 Created
+$httpCode->name;      # CREATED
+$httpCode->value;     # 201
+$httpCode->message(); # 201 Created
 ```
 
 ### Using the HttpMethod
@@ -48,8 +48,8 @@ The library exposes a concrete implementation via the `HttpMethod` enum. You can
 ```php
 $method = HttpMethod::GET;
 
-echo $method->name;  # GET
-echo $method->value; # GET
+$method->name;  # GET
+$method->value; # GET
 ```
 
 ### Using the HttpResponse
