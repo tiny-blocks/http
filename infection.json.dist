@@ -12,7 +12,15 @@
         "summary": "report/logs/infection-summary.log"
     },
     "mutators": {
-        "@default": true
+        "@default": true,
+        "ArrayItem": false,
+        "LogicalOr": false,
+        "IfNegation": false,
+        "InstanceOf_": false,
+        "ArrayItemRemoval": false,
+        "MethodCallRemoval": false,
+        "LogicalOrAllSubExprNegation": false,
+        "LogicalOrSingleSubExprNegation": false
     },
     "phpUnit": {
         "configDir": "",
