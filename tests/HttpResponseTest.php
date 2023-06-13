@@ -8,7 +8,7 @@ use TinyBlocks\Http\Mock\Xyz;
 
 class HttpResponseTest extends TestCase
 {
-    private array $defaultHeader = ['Content-Type' => 'application/json'];
+    private array $defaultHeader = [['Content-Type' => 'application/json']];
 
     /**
      * @dataProvider providerData

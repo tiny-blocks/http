@@ -20,7 +20,9 @@ final class Response implements ResponseInterface
 
     public static function from(HttpCode $code, mixed $data, array $headers): ResponseInterface
     {
-        $headers = empty($headers) ? ['Content-Type' => 'application/json'] : $headers;
+        if (empty($headers)) {
+            $headers[] = ['Content-Type' => 'application/json'];
+        }
 
         return new Response(code: $code, body: StreamFactory::from(data: $data), headers: $headers);
     }
