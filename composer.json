@@ -9,11 +9,14 @@
     "keywords": [
         "psr",
         "psr-4",
+        "psr-7",
         "psr-12",
         "http",
         "http-code",
+        "tiny-blocks",
         "http-status",
-        "tiny-blocks"
+        "http-methods",
+        "http-response"
     ],
     "authors": [
         {
@@ -39,20 +42,22 @@
     },
     "require": {
         "php": "^8.1||^8.2",
+        "tiny-blocks/serializer": "1.*",
+        "psr/http-message": "2.*",
         "ext-mbstring": "*"
     },
     "require-dev": {
-        "infection/infection": "^0.26",
-        "phpmd/phpmd": "^2.12",
-        "phpunit/phpunit": "^9.5",
-        "squizlabs/php_codesniffer": "^3.7"
+        "infection/infection": "0.*",
+        "phpmd/phpmd": "2.*",
+        "phpunit/phpunit": "9.*",
+        "squizlabs/php_codesniffer": "3.*"
     },
     "suggest": {
         "ext-mbstring": "Provides multibyte-specific string functions that help us deal with multibyte encodings in PHP."
     },
     "scripts": {
         "phpcs": "phpcs --standard=PSR12 --extensions=php ./src",
-        "phpmd": "phpmd ./src text phpmd.xml --suffixes php --exclude /src/HttpCode.php --ignore-violations-on-exit",
+        "phpmd": "phpmd ./src text phpmd.xml --suffixes php --exclude /src/HttpCode.php --exclude /src/Internal/Response --ignore-violations-on-exit",
         "test": "phpunit --log-junit=report/coverage/junit.xml --coverage-xml=report/coverage/coverage-xml --coverage-html=report/coverage/coverage-html tests",
         "test-mutation": "infection --only-covered --logger-html=report/coverage/mutation-report.html --coverage=report/coverage --min-msi=100 --min-covered-msi=100 --threads=4",
         "test-no-coverage": "phpunit --no-coverage",

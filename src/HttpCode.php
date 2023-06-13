@@ -9,9 +9,13 @@ use BackedEnum;
  * Responses are grouped in five classes:
  *
  * Informational (100 – 199)
+ *
  * Successful (200 – 299)
+ *
  * Redirection (300 – 399)
+ *
  * Client error (400 – 499)
+ *
  * Server error (500 – 599)
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
