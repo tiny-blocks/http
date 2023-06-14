@@ -11,13 +11,10 @@ use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
 class ResponseTest extends TestCase
 {
-    private const TEXT_PLAIN = 'Content-Type: text/plain';
-    private const APPLICATION_JSON = 'Content-Type: application/json';
-
     public function testDefaultHeaders(): void
     {
         $response = Response::from(code: HttpCode::OK, data: [], headers: null);
-        $expected = ['header' => ['Content-Type' => self::APPLICATION_JSON]];
+        $expected = ['Content-Type' => [HttpContentType::APPLICATION_JSON->value]];
 
         self::assertEquals($expected, $response->getHeaders());
     }
@@ -31,9 +28,9 @@ class ResponseTest extends TestCase
 
     public function testGetHeaders(): void
     {
-        $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
+        $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
-        $expected = ['Content-Type' => self::APPLICATION_JSON];
+        $expected = [HttpContentType::APPLICATION_JSON->value];
 
         self::assertEquals($headers->toArray(), $response->getHeaders());
         self::assertEquals($expected, $response->getHeader(name: 'Content-Type'));
@@ -41,9 +38,9 @@ class ResponseTest extends TestCase
 
     public function testHasHeader(): void
     {
-        $headers = (new HttpHeaders())->add(header: HttpContentType::TEXT_PLAIN);
+        $headers = HttpHeaders::build()->add(header: HttpContentType::TEXT_PLAIN);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
-        $expected = ['Content-Type' => self::TEXT_PLAIN];
+        $expected = [HttpContentType::TEXT_PLAIN->value];
 
         self::assertTrue($response->hasHeader(name: 'Content-Type'));
         self::assertEquals($expected, $response->getHeader(name: 'Content-Type'));
@@ -51,10 +48,10 @@ class ResponseTest extends TestCase
 
     public function testGetHeaderLine(): void
     {
-        $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
+        $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
 
-        self::assertEquals(self::APPLICATION_JSON, $response->getHeaderLine(name: 'Content-Type'));
+        self::assertEquals(HttpContentType::APPLICATION_JSON->value, $response->getHeaderLine(name: 'Content-Type'));
     }
 
     public function testExceptionWhenBadMethodCallOnWithBody(): void
