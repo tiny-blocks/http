@@ -6,6 +6,8 @@ use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\HttpCode;
+use TinyBlocks\Http\HttpContentType;
+use TinyBlocks\Http\HttpHeaders;
 use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
 use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
@@ -14,14 +16,14 @@ final class Response implements ResponseInterface
     private function __construct(
         private readonly HttpCode $code,
         private readonly StreamInterface $body,
-        private readonly array $headers
+        private readonly HttpHeaders $headers
     ) {
     }
 
-    public static function from(HttpCode $code, mixed $data, array $headers): ResponseInterface
+    public static function from(HttpCode $code, mixed $data, ?HttpHeaders $headers): ResponseInterface
     {
-        if (empty($headers)) {
-            $headers[] = ['Content-Type' => 'application/json'];
+        if (is_null($headers) || !$headers->hasHeaders()) {
+            $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
         }
 
         return new Response(code: $code, body: StreamFactory::from(data: $data), headers: $headers);
@@ -64,17 +66,17 @@ final class Response implements ResponseInterface
 
     public function getHeaders(): array
     {
-        return $this->headers;
+        return $this->headers->toArray();
     }
 
     public function hasHeader(string $name): bool
     {
-        return isset($this->headers[$name]);
+        return $this->headers->hasHeader(key: $name);
     }
 
     public function getHeader(string $name): array
     {
-        return $this->headers[$name] ?? [];
+        return $this->headers->getHeader();
     }
 
     public function getHeaderLine(string $name): string

@@ -12,22 +12,22 @@ use TinyBlocks\Http\Internal\Response;
  */
 final class HttpResponse
 {
-    public static function ok(mixed $data, array $headers = []): ResponseInterface
+    public static function ok(mixed $data, ?HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::OK, data: $data, headers: $headers);
     }
 
-    public static function created(mixed $data, array $headers = []): ResponseInterface
+    public static function created(mixed $data, HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::CREATED, data: $data, headers: $headers);
     }
 
-    public static function accepted(mixed $data, array $headers = []): ResponseInterface
+    public static function accepted(mixed $data, HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::ACCEPTED, data: $data, headers: $headers);
     }
 
-    public static function noContent(array $headers = []): ResponseInterface
+    public static function noContent(HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::NO_CONTENT, data: null, headers: $headers);
     }
