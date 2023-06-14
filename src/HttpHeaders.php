@@ -13,17 +13,25 @@ final class HttpHeaders
 {
     private array $values = [];
 
+    private function __construct()
+    {
+    }
+
+    public static function build(): HttpHeaders
+    {
+        return new HttpHeaders();
+    }
+
     public function add(Header $header): HttpHeaders
     {
-        $key = $header->key();
-        $this->values['header'][$key] = sprintf('%s: %s', $key, $header->value());
+        $this->values[$header->key()][] = $header->value();
 
         return $this;
     }
 
-    public function getHeader(): array
+    public function getHeader(string $key): array
     {
-        return $this->values['header'] ?? [];
+        return $this->values[$key] ?? [];
     }
 
     public function hasHeaders(): bool
@@ -33,11 +41,14 @@ final class HttpHeaders
 
     public function hasHeader(string $key): bool
     {
-        return !empty($this->getHeader()[$key]);
+        return !empty($this->getHeader(key: $key));
     }
 
     public function toArray(): array
     {
-        return $this->values;
+        return array_map(
+            fn(array $values): array => [end($values)],
+            array_map(fn(array $values): array => array_unique($values), $this->values)
+        );
     }
 }

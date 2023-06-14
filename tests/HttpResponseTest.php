@@ -8,7 +8,12 @@ use TinyBlocks\Http\Mock\Xyz;
 
 class HttpResponseTest extends TestCase
 {
-    private array $defaultHeader = ['header' => ['Content-Type' => 'Content-Type: application/json']];
+    private array $defaultHeader;
+
+    protected function setUp(): void
+    {
+        $this->defaultHeader = ['Content-Type' => [HttpContentType::APPLICATION_JSON->value]];
+    }
 
     /**
      * @dataProvider providerData

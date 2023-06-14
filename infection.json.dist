@@ -17,7 +17,9 @@
         "LogicalOr": false,
         "IfNegation": false,
         "InstanceOf_": false,
+        "UnwrapArrayMap": false,
         "ArrayItemRemoval": false,
+        "UnwrapArrayUnique": false,
         "MethodCallRemoval": false,
         "LogicalOrAllSubExprNegation": false,
         "LogicalOrSingleSubExprNegation": false
