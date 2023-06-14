@@ -4,125 +4,116 @@ namespace TinyBlocks\Http\Internal;
 
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\HttpCode;
+use TinyBlocks\Http\HttpContentType;
+use TinyBlocks\Http\HttpHeaders;
 use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
 use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
 class ResponseTest extends TestCase
 {
-    private Response $response;
+    private const TEXT_PLAIN = 'Content-Type: text/plain';
+    private const APPLICATION_JSON = 'Content-Type: application/json';
 
-    protected function setUp(): void
+    public function testDefaultHeaders(): void
     {
-        $this->response = Response::from(code: HttpCode::OK, data: [], headers: []);
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+        $expected = ['header' => ['Content-Type' => self::APPLICATION_JSON]];
+
+        self::assertEquals($expected, $response->getHeaders());
     }
 
     public function testGetProtocolVersion(): void
     {
-        self::assertEquals('1.1', $this->response->getProtocolVersion());
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
+        self::assertEquals('1.1', $response->getProtocolVersion());
     }
 
     public function testGetHeaders(): void
     {
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Auth-Token' => 'abc123'
-        ];
-
+        $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
+        $expected = ['Content-Type' => self::APPLICATION_JSON];
 
-        self::assertEquals($headers, $response->getHeaders());
+        self::assertEquals($headers->toArray(), $response->getHeaders());
+        self::assertEquals($expected, $response->getHeader(name: 'Content-Type'));
     }
 
     public function testHasHeader(): void
     {
-        $headers = [
-            'Content-Type' => 'application/json',
-            'X-Auth-Token' => 'abc123'
-        ];
-
+        $headers = (new HttpHeaders())->add(header: HttpContentType::TEXT_PLAIN);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
+        $expected = ['Content-Type' => self::TEXT_PLAIN];
 
         self::assertTrue($response->hasHeader(name: 'Content-Type'));
-        self::assertFalse($response->hasHeader(name: 'Authorization'));
-    }
-
-    public function testGetHeader(): void
-    {
-        $headers = [
-            'Content-Type'    => ['application/json'],
-            'X-Auth-Token'    => ['abc123'],
-            'X-Custom-Header' => ['value1', 'value2']
-        ];
-
-        $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
-
-        self::assertEquals(['application/json'], $response->getHeader(name: 'Content-Type'));
-        self::assertEquals(['abc123'], $response->getHeader(name: 'X-Auth-Token'));
-        self::assertEquals(['value1', 'value2'], $response->getHeader(name: 'X-Custom-Header'));
-        self::assertEquals([], $response->getHeader(name: 'Authorization'));
+        self::assertEquals($expected, $response->getHeader(name: 'Content-Type'));
     }
 
     public function testGetHeaderLine(): void
     {
-        $headers = [
-            'Content-Type'    => ['application/json'],
-            'X-Auth-Token'    => ['abc123'],
-            'X-Custom-Header' => ['value1', 'value2']
-        ];
-
+        $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
 
-        self::assertEquals('application/json', $response->getHeaderLine(name: 'Content-Type'));
-        self::assertEquals('abc123', $response->getHeaderLine(name: 'X-Auth-Token'));
-        self::assertEquals('value1, value2', $response->getHeaderLine(name: 'X-Custom-Header'));
-        self::assertEquals('', $response->getHeaderLine(name: 'Authorization'));
+        self::assertEquals(self::APPLICATION_JSON, $response->getHeaderLine(name: 'Content-Type'));
     }
 
     public function testExceptionWhenBadMethodCallOnWithBody(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withBody> cannot be used.');
 
-        $this->response->withBody(body: StreamFactory::from(data: []));
+        $response->withBody(body: StreamFactory::from(data: []));
     }
 
     public function testExceptionWhenBadMethodCallOnWithStatus(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withStatus> cannot be used.');
 
-        $this->response->withStatus(code: HttpCode::OK->value);
+        $response->withStatus(code: HttpCode::OK->value);
     }
 
     public function testExceptionWhenBadMethodCallOnWithHeader(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withHeader> cannot be used.');
 
-        $this->response->withHeader(name: '', value: '');
+        $response->withHeader(name: '', value: '');
     }
 
     public function testExceptionWhenBadMethodCallOnWithoutHeader(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withoutHeader> cannot be used.');
 
-        $this->response->withoutHeader(name: '');
+        $response->withoutHeader(name: '');
     }
 
     public function testExceptionWhenBadMethodCallOnWithAddedHeader(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withAddedHeader> cannot be used.');
 
-        $this->response->withAddedHeader(name: '', value: '');
+        $response->withAddedHeader(name: '', value: '');
     }
 
     public function testExceptionWhenBadMethodCallOnWithProtocolVersion(): void
     {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+
         self::expectException(BadMethodCall::class);
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withProtocolVersion> cannot be used.');
 
-        $this->response->withProtocolVersion(version: '');
+        $response->withProtocolVersion(version: '');
     }
 }
