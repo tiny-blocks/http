@@ -23,7 +23,7 @@ final class Response implements ResponseInterface
     public static function from(HttpCode $code, mixed $data, ?HttpHeaders $headers): ResponseInterface
     {
         if (is_null($headers) || !$headers->hasHeaders()) {
-            $headers = (new HttpHeaders())->add(header: HttpContentType::APPLICATION_JSON);
+            $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
         }
 
         return new Response(code: $code, body: StreamFactory::from(data: $data), headers: $headers);
@@ -76,12 +76,12 @@ final class Response implements ResponseInterface
 
     public function getHeader(string $name): array
     {
-        return $this->headers->getHeader();
+        return $this->headers->getHeader(key: $name);
     }
 
     public function getHeaderLine(string $name): string
     {
-        return implode(', ', $this->getHeader(name: $name));
+        return implode(', ', $this->headers->getHeader(key: $name));
     }
 
     public function getBody(): StreamInterface
