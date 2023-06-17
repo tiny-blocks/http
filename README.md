@@ -67,9 +67,11 @@ $response->getReasonPhrase();        # 200 Ok
 $response->getBody()->getContents(); # {"value":10}
 ```
 
+<div id='license'></div>
+
 ## License
 
-Math is licensed under [MIT](/LICENSE).
+Http is licensed under [MIT](LICENSE).
 
 <div id='contributing'></div>
 
