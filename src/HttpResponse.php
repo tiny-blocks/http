@@ -17,17 +17,17 @@ final class HttpResponse
         return Response::from(code: HttpCode::OK, data: $data, headers: $headers);
     }
 
-    public static function created(mixed $data, HttpHeaders $headers = null): ResponseInterface
+    public static function created(mixed $data, ?HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::CREATED, data: $data, headers: $headers);
     }
 
-    public static function accepted(mixed $data, HttpHeaders $headers = null): ResponseInterface
+    public static function accepted(mixed $data, ?HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::ACCEPTED, data: $data, headers: $headers);
     }
 
-    public static function noContent(HttpHeaders $headers = null): ResponseInterface
+    public static function noContent(?HttpHeaders $headers = null): ResponseInterface
     {
         return Response::from(code: HttpCode::NO_CONTENT, data: null, headers: $headers);
     }
