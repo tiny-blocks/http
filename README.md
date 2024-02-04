@@ -63,7 +63,7 @@ $data = new Xyz(value: 10);
 $response = HttpResponse::ok(data: $data);
 
 $response->getStatusCode();          # 200
-$response->getReasonPhrase();        # 200 Ok
+$response->getReasonPhrase();        # 200 OK
 $response->getBody()->getContents(); # {"value":10}
 ```
 
