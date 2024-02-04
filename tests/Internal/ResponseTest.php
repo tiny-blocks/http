@@ -14,7 +14,10 @@ class ResponseTest extends TestCase
     public function testDefaultHeaders(): void
     {
         $response = Response::from(code: HttpCode::OK, data: [], headers: null);
-        $expected = ['Content-Type' => [HttpContentType::APPLICATION_JSON->value]];
+        $expected = [
+            'Status'       => [sprintf('HTTP/1.1 %s', HttpCode::OK->message())],
+            'Content-Type' => [HttpContentType::APPLICATION_JSON->value]
+        ];
 
         self::assertEquals($expected, $response->getHeaders());
     }
@@ -28,7 +31,7 @@ class ResponseTest extends TestCase
 
     public function testGetHeaders(): void
     {
-        $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
+        $headers = HttpHeaders::build()->addFromContentType(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
         $expected = [HttpContentType::APPLICATION_JSON->value];
 
@@ -38,7 +41,7 @@ class ResponseTest extends TestCase
 
     public function testHasHeader(): void
     {
-        $headers = HttpHeaders::build()->add(header: HttpContentType::TEXT_PLAIN);
+        $headers = HttpHeaders::build()->addFromContentType(header: HttpContentType::TEXT_PLAIN);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
         $expected = [HttpContentType::TEXT_PLAIN->value];
 
@@ -48,7 +51,7 @@ class ResponseTest extends TestCase
 
     public function testGetHeaderLine(): void
     {
-        $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
+        $headers = HttpHeaders::build()->addFromContentType(header: HttpContentType::APPLICATION_JSON);
         $response = Response::from(code: HttpCode::OK, data: [], headers: $headers);
 
         self::assertEquals(HttpContentType::APPLICATION_JSON->value, $response->getHeaderLine(name: 'Content-Type'));

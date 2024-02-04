@@ -13,16 +13,20 @@ final class HttpHeaders
 {
     private array $values = [];
 
-    private function __construct()
-    {
-    }
-
     public static function build(): HttpHeaders
     {
         return new HttpHeaders();
     }
 
-    public function add(Header $header): HttpHeaders
+    public function addFromCode(HttpCode $code): HttpHeaders
+    {
+        $template = 'HTTP/1.1 %s';
+        $this->values['Status'][] = sprintf($template, $code->message());
+
+        return $this;
+    }
+
+    public function addFromContentType(Header $header): HttpHeaders
     {
         $this->values[$header->key()][] = $header->value();
 
@@ -34,9 +38,9 @@ final class HttpHeaders
         return $this->values[$key] ?? [];
     }
 
-    public function hasHeaders(): bool
+    public function hasNoHeaders(): bool
     {
-        return !empty($this->values);
+        return empty($this->values);
     }
 
     public function hasHeader(string $key): bool
