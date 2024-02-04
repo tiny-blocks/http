@@ -18,10 +18,16 @@ final class HttpHeaders
         return new HttpHeaders();
     }
 
+    public function addFrom(string $key, mixed $value): HttpHeaders
+    {
+        $this->values[$key][] = $value;
+
+        return $this;
+    }
+
     public function addFromCode(HttpCode $code): HttpHeaders
     {
-        $template = 'HTTP/1.1 %s';
-        $this->values['Status'][] = sprintf($template, $code->message());
+        $this->values['Status'][] = $code->message();
 
         return $this;
     }
@@ -29,6 +35,13 @@ final class HttpHeaders
     public function addFromContentType(Header $header): HttpHeaders
     {
         $this->values[$header->key()][] = $header->value();
+
+        return $this;
+    }
+
+    public function removeFrom(string $key): HttpHeaders
+    {
+        unset($this->values[$key]);
 
         return $this;
     }

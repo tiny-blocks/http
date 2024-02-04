@@ -40,12 +40,16 @@ final readonly class Response implements ResponseInterface
 
     public function withHeader(string $name, mixed $value): MessageInterface
     {
-        throw new BadMethodCall(method: __METHOD__);
+        $this->headers->addFrom(key: $name, value: $value);
+
+        return $this;
     }
 
     public function withoutHeader(string $name): MessageInterface
     {
-        throw new BadMethodCall(method: __METHOD__);
+        $this->headers->removeFrom(key: $name);
+
+        return $this;
     }
 
     public function withAddedHeader(string $name, mixed $value): MessageInterface
