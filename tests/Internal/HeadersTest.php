@@ -10,7 +10,7 @@ class HeadersTest extends TestCase
 {
     public function testAddAndGetValues(): void
     {
-        $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
+        $headers = HttpHeaders::build()->addFromContentType(header: HttpContentType::APPLICATION_JSON);
         $expected = ['Content-Type' => [HttpContentType::APPLICATION_JSON->value]];
 
         self::assertEquals($expected, $headers->toArray());
@@ -19,8 +19,8 @@ class HeadersTest extends TestCase
     public function testAddAndGetUniqueValues(): void
     {
         $headers = HttpHeaders::build()
-            ->add(header: HttpContentType::TEXT_HTML)
-            ->add(header: HttpContentType::APPLICATION_PDF);
+            ->addFromContentType(header: HttpContentType::TEXT_HTML)
+            ->addFromContentType(header: HttpContentType::APPLICATION_PDF);
         $expected = ['Content-Type' => [HttpContentType::APPLICATION_PDF->value]];
 
         self::assertEquals($expected, $headers->toArray());

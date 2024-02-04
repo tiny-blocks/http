@@ -11,19 +11,18 @@ use TinyBlocks\Http\HttpHeaders;
 use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
 use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
-final class Response implements ResponseInterface
+final readonly class Response implements ResponseInterface
 {
-    private function __construct(
-        private readonly HttpCode $code,
-        private readonly StreamInterface $body,
-        private readonly HttpHeaders $headers
-    ) {
+    private function __construct(private HttpCode $code, private StreamInterface $body, private HttpHeaders $headers)
+    {
     }
 
     public static function from(HttpCode $code, mixed $data, ?HttpHeaders $headers): ResponseInterface
     {
-        if (is_null($headers) || !$headers->hasHeaders()) {
-            $headers = HttpHeaders::build()->add(header: HttpContentType::APPLICATION_JSON);
+        if (is_null($headers) || $headers->hasNoHeaders()) {
+            $headers = HttpHeaders::build()
+                ->addFromCode(code: $code)
+                ->addFromContentType(header: HttpContentType::APPLICATION_JSON);
         }
 
         return new Response(code: $code, body: StreamFactory::from(data: $data), headers: $headers);
