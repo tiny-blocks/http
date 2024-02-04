@@ -96,6 +96,11 @@ enum HttpCode: int
     public function message(): string
     {
         $subject = mb_convert_case($this->name, MB_CASE_TITLE);
+
+        if ($this->value === self::OK->value) {
+            $subject = $this->name;
+        }
+
         $message = str_replace('_', ' ', $subject);
         $template = '%s %s';
 

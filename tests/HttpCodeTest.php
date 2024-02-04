@@ -35,7 +35,7 @@ final class HttpCodeTest extends TestCase
             ],
             [
                 'httpCode' => HttpCode::OK,
-                'expected' => '200 Ok'
+                'expected' => '200 OK'
             ],
             [
                 'httpCode' => HttpCode::CREATED,
