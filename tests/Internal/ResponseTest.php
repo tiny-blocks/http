@@ -15,7 +15,7 @@ class ResponseTest extends TestCase
     {
         $response = Response::from(code: HttpCode::OK, data: [], headers: null);
         $expected = [
-            'Status'       => [sprintf('HTTP/1.1 %s', HttpCode::OK->message())],
+            'Status'       => [HttpCode::OK->message()],
             'Content-Type' => [HttpContentType::APPLICATION_JSON->value]
         ];
 
@@ -57,6 +57,27 @@ class ResponseTest extends TestCase
         self::assertEquals(HttpContentType::APPLICATION_JSON->value, $response->getHeaderLine(name: 'Content-Type'));
     }
 
+    public function testWithHeader(): void
+    {
+        $value = '2850bf62-8383-4e9f-b237-d41247a1df3b';
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+        $response->withHeader(name: 'Token', value: $value);
+
+        $expected = [$value];
+
+        self::assertEquals($expected, $response->getHeader(name: 'Token'));
+    }
+
+    public function testWithoutHeader(): void
+    {
+        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
+        $response->withoutHeader('Status');
+        $expected = [HttpContentType::APPLICATION_JSON->value];
+
+        self::assertEmpty($response->getHeader(name: 'Status'));
+        self::assertEquals($expected, $response->getHeader(name: 'Content-Type'));
+    }
+
     public function testExceptionWhenBadMethodCallOnWithBody(): void
     {
         $response = Response::from(code: HttpCode::OK, data: [], headers: null);
@@ -75,26 +96,6 @@ class ResponseTest extends TestCase
         self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withStatus> cannot be used.');
 
         $response->withStatus(code: HttpCode::OK->value);
-    }
-
-    public function testExceptionWhenBadMethodCallOnWithHeader(): void
-    {
-        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
-
-        self::expectException(BadMethodCall::class);
-        self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withHeader> cannot be used.');
-
-        $response->withHeader(name: '', value: '');
-    }
-
-    public function testExceptionWhenBadMethodCallOnWithoutHeader(): void
-    {
-        $response = Response::from(code: HttpCode::OK, data: [], headers: null);
-
-        self::expectException(BadMethodCall::class);
-        self::expectExceptionMessage('Method <TinyBlocks\Http\Internal\Response::withoutHeader> cannot be used.');
-
-        $response->withoutHeader(name: '');
     }
 
     public function testExceptionWhenBadMethodCallOnWithAddedHeader(): void

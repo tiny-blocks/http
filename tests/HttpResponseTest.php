@@ -150,7 +150,7 @@ class HttpResponseTest extends TestCase
     private function defaultHeaderFrom(HttpCode $code): array
     {
         return [
-            'Status'       => [sprintf('HTTP/1.1 %s', $code->message())],
+            'Status'       => [$code->message()],
             'Content-Type' => [HttpContentType::APPLICATION_JSON->value]
         ];
     }
