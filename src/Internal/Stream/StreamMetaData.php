@@ -2,13 +2,13 @@
 
 namespace TinyBlocks\Http\Internal\Stream;
 
-final class StreamMetaData
+final readonly class StreamMetaData
 {
     public function __construct(
-        private readonly string $uri,
-        private readonly string $mode,
-        private readonly bool $seekable,
-        private readonly string $streamType
+        private string $uri,
+        private string $mode,
+        private bool $seekable,
+        private string $streamType
     ) {
     }
 

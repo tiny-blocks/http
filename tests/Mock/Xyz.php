@@ -2,9 +2,9 @@
 
 namespace TinyBlocks\Http\Mock;
 
-final class Xyz
+final readonly class Xyz
 {
-    public function __construct(public readonly int $value)
+    public function __construct(public int $value)
     {
     }
 }
