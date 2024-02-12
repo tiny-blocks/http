@@ -26,7 +26,7 @@ final class HttpCodeTest extends TestCase
         self::assertEquals($expected, $actual);
     }
 
-    public function providerForTestMessage(): array
+    public static function providerForTestMessage(): array
     {
         return [
             [
@@ -64,7 +64,7 @@ final class HttpCodeTest extends TestCase
         ];
     }
 
-    public function providerForTestIsHttpCode(): array
+    public static function providerForTestIsHttpCode(): array
     {
         return [
             [
