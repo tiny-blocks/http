@@ -117,7 +117,7 @@ class HttpResponseTest extends TestCase
         self::assertEquals($this->defaultHeaderFrom(code: HttpCode::INTERNAL_SERVER_ERROR), $response->getHeaders());
     }
 
-    public function providerData(): array
+    public static function providerData(): array
     {
         return [
             [
