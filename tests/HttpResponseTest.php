@@ -106,6 +106,20 @@ class HttpResponseTest extends TestCase
     /**
      * @dataProvider providerData
      */
+    public function testResponseUnprocessableEntity(mixed $data, mixed $expected): void
+    {
+        $response = HttpResponse::unprocessableEntity(data: $data);
+
+        self::assertEquals($expected, $response->getBody()->__toString());
+        self::assertEquals($expected, $response->getBody()->getContents());
+        self::assertEquals(HttpCode::UNPROCESSABLE_ENTITY->value, $response->getStatusCode());
+        self::assertEquals(HttpCode::UNPROCESSABLE_ENTITY->message(), $response->getReasonPhrase());
+        self::assertEquals($this->defaultHeaderFrom(code: HttpCode::UNPROCESSABLE_ENTITY), $response->getHeaders());
+    }
+
+    /**
+     * @dataProvider providerData
+     */
     public function testResponseInternalServerError(mixed $data, mixed $expected): void
     {
         $response = HttpResponse::internalServerError(data: $data);
