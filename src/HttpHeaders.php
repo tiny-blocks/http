@@ -63,9 +63,6 @@ final class HttpHeaders
 
     public function toArray(): array
     {
-        return array_map(
-            fn(array $values): array => [end($values)],
-            array_map(fn(array $values): array => array_unique($values), $this->values)
-        );
+        return array_map(fn(array $values): array => array_unique($values), $this->values);
     }
 }
