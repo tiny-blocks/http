@@ -1,31 +1,22 @@
 {
-    "timeout": 10,
-    "testFramework": "phpunit",
+    "$schema": "vendor/infection/infection/resources/schema.json",
     "tmpDir": "report/",
+    "logs": {
+        "text": "report/logs/infection-text.log",
+        "summary": "report/logs/infection-summary.log"
+    },
     "source": {
         "directories": [
             "src"
         ]
     },
-    "logs": {
-        "text": "report/logs/infection-text.log",
-        "summary": "report/logs/infection-summary.log"
-    },
+    "timeout": 10,
     "mutators": {
         "@default": true,
-        "ArrayItem": false,
         "LogicalOr": false,
-        "IfNegation": false,
         "InstanceOf_": false,
         "UnwrapArrayMap": false,
-        "ArrayItemRemoval": false,
-        "UnwrapArrayUnique": false,
-        "MethodCallRemoval": false,
-        "LogicalOrAllSubExprNegation": false,
-        "LogicalOrSingleSubExprNegation": false
+        "MethodCallRemoval": false
     },
-    "phpUnit": {
-        "configDir": "",
-        "customPath": "./vendor/bin/phpunit"
-    }
+    "testFramework": "phpunit"
 }

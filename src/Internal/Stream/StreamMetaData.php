@@ -4,7 +4,7 @@ namespace TinyBlocks\Http\Internal\Stream;
 
 final readonly class StreamMetaData
 {
-    public function __construct(
+    private function __construct(
         private string $uri,
         private string $mode,
         private bool $seekable,
@@ -36,8 +36,8 @@ final readonly class StreamMetaData
     {
         return [
             'uri'        => $this->uri,
-            'mode'       => $this->getMode(),
-            'seekable'   => $this->isSeekable(),
+            'mode'       => $this->mode,
+            'seekable'   => $this->seekable,
             'streamType' => $this->streamType
         ];
     }

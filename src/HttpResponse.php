@@ -51,6 +51,11 @@ final class HttpResponse
         return Response::from(code: HttpCode::CONFLICT, data: $data, headers: $headers);
     }
 
+    public static function unprocessableEntity(mixed $data, ?HttpHeaders $headers = null): ResponseInterface
+    {
+        return Response::from(code: HttpCode::UNPROCESSABLE_ENTITY, data: $data, headers: $headers);
+    }
+
     #  Server error (500 – 599)
 
     public static function internalServerError(mixed $data, ?HttpHeaders $headers = null): ResponseInterface

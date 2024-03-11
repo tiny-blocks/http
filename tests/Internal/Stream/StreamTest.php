@@ -67,9 +67,18 @@ class StreamTest extends TestCase
         $actual = $stream->getMetadata();
         $expected = StreamMetaData::from(data: stream_get_meta_data($this->resource))->toArray();
 
-        self::assertNull($stream->getMetadata(key: ''));
-        self::assertEquals($expected, $actual);
-        self::assertEquals($expected['mode'], $stream->getMetadata(key: 'mode'));
+        self::assertEquals($expected['uri'], $actual['uri']);
+        self::assertEquals($expected['mode'], $actual['mode']);
+        self::assertEquals($expected['seekable'], $actual['seekable']);
+        self::assertEquals($expected['streamType'], $actual['streamType']);
+    }
+
+    public function testGetMetadataWhenKeyIsUnknown(): void
+    {
+        $stream = Stream::from(resource: $this->resource);
+        $actual = $stream->getMetadata(key: 'UNKNOWN');
+
+        self::assertNull($actual);
     }
 
     public function testSeekMovesCursorPosition(): void
@@ -123,6 +132,15 @@ class StreamTest extends TestCase
 
         $stream->close();
         $stream->tell();
+    }
+
+    public function testToStringRewindsStreamIfNotSeekable(): void
+    {
+        $stream = Stream::from(resource: $this->resource);
+        $stream->write(string: 'Hello, world!');
+        $actual = (string)$stream;
+
+        self::assertEquals('Hello, world!', $actual);
     }
 
     public function testExceptionWhenNonSeekableStream(): void
