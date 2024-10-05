@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace TinyBlocks\Http\Internal\Stream;
 
 use Psr\Http\Message\StreamInterface;
@@ -11,28 +13,14 @@ final class StreamFactory
     {
         $stream = Stream::from(resource: fopen('php://memory', 'wb+'));
 
-        if ($data instanceof Serializer) {
-            $stream->write(string: json_encode($data->toArray()));
-            $stream->rewind();
+        $dataToWrite = match (true) {
+            is_a($data, Serializer::class)      => $data->toJson(),
+            is_object($data)                    => (string)json_encode(get_object_vars($data)),
+            is_scalar($data) || is_array($data) => (string)json_encode($data, JSON_PRESERVE_ZERO_FRACTION),
+            default                             => ''
+        };
 
-            return $stream;
-        }
-
-        if (is_object($data)) {
-            $stream->write(string: json_encode(get_object_vars($data)));
-            $stream->rewind();
-
-            return $stream;
-        }
-
-        if (is_scalar($data) || is_array($data)) {
-            $stream->write(string: json_encode($data));
-            $stream->rewind();
-
-            return $stream;
-        }
-
-        $stream->write(string: '');
+        $stream->write(string: $dataToWrite);
         $stream->rewind();
 
         return $stream;
