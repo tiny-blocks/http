@@ -1,6 +1,6 @@
 <?php
 
-namespace TinyBlocks\Http\Mock;
+namespace TinyBlocks\Http\Models;
 
 final readonly class Xyz
 {
