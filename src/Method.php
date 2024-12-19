@@ -9,7 +9,7 @@ namespace TinyBlocks\Http;
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
  */
-enum HttpMethod: string
+enum Method: string
 {
     case GET = 'GET';
     case PUT = 'PUT';

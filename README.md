@@ -5,6 +5,8 @@
 * [Overview](#overview)
 * [Installation](#installation)
 * [How to use](#how-to-use)
+    * [Using the status code](#status_code)
+    * [Creating a response](#response)
 * [License](#license)
 * [Contributing](#contributing)
 
@@ -12,7 +14,10 @@
 
 ## Overview
 
-Common implementations for HTTP protocol.
+Common implementations for HTTP protocol. The library exposes concrete implementations that follow the PSR standards,
+specifically designed to operate with [PSR-7](https://www.php-fig.org/psr/psr-7)
+and [PSR-15](https://www.php-fig.org/psr/psr-15), providing solutions for building HTTP responses, requests, and other
+HTTP-related components.
 
 <div id='installation'></div>
 
@@ -26,46 +31,95 @@ composer require tiny-blocks/http
 
 ## How to use
 
-The library exposes concrete implementations for the HTTP protocol, such as status codes, methods, etc.
+The library exposes interfaces like `Headers` and concrete implementations like `Response`, `ContentType`, and others,
+which facilitate construction.
 
-### Using the HttpCode
+<div id='status_code'></div>
 
-The library exposes a concrete implementation through the `HttpCode` enum. You can get the status codes, and their
-corresponding messages.
+### Using the status code
 
-```php
-$httpCode = HttpCode::CREATED;
+The library exposes a concrete implementation through the `Code` enum. You can retrieve the status codes, their
+corresponding messages, and check for various status code ranges using the methods provided.
 
-$httpCode->name;      # CREATED
-$httpCode->value;     # 201
-$httpCode->message(); # 201 Created
-```
+- **Get message**: Returns the [HTTP status message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages)
+  associated with the enum's code.
 
-### Using the HttpMethod
+  ```php
+  use TinyBlocks\Http\Code;
+  
+  Code::OK->message();                    # 200 OK
+  Code::IM_A_TEAPOT->message();           # 418 I'm a teapot
+  Code::INTERNAL_SERVER_ERROR->message(); # 500 Internal Server Error
+  ```
 
-The library exposes a concrete implementation via the `HttpMethod` enum. You can get a set of HTTP methods.
+- **Check if the code is valid**: Determines if the given code is a valid HTTP status code represented by the enum.
 
-```php
-$method = HttpMethod::GET;
+  ```php
+  use TinyBlocks\Http\Code;
+  
+  Code::isValidCode(code: 200); # true
+  Code::isValidCode(code: 999); # false
+  ```
 
-$method->name;  # GET
-$method->value; # GET
-```
+- **Check if the code is an error**: Determines if the given code is in the error range (**4xx** or **5xx**).
 
-### Using the HttpResponse
+  ```php
+  use TinyBlocks\Http\Code;
+  
+  Code::isErrorCode(code: 500); # true
+  Code::isErrorCode(code: 200); # false
+  ```
 
-The library exposes a concrete implementation for HTTP responses via the `HttpResponse` class. Responses are of the
-[ResponseInterface](https://github.com/php-fig/http-message/blob/master/src/ResponseInterface.php) type, according to
-the specifications defined in [PSR-7](https://www.php-fig.org/psr/psr-7).
+- **Check if the code is a success**: Determines if the given code is in the success range (**2xx**).
 
-```php
-$data = new Xyz(value: 10);
-$response = HttpResponse::ok(data: $data);
+  ```php
+  use TinyBlocks\Http\Code;
+  
+  Code::isSuccessCode(code: 500); # false
+  Code::isSuccessCode(code: 200); # true
+  ```
 
-$response->getStatusCode();          # 200
-$response->getReasonPhrase();        # 200 OK
-$response->getBody()->getContents(); # {"value":10}
-```
+<div id='response'></div>
+
+### Creating a response
+
+The library provides an easy and flexible way to create HTTP responses, allowing you to specify the status code,
+headers, and body. You can use the `Response` class to generate responses, and the result will always be a
+`ResponseInterface` from the PSR, ensuring compatibility with any framework that adheres
+to the [PSR-7](https://www.php-fig.org/psr/psr-7) standard.
+
+- **Creating a response with a body**: To create an HTTP response, you can pass any type of data as the body.
+  Optionally, you can also specify one or more headers. If no headers are provided, the response will default to
+  `application/json` content type.
+
+  ```php
+  use TinyBlocks\Http\Response;
+    
+  Response::ok(body: ['message' => 'Resource created successfully.']);
+  ```
+
+- **Creating a response with a body and custom headers**: You can also add custom headers to the response. For instance,
+  if you want to specify a custom content type or any other header, you can pass the headers as additional arguments.
+
+  ```php
+  use TinyBlocks\Http\Response;
+  use TinyBlocks\Http\ContentType;
+  use TinyBlocks\Http\CacheControl;
+  use TinyBlocks\Http\ResponseCacheDirectives;
+    
+  $body = 'This is a plain text response';
+  
+  $contentType = ContentType::textPlain();
+  
+  $cacheControl = CacheControl::fromResponseDirectives(
+      maxAge: ResponseCacheDirectives::maxAge(maxAgeInWholeSeconds: 10000),
+      staleIfError: ResponseCacheDirectives::staleIfError()
+  );
+  
+  Response::ok($body, $contentType, $cacheControl)
+      ->withHeader(name: 'X-ID', value: 100)
+      ->withHeader(name: 'X-NAME', value: 'Xpto');
+  ```
 
 <div id='license'></div>
 

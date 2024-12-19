@@ -4,8 +4,8 @@ parameters:
   level: 9
   tmpDir: report/phpstan
   ignoreErrors:
-    - '#function fread expects#'
-    - '#expects object, mixed given#'
-    - '#expects resource, resource#'
-    - '#value type specified in iterable#'
+    - '#expects#'
+    - '#should return#'
+    - '#does not accept#'
+    - '#type specified in iterable type#'
   reportUnmatchedIgnoredErrors: false

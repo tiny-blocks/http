@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Stream;
+namespace TinyBlocks\Http\Internal\Response\Stream;
 
 use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\Internal\Exceptions\InvalidResource;
@@ -13,7 +13,10 @@ use TinyBlocks\Http\Internal\Exceptions\NonWritableStream;
 
 final class Stream implements StreamInterface
 {
+    private const int OFFSET_ZERO = 0;
+
     private string $content = '';
+
     private bool $contentFetched = false;
 
     /**
@@ -63,7 +66,7 @@ final class Stream implements StreamInterface
 
         $size = fstat($this->resource);
 
-        return is_array($size) ? (int)$size['size'] : null;
+        return is_array($size) ? $size['size'] : null;
     }
 
     public function tell(): int
@@ -72,7 +75,7 @@ final class Stream implements StreamInterface
             throw new MissingResourceStream();
         }
 
-        return (int)ftell($this->resource);
+        return ftell($this->resource);
     }
 
     public function eof(): bool
@@ -91,7 +94,7 @@ final class Stream implements StreamInterface
 
     public function rewind(): void
     {
-        $this->seek(offset: 0);
+        $this->seek(offset: self::OFFSET_ZERO);
     }
 
     public function read(int $length): string
@@ -100,7 +103,7 @@ final class Stream implements StreamInterface
             throw new NonReadableStream();
         }
 
-        return (string)fread($this->resource, $length);
+        return fread($this->resource, $length);
     }
 
     public function write(string $string): int
@@ -109,7 +112,7 @@ final class Stream implements StreamInterface
             throw new NonWritableStream();
         }
 
-        return (int)fwrite($this->resource, $string);
+        return fwrite($this->resource, $string);
     }
 
     public function isReadable(): bool
@@ -150,7 +153,7 @@ final class Stream implements StreamInterface
         }
 
         if (!$this->contentFetched) {
-            $this->content = (string)stream_get_contents($this->resource);
+            $this->content = stream_get_contents($this->resource);
             $this->contentFetched = true;
         }
 

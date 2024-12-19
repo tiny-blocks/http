@@ -9,11 +9,14 @@
     "keywords": [
         "psr",
         "http",
+        "psr-7",
+        "psr-15",
+        "request",
+        "response",
         "http-code",
         "tiny-blocks",
         "http-status",
-        "http-methods",
-        "http-response"
+        "http-methods"
     ],
     "authors": [
         {
@@ -42,29 +45,31 @@
         }
     },
     "require": {
-        "php": "^8.2",
-        "tiny-blocks/serializer": "^3",
+        "php": "^8.3",
         "psr/http-message": "^1.1",
+        "tiny-blocks/serializer": "^3",
         "ext-mbstring": "*"
     },
     "require-dev": {
+        "slim/psr7": "^1.7",
+        "slim/slim": "^4.14",
         "phpmd/phpmd": "^2.15",
-        "phpunit/phpunit": "^11",
         "phpstan/phpstan": "^1",
-        "infection/infection": "^0.29",
-        "squizlabs/php_codesniffer": "^3.10"
+        "phpunit/phpunit": "^11",
+        "infection/infection": "^0",
+        "squizlabs/php_codesniffer": "^3.11"
     },
     "suggest": {
         "ext-mbstring": "Provides multibyte-specific string functions that help us deal with multibyte encodings in PHP."
     },
     "scripts": {
+        "test": "phpunit --configuration phpunit.xml tests",
         "phpcs": "phpcs --standard=PSR12 --extensions=php ./src",
-        "phpmd": "phpmd ./src text phpmd.xml --suffixes php --exclude /src/HttpCode.php --exclude /src/Internal/Response --ignore-violations-on-exit",
+        "phpmd": "phpmd ./src text phpmd.xml --suffixes php --ignore-violations-on-exit",
         "phpstan": "phpstan analyse -c phpstan.neon.dist --quiet --no-progress",
-        "test": "phpunit --log-junit=report/coverage/junit.xml --coverage-xml=report/coverage/coverage-xml --coverage-html=report/coverage/coverage-html tests",
-        "test-mutation": "infection --only-covered --logger-html=report/coverage/mutation-report.html --coverage=report/coverage --min-msi=100 --min-covered-msi=100 --threads=4",
-        "test-no-coverage": "phpunit --no-coverage",
-        "test-mutation-no-coverage": "infection --only-covered --min-msi=100 --threads=4",
+        "test-file": "phpunit --configuration phpunit.xml --no-coverage --filter",
+        "mutation-test": "infection --only-covered --threads=max --logger-html=report/coverage/mutation-report.html --coverage=report/coverage",
+        "test-no-coverage": "phpunit --configuration phpunit.xml --no-coverage tests",
         "review": [
             "@phpcs",
             "@phpmd",
@@ -72,13 +77,9 @@
         ],
         "tests": [
             "@test",
-            "@test-mutation"
+            "@mutation-test"
         ],
         "tests-no-coverage": [
-            "@test-no-coverage",
-            "@test-mutation-no-coverage"
-        ],
-        "tests-file-no-coverage": [
             "@test-no-coverage"
         ]
     }

@@ -11,18 +11,14 @@ use BackedEnum;
  * Responses are grouped in five classes:
  *
  * Informational (100 – 199)
- *
  * Successful (200 – 299)
- *
  * Redirection (300 – 399)
- *
  * Client error (400 – 499)
- *
  * Server error (500 – 599)
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
  */
-enum HttpCode: int
+enum Code: int
 {
     # Informational 1xx
     case CONTINUE = 100;
@@ -95,13 +91,20 @@ enum HttpCode: int
     case NOT_EXTENDED = 510;
     case NETWORK_AUTHENTICATION_REQUIRED = 511;
 
+    /**
+     * Returns the HTTP status message associated with the enum's code.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+     * @return string The formatted message with the status code and name.
+     */
     public function message(): string
     {
-        $subject = mb_convert_case($this->name, MB_CASE_TITLE);
-
-        if ($this->value === self::OK->value) {
-            $subject = $this->name;
-        }
+        $subject = match ($this) {
+            self::OK          => $this->name,
+            self::IM_USED     => 'IM Used',
+            self::IM_A_TEAPOT => "I'm a teapot",
+            default           => mb_convert_case($this->name, MB_CASE_TITLE)
+        };
 
         $message = str_replace('_', ' ', $subject);
         $template = '%s %s';
@@ -109,10 +112,38 @@ enum HttpCode: int
         return sprintf($template, $this->value, $message);
     }
 
-    public static function isHttpCode(int $httpCode): bool
+    /**
+     * Determines if the given code is a valid HTTP status code represented by the enum.
+     *
+     * @param int $code The HTTP status code to check.
+     * @return bool True if the code exists in the enum, otherwise false.
+     */
+    public static function isValidCode(int $code): bool
     {
-        $mapper = fn(BackedEnum $enum) => $enum->value;
+        $mapper = fn(BackedEnum $enum): int => $enum->value;
 
-        return in_array($httpCode, array_map($mapper, self::cases()));
+        return in_array($code, array_map($mapper, self::cases()));
+    }
+
+    /**
+     * Determines if the given code is in the error range (4xx or 5xx).
+     *
+     * @param int $code The HTTP status code to check.
+     * @return bool True if the code is in the error range (4xx or 5xx), otherwise false.
+     */
+    public static function isErrorCode(int $code): bool
+    {
+        return $code >= self::BAD_REQUEST->value && $code <= self::NETWORK_AUTHENTICATION_REQUIRED->value;
+    }
+
+    /**
+     * Determines if the given code is in the success range (2xx).
+     *
+     * @param int $code The HTTP status code to check.
+     * @return bool True if the code is in the success range (2xx), otherwise false.
+     */
+    public static function isSuccessCode(int $code): bool
+    {
+        return $code >= self::OK->value && $code <= self::IM_USED->value;
     }
 }

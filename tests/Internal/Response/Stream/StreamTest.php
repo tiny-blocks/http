@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Stream;
+namespace TinyBlocks\Http\Internal\Response\Stream;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -15,6 +15,7 @@ use TinyBlocks\Http\Internal\Exceptions\NonWritableStream;
 final class StreamTest extends TestCase
 {
     private mixed $resource;
+
     private ?string $temporary;
 
     protected function setUp(): void
@@ -37,13 +38,14 @@ final class StreamTest extends TestCase
 
         /** @When retrieving metadata */
         $actual = $stream->getMetadata();
-        $expected = StreamMetaData::from(data: stream_get_meta_data($this->resource))->toArray();
 
         /** @Then the metadata should match the expected values */
-        self::assertEquals($expected['uri'], $actual['uri']);
-        self::assertEquals($expected['mode'], $actual['mode']);
-        self::assertEquals($expected['seekable'], $actual['seekable']);
-        self::assertEquals($expected['streamType'], $actual['streamType']);
+        $expected = StreamMetaData::from(data: stream_get_meta_data($this->resource))->toArray();
+
+        self::assertSame($expected['uri'], $actual['uri']);
+        self::assertSame($expected['mode'], $actual['mode']);
+        self::assertSame($expected['seekable'], $actual['seekable']);
+        self::assertSame($expected['streamType'], $actual['streamType']);
     }
 
     public function testCloseWithoutResource(): void
@@ -91,8 +93,8 @@ final class StreamTest extends TestCase
         /** @Then the cursor position should be updated correctly */
         self::assertTrue($stream->isWritable());
         self::assertTrue($stream->isSeekable());
-        self::assertEquals(7, $tellAfterFirstSeek);
-        self::assertEquals(13, $stream->tell());
+        self::assertSame(7, $tellAfterFirstSeek);
+        self::assertSame(13, $stream->tell());
     }
 
     public function testGetSizeReturnsCorrectSize(): void
@@ -105,8 +107,8 @@ final class StreamTest extends TestCase
         $stream->write(string: 'Hello, world!');
 
         /** @Then the size should be updated correctly */
-        self::assertEquals(0, $sizeBeforeWrite);
-        self::assertEquals(13, $stream->getSize());
+        self::assertSame(0, $sizeBeforeWrite);
+        self::assertSame(13, $stream->getSize());
     }
 
     public function testIsWritableForCreateMode(): void
@@ -128,7 +130,7 @@ final class StreamTest extends TestCase
         $stream = Stream::from(resource: fopen('php://memory', $mode));
 
         /** @Then check if the stream is writable based on the mode */
-        self::assertEquals($expected, $stream->isWritable());
+        self::assertSame($expected, $stream->isWritable());
     }
 
     public function testRewindResetsCursorPosition(): void
@@ -142,7 +144,7 @@ final class StreamTest extends TestCase
         $stream->rewind();
 
         /** @Then the cursor position should be reset to the beginning */
-        self::assertEquals(0, $stream->tell());
+        self::assertSame(0, $stream->tell());
     }
 
     public function testEofReturnsTrueAtEndOfStream(): void
@@ -182,7 +184,7 @@ final class StreamTest extends TestCase
         $stream->write(string: 'Hello, world!');
 
         /** @Then the content should match the written data */
-        self::assertEquals('Hello, world!', (string)$stream);
+        self::assertSame('Hello, world!', (string)$stream);
     }
 
     public function testGetSizeReturnsNullWhenWithoutResource(): void
@@ -241,7 +243,7 @@ final class StreamTest extends TestCase
         $this->expectException(InvalidResource::class);
         $this->expectExceptionMessage('The provided value is not a valid resource.');
 
-        /** @When calling the from method with an invalid resource */
+        /** @When calling from method with an invalid resource */
         Stream::from(resource: $resource);
     }
 
