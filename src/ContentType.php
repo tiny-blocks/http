@@ -48,10 +48,10 @@ final readonly class ContentType implements Headers
 
     public function toArray(): array
     {
-        return [
-            'Content-Type' => $this->charset
-                ? sprintf('%s; %s', $this->mimeType->value, $this->charset->toString())
-                : $this->mimeType->value
-        ];
+        $value = $this->charset
+            ? sprintf('%s; %s', $this->mimeType->value, $this->charset->toString())
+            : $this->mimeType->value;
+
+        return ['Content-Type' => [$value]];
     }
 }
