@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Drivers\Slim;
+namespace TinyBlocks\Http\Drivers\Laminas;
 
 use DateTimeInterface;
+use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
-use Slim\ResponseEmitter;
 use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\Code;
@@ -18,22 +18,22 @@ use TinyBlocks\Http\Drivers\Middleware;
 use TinyBlocks\Http\Response;
 use TinyBlocks\Http\ResponseCacheDirectives;
 
-final class SlimTest extends TestCase
+final class LaminasTest extends TestCase
 {
-    private ResponseEmitter $emitter;
+    private SapiEmitter $emitter;
 
     private Middleware $middleware;
 
     protected function setUp(): void
     {
-        $this->emitter = new ResponseEmitter();
+        $this->emitter = new SapiEmitter();
         $this->middleware = new Middleware();
     }
 
     /**
      * @throws Exception
      */
-    public function testSuccessfulRequestProcessingWithSlim(): void
+    public function testSuccessfulRequestProcessingWithLaminas(): void
     {
         /** @Given a valid request */
         $request = $this->createMock(ServerRequestInterface::class);
@@ -60,7 +60,7 @@ final class SlimTest extends TestCase
         self::assertSame($response->getHeaders(), $actual->getHeaders());
     }
 
-    public function testResponseEmissionWithSlim(): void
+    public function testResponseEmissionWithLaminas(): void
     {
         /** @Given the Content-Type for the response is set to application/json with UTF-8 charset */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);

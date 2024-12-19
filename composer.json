@@ -51,13 +51,14 @@
         "ext-mbstring": "*"
     },
     "require-dev": {
-        "slim/psr7": "^1.7",
-        "slim/slim": "^4.14",
+        "slim/psr7": "^1",
+        "slim/slim": "^4",
         "phpmd/phpmd": "^2.15",
         "phpstan/phpstan": "^1",
         "phpunit/phpunit": "^11",
         "infection/infection": "^0",
-        "squizlabs/php_codesniffer": "^3.11"
+        "squizlabs/php_codesniffer": "^3.11",
+        "laminas/laminas-httphandlerrunner": "^2"
     },
     "suggest": {
         "ext-mbstring": "Provides multibyte-specific string functions that help us deal with multibyte encodings in PHP."

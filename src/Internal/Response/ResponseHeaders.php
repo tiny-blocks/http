@@ -25,15 +25,14 @@ final readonly class ResponseHeaders implements Headers
 
     public static function fromNameAndValue(string $name, mixed $value): ResponseHeaders
     {
-        return new ResponseHeaders(headers: [$name => $value]);
+        return new ResponseHeaders(headers: [$name => [$value]]);
     }
 
     public function getByName(string $name): array
     {
         $headers = array_change_key_case($this->headers);
-        $value = $headers[strtolower($name)] ?? [];
 
-        return is_array($value) ? $value : [$value];
+        return $headers[strtolower($name)] ?? [];
     }
 
     public function hasHeader(string $name): bool
@@ -52,7 +51,6 @@ final readonly class ResponseHeaders implements Headers
 
         return new ResponseHeaders(headers: $headers);
     }
-
 
     public function toArray(): array
     {
