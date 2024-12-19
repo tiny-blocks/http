@@ -82,5 +82,14 @@ final class SlimTest extends TestCase
 
         /** @Then the emitted response content should match the response body */
         self::assertSame($response->getBody()->__toString(), $actual);
+
+        /** @And the response status code should be 200 */
+        self::assertSame(200, $response->getStatusCode());
+
+        /** @And the reason phrase should be 'OK' */
+        self::assertSame('OK', $response->getReasonPhrase());
+
+        /** @And the response should contain the X-Request-ID header */
+        self::assertSame('123456', $response->getHeaderLine(name: 'X-Request-ID'));
     }
 }

@@ -59,43 +59,43 @@ final class CodeTest extends TestCase
         return [
             'OK message'                              => [
                 'code'     => Code::OK,
-                'expected' => '200 OK'
+                'expected' => 'OK'
             ],
             'Created message'                         => [
                 'code'     => Code::CREATED,
-                'expected' => '201 Created'
+                'expected' => 'Created'
             ],
             'IM Used message'                         => [
                 'code'     => Code::IM_USED,
-                'expected' => '226 IM Used'
+                'expected' => 'IM Used'
             ],
             'Continue message'                        => [
                 'code'     => Code::CONTINUE,
-                'expected' => '100 Continue'
+                'expected' => 'Continue'
             ],
             "I'm a teapot message"                    => [
                 'code'     => Code::IM_A_TEAPOT,
-                'expected' => "418 I'm a teapot"
+                'expected' => "I'm a teapot"
             ],
             'Permanent Redirect message'              => [
                 'code'     => Code::PERMANENT_REDIRECT,
-                'expected' => '308 Permanent Redirect'
+                'expected' => 'Permanent Redirect'
             ],
             'Internal Server Error message'           => [
                 'code'     => Code::INTERNAL_SERVER_ERROR,
-                'expected' => '500 Internal Server Error'
+                'expected' => 'Internal Server Error'
             ],
             'Non Authoritative Information message'   => [
                 'code'     => Code::NON_AUTHORITATIVE_INFORMATION,
-                'expected' => '203 Non Authoritative Information'
+                'expected' => 'Non Authoritative Information'
             ],
             'Proxy Authentication Required message'   => [
                 'code'     => Code::PROXY_AUTHENTICATION_REQUIRED,
-                'expected' => '407 Proxy Authentication Required'
+                'expected' => 'Proxy Authentication Required'
             ],
             'Network Authentication Required message' => [
                 'code'     => Code::NETWORK_AUTHENTICATION_REQUIRED,
-                'expected' => '511 Network Authentication Required'
+                'expected' => 'Network Authentication Required'
             ]
         ];
     }
