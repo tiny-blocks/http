@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-use BackedEnum;
-
 /**
  * HTTP response status codes indicate whether a specific HTTP request has been successfully completed.
  * Responses are grouped in five classes:
@@ -106,10 +104,7 @@ enum Code: int
             default           => mb_convert_case($this->name, MB_CASE_TITLE)
         };
 
-        $message = str_replace('_', ' ', $subject);
-        $template = '%s %s';
-
-        return sprintf($template, $this->value, $message);
+        return str_replace('_', ' ', $subject);
     }
 
     /**
@@ -120,7 +115,7 @@ enum Code: int
      */
     public static function isValidCode(int $code): bool
     {
-        $mapper = fn(BackedEnum $enum): int => $enum->value;
+        $mapper = fn(Code $code): int => $code->value;
 
         return in_array($code, array_map($mapper, self::cases()));
     }

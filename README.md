@@ -47,9 +47,10 @@ corresponding messages, and check for various status code ranges using the metho
   ```php
   use TinyBlocks\Http\Code;
   
-  Code::OK->message();                    # 200 OK
-  Code::IM_A_TEAPOT->message();           # 418 I'm a teapot
-  Code::INTERNAL_SERVER_ERROR->message(); # 500 Internal Server Error
+  Code::OK->value;                        # 200
+  Code::OK->message();                    # OK
+  Code::IM_A_TEAPOT->message();           # I'm a teapot
+  Code::INTERNAL_SERVER_ERROR->message(); # Internal Server Error
   ```
 
 - **Check if the code is valid**: Determines if the given code is a valid HTTP status code represented by the enum.
