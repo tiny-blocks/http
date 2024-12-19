@@ -24,6 +24,6 @@ final readonly class CacheControl implements Headers
 
     public function toArray(): array
     {
-        return ['Cache-Control' => implode(', ', $this->directives)];
+        return ['Cache-Control' => [implode(', ', $this->directives)]];
     }
 }

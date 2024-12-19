@@ -49,7 +49,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::OK->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseCreated(): void
@@ -81,7 +81,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::CREATED->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseAccepted(): void
@@ -111,7 +111,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::ACCEPTED->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseNoContent(): void
@@ -136,7 +136,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::NO_CONTENT->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseBadRequest(): void
@@ -166,7 +166,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::BAD_REQUEST->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseNotFound(): void
@@ -196,7 +196,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::NOT_FOUND->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseConflict(): void
@@ -226,7 +226,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::CONFLICT->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseUnprocessableEntity(): void
@@ -256,7 +256,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::UNPROCESSABLE_ENTITY->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testResponseInternalServerError(): void
@@ -286,7 +286,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::INTERNAL_SERVER_ERROR->message(), $actual->getReasonPhrase());
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     #[DataProvider('bodyProviderData')]

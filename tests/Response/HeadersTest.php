@@ -18,7 +18,7 @@ final class HeadersTest extends TestCase
         $response = Response::noContent();
 
         /** @And by default, the response contains the 'Content-Type' header set to 'application/json; charset=utf-8' */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8'], $response->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $response->getHeaders());
 
         /** @When we add custom headers to the response */
         $actual = $response
@@ -27,7 +27,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the response should contain the correct headers */
         self::assertSame(
-            ['Content-Type' => 'application/json; charset=utf-8', 'X-ID' => 100, 'X-NAME' => 'Xpto'],
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [100], 'X-NAME' => ['Xpto']],
             $actual->getHeaders()
         );
 
@@ -37,7 +37,7 @@ final class HeadersTest extends TestCase
         /** @Then the response should contain the updated 'X-ID' header value */
         self::assertSame('200', $actual->withAddedHeader(name: 'X-ID', value: 200)->getHeaderLine(name: 'X-ID'));
         self::assertSame(
-            ['Content-Type' => 'application/json; charset=utf-8', 'X-ID' => 200, 'X-NAME' => 'Xpto'],
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [200], 'X-NAME' => ['Xpto']],
             $actual->getHeaders()
         );
 
@@ -45,7 +45,10 @@ final class HeadersTest extends TestCase
         $actual = $actual->withoutHeader(name: 'X-NAME');
 
         /** @Then the response should contain only the 'X-ID' header and the default 'Content-Type' header */
-        self::assertSame(['Content-Type' => 'application/json; charset=utf-8', 'X-ID' => 200], $actual->getHeaders());
+        self::assertSame(
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [200]],
+            $actual->getHeaders()
+        );
     }
 
     public function testResponseWithDuplicatedHeader(): void
@@ -62,7 +65,19 @@ final class HeadersTest extends TestCase
         self::assertSame('application/json; charset=ISO-8859-1', $actual->getHeaderLine(name: 'Content-Type'));
 
         /** @And the headers should only contain the last 'Content-Type' value */
-        self::assertSame(['Content-Type' => 'application/json; charset=ISO-8859-1'], $actual->getHeaders());
+        self::assertSame(['Content-Type' => ['application/json; charset=ISO-8859-1']], $actual->getHeaders());
+    }
+
+    public function testResponseHeadersWithNoCustomHeader(): void
+    {
+        /** @Given an HTTP response with no custom headers */
+        $response = Response::noContent();
+
+        /** @When we retrieve the header that doesn't exist */
+        $actual = $response->getHeader(name: 'Non-Existent-Header');
+
+        /** @Then the header should return an empty array */
+        self::assertSame([], $actual);
     }
 
     public function testResponseWithCacheControl(): void
@@ -108,7 +123,7 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 
     public function testResponseWithContentTypeHTML(): void
@@ -127,7 +142,7 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 
     public function testResponseWithContentTypeJSON(): void
@@ -146,7 +161,7 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 
     public function testResponseWithContentTypePlainText(): void
@@ -165,7 +180,7 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 
     public function testResponseWithContentTypeOctetStream(): void
@@ -184,7 +199,7 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 
     public function testResponseWithContentTypeFormUrlencoded(): void
@@ -203,6 +218,6 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Content-Type'));
         self::assertSame([$expected], $actual->getHeader(name: 'Content-Type'));
-        self::assertSame(['Content-Type' => $expected], $actual->getHeaders());
+        self::assertSame(['Content-Type' => [$expected]], $actual->getHeaders());
     }
 }
