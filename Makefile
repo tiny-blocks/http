@@ -35,4 +35,4 @@ show-reports:
 
 clean:
 	@sudo chown -R ${USER}:${USER} ${PWD}
-	@rm -rf report vendor .phpunit.cache .lock
+	@rm -rf report vendor .phpunit.cache *.lock

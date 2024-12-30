@@ -6,13 +6,13 @@ namespace TinyBlocks\Http\Models;
 
 use ArrayIterator;
 use IteratorAggregate;
-use TinyBlocks\Serializer\Serializer;
-use TinyBlocks\Serializer\SerializerAdapter;
+use TinyBlocks\Mapper\IterableMappability;
+use TinyBlocks\Mapper\IterableMapper;
 use Traversable;
 
-final class Products implements Serializer, IteratorAggregate
+final class Products implements IterableMapper, IteratorAggregate
 {
-    use SerializerAdapter;
+    use IterableMappability;
 
     private array $elements;
 
@@ -24,5 +24,10 @@ final class Products implements Serializer, IteratorAggregate
     public function getIterator(): Traversable
     {
         return new ArrayIterator($this->elements);
+    }
+
+    public function getType(): string
+    {
+        return Product::class;
     }
 }

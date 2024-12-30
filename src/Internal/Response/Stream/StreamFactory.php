@@ -6,7 +6,7 @@ namespace TinyBlocks\Http\Internal\Response\Stream;
 
 use BackedEnum;
 use Psr\Http\Message\StreamInterface;
-use TinyBlocks\Serializer\Serializer;
+use TinyBlocks\Mapper\Mapper;
 use UnitEnum;
 
 final readonly class StreamFactory
@@ -21,7 +21,7 @@ final readonly class StreamFactory
     public static function fromBody(mixed $body): StreamFactory
     {
         $dataToWrite = match (true) {
-            is_a($body, Serializer::class)      => $body->toJson(),
+            is_a($body, Mapper::class)          => $body->toJson(),
             is_a($body, BackedEnum::class)      => self::toJsonFrom(body: $body->value),
             is_a($body, UnitEnum::class)        => $body->name,
             is_object($body)                    => self::toJsonFrom(body: get_object_vars($body)),

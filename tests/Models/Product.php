@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http\Models;
 
-use TinyBlocks\Serializer\Serializer;
-use TinyBlocks\Serializer\SerializerAdapter;
+use TinyBlocks\Mapper\ObjectMappability;
+use TinyBlocks\Mapper\ObjectMapper;
 
-final readonly class Product implements Serializer
+final readonly class Product implements ObjectMapper
 {
-    use SerializerAdapter;
+    use ObjectMappability;
 
     public function __construct(public string $name, public Amount $amount)
     {
