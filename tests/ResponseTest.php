@@ -169,6 +169,66 @@ final class ResponseTest extends TestCase
         self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
+    public function testResponseUnauthorized(): void
+    {
+        /** @Given a body with error details */
+        $body = [
+            'error'   => 'Unauthorized',
+            'message' => 'Authentication is required to access this resource.'
+        ];
+
+        /** @When we create the HTTP response with this body */
+        $actual = Response::unauthorized(body: $body);
+
+        /** @Then the protocol version should be "1.1" */
+        self::assertSame('1.1', $actual->getProtocolVersion());
+
+        /** @And the body of the response should match the JSON-encoded body */
+        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
+        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
+
+        /** @And the status code should be 401 */
+        self::assertSame(Code::UNAUTHORIZED->value, $actual->getStatusCode());
+        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
+        self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
+
+        /** @And the reason phrase should be "Unauthorized" */
+        self::assertSame(Code::UNAUTHORIZED->message(), $actual->getReasonPhrase());
+
+        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
+    public function testResponseForbidden(): void
+    {
+        /** @Given a body with error details */
+        $body = [
+            'error'   => 'Forbidden',
+            'message' => 'You do not have permission to access this resource.'
+        ];
+
+        /** @When we create the HTTP response with this body */
+        $actual = Response::forbidden(body: $body);
+
+        /** @Then the protocol version should be "1.1" */
+        self::assertSame('1.1', $actual->getProtocolVersion());
+
+        /** @And the body of the response should match the JSON-encoded body */
+        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
+        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
+
+        /** @And the status code should be 403 */
+        self::assertSame(Code::FORBIDDEN->value, $actual->getStatusCode());
+        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
+        self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
+
+        /** @And the reason phrase should be "Forbidden" */
+        self::assertSame(Code::FORBIDDEN->message(), $actual->getReasonPhrase());
+
+        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
     public function testResponseNotFound(): void
     {
         /** @Given a body with error details */

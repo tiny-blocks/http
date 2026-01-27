@@ -58,6 +58,24 @@ interface Responses
     public static function badRequest(mixed $body, Headers ...$headers): ResponseInterface;
 
     /**
+     * Creates a response with a 401 Unauthorized status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headers ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 401 Unauthorized response.
+     */
+    public static function unauthorized(mixed $body, Headers ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 403 Forbidden status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headers ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 403 Forbidden response.
+     */
+    public static function forbidden(mixed $body, Headers ...$headers): ResponseInterface;
+
+    /**
      * Creates a response with a 404 Not Found status.
      *
      * @param mixed $body The body of the response.
