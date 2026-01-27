@@ -34,6 +34,16 @@ final readonly class Response implements Responses
         return InternalResponse::createWithBody($body, Code::BAD_REQUEST, ...$headers);
     }
 
+    public static function unauthorized(mixed $body, Headers ...$headers): ResponseInterface
+    {
+        return InternalResponse::createWithBody($body, Code::UNAUTHORIZED, ...$headers);
+    }
+
+    public static function forbidden(mixed $body, Headers ...$headers): ResponseInterface
+    {
+        return InternalResponse::createWithBody($body, Code::FORBIDDEN, ...$headers);
+    }
+
     public static function notFound(mixed $body, Headers ...$headers): ResponseInterface
     {
         return InternalResponse::createWithBody($body, Code::NOT_FOUND, ...$headers);

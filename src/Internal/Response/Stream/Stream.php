@@ -132,13 +132,7 @@ final class Stream implements StreamInterface
             return false;
         }
 
-        $mode = $this->metaData->getMode();
-
-        return str_contains($mode, 'x')
-            || str_contains($mode, 'w')
-            || str_contains($mode, 'c')
-            || str_contains($mode, 'a')
-            || str_contains($mode, '+');
+        return strpbrk($this->metaData->getMode(), 'xwca+') !== false;
     }
 
     public function isSeekable(): bool

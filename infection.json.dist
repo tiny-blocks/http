@@ -16,8 +16,7 @@
         "customPath": "./vendor/bin/phpunit"
     },
     "mutators": {
-        "@default": true,
-        "LogicalOr": false
+        "@default": true
     },
     "minCoveredMsi": 100,
     "testFramework": "phpunit"
