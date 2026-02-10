@@ -48,7 +48,7 @@
         "php": "^8.5",
         "ext-mbstring": "*",
         "psr/http-message": "^2.0",
-        "tiny-blocks/mapper": "^1.4"
+        "tiny-blocks/mapper": "^2.0"
     },
     "require-dev": {
         "slim/psr7": "^1.8",
