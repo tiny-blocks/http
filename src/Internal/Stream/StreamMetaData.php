@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Response\Stream;
+namespace TinyBlocks\Http\Internal\Stream;
 
 final readonly class StreamMetaData
 {

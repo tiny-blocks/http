@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Response;
+namespace Test\TinyBlocks\Http;
 
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Response;

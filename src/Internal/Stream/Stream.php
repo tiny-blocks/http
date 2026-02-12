@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Response\Stream;
+namespace TinyBlocks\Http\Internal\Stream;
 
 use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\Internal\Exceptions\InvalidResource;
@@ -16,7 +16,6 @@ final class Stream implements StreamInterface
     private const int OFFSET_ZERO = 0;
 
     private string $content = '';
-
     private bool $contentFetched = false;
 
     /**

@@ -2,26 +2,25 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Drivers\Slim;
+namespace Test\TinyBlocks\Http\Drivers\Slim;
 
 use DateTimeInterface;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\ResponseEmitter;
+use Test\TinyBlocks\Http\Drivers\Endpoint;
+use Test\TinyBlocks\Http\Drivers\Middleware;
 use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\ContentType;
-use TinyBlocks\Http\Drivers\Endpoint;
-use TinyBlocks\Http\Drivers\Middleware;
 use TinyBlocks\Http\Response;
 use TinyBlocks\Http\ResponseCacheDirectives;
 
 final class SlimTest extends TestCase
 {
     private ResponseEmitter $emitter;
-
     private Middleware $middleware;
 
     protected function setUp(): void
@@ -33,7 +32,7 @@ final class SlimTest extends TestCase
     /**
      * @throws Exception
      */
-    public function testSuccessfulRequestProcessingWithSlim(): void
+    public function testResponseProcessedWithSlim(): void
     {
         /** @Given a valid request */
         $request = $this->createMock(ServerRequestInterface::class);
