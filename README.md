@@ -53,10 +53,10 @@ to access route parameters and JSON body fields consistently.
   /** @var ServerRequestInterface $psrRequest */
   $decoded = Request::from(request: $psrRequest)->decode();
 
-  $name = $decoded->body->get(key: 'name')->toString();
-  $payload = $decoded->body->toArray();
+  $name = $decoded->body()->get(key: 'name')->toString();
+  $payload = $decoded->body()->toArray();
 
-  $id = $decoded->uri->route()->get(key: 'id')->toInteger();
+  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();
   ```
 
 - **Typed access with defaults**: Each value is returned as an Attribute, which provides safe conversions and default
@@ -67,23 +67,84 @@ to access route parameters and JSON body fields consistently.
   
   $decoded = Request::from(request: $psrRequest)->decode();
   
-  $id = $decoded->uri->route()->get(key: 'id')->toInteger();  # default: 0
-  $note = $decoded->body->get(key: 'note')->toString();       # default: ""
-  $tags = $decoded->body->get(key: 'tags')->toArray();        # default: []
-  $price = $decoded->body->get(key: 'price')->toFloat();      # default: 0.00
-  $active = $decoded->body->get(key: 'active')->toBoolean();  # default: false
+  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();  # default: 0
+  $note = $decoded->body()->get(key: 'note')->toString();       # default: ""
+  $tags = $decoded->body()->get(key: 'tags')->toArray();        # default: []
+  $price = $decoded->body()->get(key: 'price')->toFloat();      # default: 0.00
+  $active = $decoded->body()->get(key: 'active')->toBoolean();  # default: false
   ```
 
 - **Custom route attribute name**: If your framework stores route params in a different request attribute, you can
-  specify it via route().
+  specify it via `route()`.
 
   ```php
   use TinyBlocks\Http\Request;
   
   $decoded = Request::from(request: $psrRequest)->decode();
 
-  $id = $decoded->uri->route(name: '_route_params')->get(key: 'id')->toInteger();
+  $id = $decoded->uri()->route(name: '_route_params')->get(key: 'id')->toInteger();
   ```
+
+#### How route parameters are resolved
+
+The library resolves route parameters from the PSR-7 `ServerRequestInterface` using a **multistep fallback strategy**,
+designed to work across different frameworks without importing any framework-specific code.
+
+**Resolution order** (when using the default `route()` or `route(name: '...')`):
+
+1. **Specified attribute lookup** — Reads the attribute from the request using the configured name (default:
+   `__route__`).
+    - If the value is an **array**, the key is looked up directly.
+    - If the value is an **object**, the resolver tries known accessor methods (`getArguments()`,
+      `getMatchedParams()`, `getParameters()`, `getParams()`) and then public properties (`arguments`, `params`,
+      `vars`, `parameters`).
+    - If the value is a **scalar** (e.g., a string), it is returned as-is.
+
+2. **Known attribute scan** (only when using the default `__route__` name) — Scans all commonly used attribute keys
+   across frameworks:
+    - `__route__`, `_route_params`, `route`, `routing`, `routeResult`, `routeInfo`
+
+3. **Direct attribute fallback** — As a last resort, tries `$request->getAttribute($key)` directly, which supports
+   frameworks like Laravel that store route params as individual request attributes.
+
+4. **Safe default** — If nothing is found, returns `Attribute::from(null)`, which provides safe conversions:
+   `toInteger()` → `0`, `toString()` → `""`, `toFloat()` → `0.00`, `toBoolean()` → `false`, `toArray()` → `[]`.
+
+**Supported frameworks and attribute formats:**
+
+| Framework               | Attribute Key   | Format                                        |
+|-------------------------|-----------------|-----------------------------------------------|
+| **Slim 4**              | `__route__`     | Object with `getArguments()`                  |
+| **Mezzio / Expressive** | `routeResult`   | Object with `getMatchedParams()`              |
+| **Symfony**             | `_route_params` | `array<string, mixed>`                        |
+| **Laravel**             | *(direct)*      | `getAttribute('id')` directly on the request  |
+| **FastRoute (generic)** | `routeInfo`     | Array with route parameters                   |
+| **Manual injection**    | Any custom key  | `$request->withAttribute('__route__', [...])` |
+
+#### Manually injecting route parameters
+
+If your framework or middleware does not automatically populate route attributes, you can inject them manually using
+PSR-7's `withAttribute()`:
+
+```php
+use TinyBlocks\Http\Request;
+
+$psrRequest = $psrRequest->withAttribute('__route__', [
+    'id'    => '42',
+    'email' => 'user@example.com'
+]);
+
+$decoded = Request::from(request: $psrRequest)->decode();
+$id = $decoded->uri()->route()->get(key: 'id')->toInteger(); # 42
+
+$psrRequest = $psrRequest->withAttribute('my_params', ['slug' => 'hello-world']);
+$slug = Request::from(request: $psrRequest)
+    ->decode()
+    ->uri()
+    ->route(name: 'my_params')
+    ->get(key: 'slug')
+    ->toString(); # "hello-world"
+```
 
 <div id='response'></div>
 

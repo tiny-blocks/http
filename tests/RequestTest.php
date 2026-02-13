@@ -39,7 +39,7 @@ final class RequestTest extends TestCase
         $request = Request::from(request: $serverRequest);
 
         /** @And we decode the body of the HTTP Request */
-        $actual = $request->decode()->body;
+        $actual = $request->decode()->body();
 
         /** @Then the decoded body should match the original payload */
         self::assertSame($payload, $actual->toArray());
@@ -63,17 +63,16 @@ final class RequestTest extends TestCase
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
-            ->with('__route__')
-            ->willReturn([
-                'name' => $routeName,
-                'id'   => $attribute
-            ]);
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => ['name' => $routeName, 'id' => $attribute],
+                default     => null
+            });
 
         /** @When we create the HTTP Request with this ServerRequestInterface */
         $request = Request::from(request: $serverRequest);
 
         /** @And we decode the route attribute of the HTTP Request */
-        $actual = $request->decode()->uri->route()->get(key: 'id');
+        $actual = $request->decode()->uri()->route()->get(key: 'id');
 
         self::assertSame($attribute, $actual->toString());
     }
@@ -94,17 +93,16 @@ final class RequestTest extends TestCase
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
-            ->with('__route__')
-            ->willReturn([
-                'name' => $routeName,
-                ...$attributes
-            ]);
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => ['name' => $routeName, ...$attributes],
+                default     => null
+            });
 
         /** @When we create the HTTP Request with this ServerRequestInterface */
         $request = Request::from(request: $serverRequest);
 
         /** @And we decode the route attribute of the HTTP Request */
-        $route = $request->decode()->uri->route();
+        $route = $request->decode()->uri()->route();
 
         self::assertSame($attributes['id'], $route->get(key: 'id')->toString());
         self::assertSame($attributes['skill'], $route->get(key: 'skill')->toString());
@@ -122,17 +120,16 @@ final class RequestTest extends TestCase
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
-            ->with('__route__')
-            ->willReturn([
-                'name' => '/v1/dragons/{id}',
-                $key   => $value
-            ]);
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => ['name' => '/v1/dragons/{id}', $key => $value],
+                default     => null
+            });
 
         /** @When we create the HTTP Request with this ServerRequestInterface */
         $request = Request::from(request: $serverRequest);
 
         /** @And we decode the route attribute of the HTTP Request and convert it to the expected type */
-        $actual = $request->decode()->uri->route()->get(key: $key)->$method();
+        $actual = $request->decode()->uri()->route()->get(key: $key)->$method();
 
         /** @Then the converted value should match the expected value */
         self::assertSame($expected, $actual);
@@ -147,17 +144,196 @@ final class RequestTest extends TestCase
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
-            ->with('__route__')
-            ->willReturn($attribute);
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => $attribute,
+                default     => null
+            });
 
         /** @When we create the HTTP Request with this ServerRequestInterface */
         $request = Request::from(request: $serverRequest);
 
         /** @And we decode the route attribute of the HTTP Request */
-        $actual = $request->decode()->uri->route()->get(key: 'id');
+        $actual = $request->decode()->uri()->route()->get(key: 'id');
 
         /** @Then the decoded attribute should match the original scalar value */
         self::assertSame($attribute, $actual->toString());
+    }
+
+    public function testRequestDecodingWithSlimStyleRouteObject(): void
+    {
+        /** @Given a Slim-style route object that stores params in getArguments() */
+        $routeObject = new class {
+            public function getArguments(): array
+            {
+                return ['id' => '42', 'email' => 'dragon@fire.com'];
+            }
+        };
+
+        /** @And a ServerRequestInterface with this route object under __route__ */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => $routeObject,
+                default     => null
+            });
+
+        /** @When we create the HTTP Request and decode route params */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then the params should be correctly resolved from the object */
+        self::assertSame('42', $route->get(key: 'id')->toString());
+        self::assertSame(42, $route->get(key: 'id')->toInteger());
+        self::assertSame('dragon@fire.com', $route->get(key: 'email')->toString());
+    }
+
+    public function testRequestDecodingWithMezzioStyleRouteResult(): void
+    {
+        /** @Given a Mezzio-style route result object that uses getMatchedParams() */
+        $routeResult = new class {
+            public function getMatchedParams(): array
+            {
+                return ['id' => '99', 'slug' => 'fire-dragon'];
+            }
+        };
+
+        /** @And a ServerRequestInterface with this route result under routeResult */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                'routeResult' => $routeResult,
+                default       => null
+            });
+
+        /** @When we create the HTTP Request and decode using known attribute scan */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then the params should be correctly resolved from the Mezzio object */
+        self::assertSame('99', $route->get(key: 'id')->toString());
+        self::assertSame('fire-dragon', $route->get(key: 'slug')->toString());
+    }
+
+    public function testRequestDecodingWithSymfonyStyleRouteParams(): void
+    {
+        /** @Given Symfony stores route params as an array under _route_params */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '_route_params' => ['id' => '7', 'category' => 'legendary'],
+                default         => null
+            });
+
+        /** @When we use the custom route attribute name */
+        $route = Request::from(request: $serverRequest)
+            ->decode()
+            ->uri()
+            ->route(name: '_route_params');
+
+        /** @Then the params should be correctly resolved */
+        self::assertSame('7', $route->get(key: 'id')->toString());
+        self::assertSame('legendary', $route->get(key: 'category')->toString());
+    }
+
+    public function testRequestDecodingWithSymfonyStyleFallbackScan(): void
+    {
+        /** @Given Symfony stores route params under _route_params and default __route__ is null */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '_route_params' => ['id' => '55'],
+                default         => null
+            });
+
+        /** @When we use the default route() without specifying a name */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then the fallback scan should find params under _route_params */
+        self::assertSame('55', $route->get(key: 'id')->toString());
+    }
+
+    public function testRequestDecodingWithDirectAttributes(): void
+    {
+        /** @Given a framework like Laravel stores route params as direct request attributes */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                'id'    => '123',
+                'email' => 'user@example.com',
+                default => null
+            });
+
+        /** @When we decode route params using the default route */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then direct attributes should be resolved as fallback */
+        self::assertSame('123', $route->get(key: 'id')->toString());
+        self::assertSame('user@example.com', $route->get(key: 'email')->toString());
+    }
+
+    public function testRequestDecodingWithManualWithAttribute(): void
+    {
+        /** @Given a user manually injects route params via withAttribute() */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => ['id' => 'manually-injected', 'status' => 'active'],
+                default     => null
+            });
+
+        /** @When we decode route params */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then the manually injected values should be returned */
+        self::assertSame('manually-injected', $route->get(key: 'id')->toString());
+        self::assertSame('active', $route->get(key: 'status')->toString());
+    }
+
+    public function testRequestDecodingWithObjectHavingPublicProperty(): void
+    {
+        /** @Given an object that exposes route params via a public property */
+        $routeObject = new class {
+            public array $arguments = ['id' => '10', 'name' => 'Hydra'];
+        };
+
+        /** @And a ServerRequestInterface with this object under __route__ */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturnCallback(static fn(string $name) => match ($name) {
+                '__route__' => $routeObject,
+                default     => null
+            });
+
+        /** @When we decode route params */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then public property values should be resolved */
+        self::assertSame('10', $route->get(key: 'id')->toString());
+        self::assertSame('Hydra', $route->get(key: 'name')->toString());
+    }
+
+    public function testRequestDecodingReturnsDefaultsWhenNoRouteParams(): void
+    {
+        /** @Given a ServerRequestInterface with no route attributes at all */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getAttribute')
+            ->willReturn(null);
+
+        /** @When we try to decode route params */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then safe defaults should be returned */
+        self::assertSame(0, $route->get(key: 'id')->toInteger());
+        self::assertSame('', $route->get(key: 'name')->toString());
+        self::assertSame(0.00, $route->get(key: 'weight')->toFloat());
+        self::assertFalse($route->get(key: 'active')->toBoolean());
+        self::assertSame([], $route->get(key: 'tags')->toArray());
     }
 
     public static function attributeConversionsProvider(): array
