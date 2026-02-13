@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Response\Stream;
+namespace Test\TinyBlocks\Http\Internal\Stream;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -11,11 +11,12 @@ use TinyBlocks\Http\Internal\Exceptions\MissingResourceStream;
 use TinyBlocks\Http\Internal\Exceptions\NonReadableStream;
 use TinyBlocks\Http\Internal\Exceptions\NonSeekableStream;
 use TinyBlocks\Http\Internal\Exceptions\NonWritableStream;
+use TinyBlocks\Http\Internal\Stream\Stream;
+use TinyBlocks\Http\Internal\Stream\StreamMetaData;
 
 final class StreamTest extends TestCase
 {
     private mixed $resource;
-
     private ?string $temporary;
 
     protected function setUp(): void

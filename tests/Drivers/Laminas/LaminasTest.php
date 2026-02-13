@@ -2,26 +2,25 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Drivers\Laminas;
+namespace Test\TinyBlocks\Http\Drivers\Laminas;
 
 use DateTimeInterface;
 use Laminas\HttpHandlerRunner\Emitter\SapiEmitter;
 use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
+use Test\TinyBlocks\Http\Drivers\Endpoint;
+use Test\TinyBlocks\Http\Drivers\Middleware;
 use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\ContentType;
-use TinyBlocks\Http\Drivers\Endpoint;
-use TinyBlocks\Http\Drivers\Middleware;
 use TinyBlocks\Http\Response;
 use TinyBlocks\Http\ResponseCacheDirectives;
 
 final class LaminasTest extends TestCase
 {
     private SapiEmitter $emitter;
-
     private Middleware $middleware;
 
     protected function setUp(): void
@@ -33,7 +32,7 @@ final class LaminasTest extends TestCase
     /**
      * @throws Exception
      */
-    public function testSuccessfulRequestProcessingWithLaminas(): void
+    public function testResponseProcessedWithLaminas(): void
     {
         /** @Given a valid request */
         $request = $this->createMock(ServerRequestInterface::class);

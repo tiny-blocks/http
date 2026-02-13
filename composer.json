@@ -41,12 +41,11 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "TinyBlocks\\Http\\": "tests/"
+            "Test\\TinyBlocks\\Http\\": "tests/"
         }
     },
     "require": {
         "php": "^8.5",
-        "ext-mbstring": "*",
         "psr/http-message": "^2.0",
         "tiny-blocks/mapper": "^2.0"
     },
@@ -58,9 +57,6 @@
         "infection/infection": "^0.32",
         "squizlabs/php_codesniffer": "^4.0",
         "laminas/laminas-httphandlerrunner": "^2.13"
-    },
-    "suggest": {
-        "ext-mbstring": "Provides multibyte-specific string functions that help us deal with multibyte encodings in PHP."
     },
     "scripts": {
         "test": "php -d memory_limit=2G ./vendor/bin/phpunit --configuration phpunit.xml tests",

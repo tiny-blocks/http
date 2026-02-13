@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http\Internal\Response\Stream;
+namespace TinyBlocks\Http\Internal\Stream;
 
 use BackedEnum;
 use Psr\Http\Message\StreamInterface;
@@ -38,12 +38,37 @@ final readonly class StreamFactory
         return new StreamFactory(body: '');
     }
 
+    public static function fromStream(StreamInterface $stream): StreamFactory
+    {
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
+
+        $body = $stream->getContents();
+
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
+
+        return new StreamFactory(body: $body);
+    }
+
     public function write(): StreamInterface
     {
         $this->stream->write(string: $this->body);
         $this->stream->rewind();
 
         return $this->stream;
+    }
+
+    public function content(): string
+    {
+        return (string)$this->body;
+    }
+
+    public function isEmptyContent(): bool
+    {
+        return empty($this->body);
     }
 
     private static function toJsonFrom(mixed $body): string

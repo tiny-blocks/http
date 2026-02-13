@@ -10,7 +10,7 @@ use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
-use TinyBlocks\Http\Internal\Response\Stream\StreamFactory;
+use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
 final readonly class InternalResponse implements ResponseInterface
 {

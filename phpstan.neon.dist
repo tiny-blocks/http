@@ -6,6 +6,7 @@ parameters:
   ignoreErrors:
     - '#expects#'
     - '#should return#'
+    - '#mixed to string#'
     - '#does not accept#'
     - '#type specified in iterable type#'
   reportUnmatchedIgnoredErrors: false

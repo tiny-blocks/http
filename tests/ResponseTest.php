@@ -2,21 +2,23 @@
 
 declare(strict_types=1);
 
-namespace TinyBlocks\Http;
+namespace Test\TinyBlocks\Http;
 
 use DateTime;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Test\TinyBlocks\Http\Models\Amount;
+use Test\TinyBlocks\Http\Models\Color;
+use Test\TinyBlocks\Http\Models\Currency;
+use Test\TinyBlocks\Http\Models\Dragon;
+use Test\TinyBlocks\Http\Models\Order;
+use Test\TinyBlocks\Http\Models\Product;
+use Test\TinyBlocks\Http\Models\Products;
+use Test\TinyBlocks\Http\Models\Status;
+use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
-use TinyBlocks\Http\Internal\Response\Stream\StreamFactory;
-use TinyBlocks\Http\Models\Amount;
-use TinyBlocks\Http\Models\Color;
-use TinyBlocks\Http\Models\Currency;
-use TinyBlocks\Http\Models\Dragon;
-use TinyBlocks\Http\Models\Order;
-use TinyBlocks\Http\Models\Product;
-use TinyBlocks\Http\Models\Products;
-use TinyBlocks\Http\Models\Status;
+use TinyBlocks\Http\Internal\Stream\StreamFactory;
+use TinyBlocks\Http\Response;
 
 final class ResponseTest extends TestCase
 {
@@ -427,7 +429,25 @@ final class ResponseTest extends TestCase
                         new Product(name: 'Product Two', amount: new Amount(value: 200.75, currency: Currency::BRL))
                     ])
                 ),
-                'expected' => '{"id":1,"products":[{"name":"Product One","amount":{"value":100.5,"currency":"USD"}},{"name":"Product Two","amount":{"value":200.75,"currency":"BRL"}}]}'
+                'expected' => json_encode([
+                    'id'       => 1,
+                    'products' => [
+                        [
+                            'name'   => 'Product One',
+                            'amount' => [
+                                'value'    => 100.50,
+                                'currency' => 'USD'
+                            ]
+                        ],
+                        [
+                            'name'   => 'Product Two',
+                            'amount' => [
+                                'value'    => 200.75,
+                                'currency' => 'BRL'
+                            ]
+                        ]
+                    ]
+                ], JSON_PRESERVE_ZERO_FRACTION)
             ],
             'Boolean true value'      => [
                 'body'     => true,
