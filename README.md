@@ -53,8 +53,8 @@ to access route parameters and JSON body fields consistently.
   /** @var ServerRequestInterface $psrRequest */
   $decoded = Request::from(request: $psrRequest)->decode();
 
-  $name = $decoded->body->get(key: 'name')->toString();
-  $payload = $decoded->body->toArray();
+  $name = $decoded->body()->get(key: 'name')->toString();
+  $payload = $decoded->body()->toArray();
 
   $id = $decoded->uri()->route()->get(key: 'id')->toInteger();
   ```
@@ -68,10 +68,10 @@ to access route parameters and JSON body fields consistently.
   $decoded = Request::from(request: $psrRequest)->decode();
   
   $id = $decoded->uri()->route()->get(key: 'id')->toInteger();  # default: 0
-  $note = $decoded->body->get(key: 'note')->toString();       # default: ""
-  $tags = $decoded->body->get(key: 'tags')->toArray();        # default: []
-  $price = $decoded->body->get(key: 'price')->toFloat();      # default: 0.00
-  $active = $decoded->body->get(key: 'active')->toBoolean();  # default: false
+  $note = $decoded->body()->get(key: 'note')->toString();       # default: ""
+  $tags = $decoded->body()->get(key: 'tags')->toArray();        # default: []
+  $price = $decoded->body()->get(key: 'price')->toFloat();      # default: 0.00
+  $active = $decoded->body()->get(key: 'active')->toBoolean();  # default: false
   ```
 
 - **Custom route attribute name**: If your framework stores route params in a different request attribute, you can
