@@ -16,7 +16,7 @@ final readonly class Uri
 
     public static function from(ServerRequestInterface $request): Uri
     {
-        return new Uri(request: $request, routeAttributeName: self::ROUTE,);
+        return new Uri(request: $request, routeAttributeName: self::ROUTE);
     }
 
     public function route(string $name = self::ROUTE): Uri
