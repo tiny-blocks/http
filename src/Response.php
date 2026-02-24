@@ -9,6 +9,11 @@ use TinyBlocks\Http\Internal\Response\InternalResponse;
 
 final readonly class Response implements Responses
 {
+    public static function from(Code $code, mixed $body, Headers ...$headers): ResponseInterface
+    {
+        return InternalResponse::createWithBody($body, $code, ...$headers);
+    }
+
     public static function ok(mixed $body, Headers ...$headers): ResponseInterface
     {
         return InternalResponse::createWithBody($body, Code::OK, ...$headers);

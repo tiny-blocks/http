@@ -22,6 +22,31 @@ use TinyBlocks\Http\Response;
 
 final class ResponseTest extends TestCase
 {
+    #[DataProvider('responseFromProvider')]
+    public function testResponseFrom(Code $code, mixed $body, string $expectedBody): void
+    {
+        /** @Given a specific status code and body */
+        /** @When we create the HTTP response using the generic from method */
+        $actual = Response::from(code: $code, body: $body);
+
+        /** @Then the protocol version should be "1.1" */
+        self::assertSame('1.1', $actual->getProtocolVersion());
+
+        /** @And the body of the response should match the expected output */
+        self::assertSame($expectedBody, $actual->getBody()->__toString());
+        self::assertSame($expectedBody, $actual->getBody()->getContents());
+
+        /** @And the status code should match the provided code */
+        self::assertSame($code->value, $actual->getStatusCode());
+        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
+
+        /** @And the reason phrase should match the provided code message */
+        self::assertSame($code->message(), $actual->getReasonPhrase());
+
+        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
     public function testResponseOk(): void
     {
         /** @Given a body with data */
@@ -349,6 +374,37 @@ final class ResponseTest extends TestCase
 
         /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
         self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
+    public static function responseFromProvider(): array
+    {
+        return [
+            'I am a teapot'                           => [
+                'code'         => Code::IM_A_TEAPOT,
+                'body'         => 'Short and stout',
+                'expectedBody' => 'Short and stout'
+            ],
+            'OK with array body'                      => [
+                'code'         => Code::OK,
+                'body'         => ['status' => 'success'],
+                'expectedBody' => '{"status":"success"}'
+            ],
+            'Accepted with null body'                 => [
+                'code'         => Code::ACCEPTED,
+                'body'         => null,
+                'expectedBody' => ''
+            ],
+            'Not Found with string body'              => [
+                'code'         => Code::NOT_FOUND,
+                'body'         => 'Resource not found',
+                'expectedBody' => 'Resource not found'
+            ],
+            'Internal Server Error with complex body' => [
+                'code'         => Code::INTERNAL_SERVER_ERROR,
+                'body'         => ['error' => ['code' => 500, 'message' => 'Crash']],
+                'expectedBody' => '{"error":{"code":500,"message":"Crash"}}'
+            ]
+        ];
     }
 
     #[DataProvider('bodyProviderData')]

@@ -14,6 +14,16 @@ use Psr\Http\Message\ResponseInterface;
 interface Responses
 {
     /**
+     * Creates a response with the specified status code, body, and headers.
+     *
+     * @param Code $code The HTTP status code for the response.
+     * @param mixed $body The body of the response.
+     * @param Headers ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated response with the specified status code, body, and headers.
+     */
+    public static function from(Code $code, mixed $body, Headers ...$headers): ResponseInterface;
+
+    /**
      * Creates a response with a 200 OK status.
      *
      * @param mixed $body The body of the response.
