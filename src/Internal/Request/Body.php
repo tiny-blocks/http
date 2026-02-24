@@ -18,11 +18,17 @@ final readonly class Body
         $body = $request->getBody();
         $streamFactory = StreamFactory::fromStream(stream: $body);
 
-        if ($streamFactory->isEmptyContent()) {
-            return new Body(data: []);
+        if (!$streamFactory->isEmptyContent()) {
+            return new Body(data: json_decode($streamFactory->content(), true));
         }
 
-        return new Body(data: json_decode($streamFactory->content(), true));
+        $parsedBody = $request->getParsedBody();
+
+        if (is_array($parsedBody)) {
+            return new Body(data: $parsedBody);
+        }
+
+        return new Body(data: []);
     }
 
     public function get(string $key): Attribute

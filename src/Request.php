@@ -23,4 +23,9 @@ final readonly class Request
     {
         return Decoder::from(request: $this->request)->decode();
     }
+
+    public function method(): Method
+    {
+        return Method::from(value: $this->request->getMethod());
+    }
 }

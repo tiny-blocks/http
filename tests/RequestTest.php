@@ -8,6 +8,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
+use Psr\Http\Message\UriInterface;
+use TinyBlocks\Http\Method;
 use TinyBlocks\Http\Request;
 
 final class RequestTest extends TestCase
@@ -31,6 +33,9 @@ final class RequestTest extends TestCase
             ->willReturn(json_encode($payload, JSON_PRESERVE_ZERO_FRACTION));
 
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('POST');
         $serverRequest
             ->method('getBody')
             ->willReturn($stream);
@@ -62,6 +67,9 @@ final class RequestTest extends TestCase
         /** @And a ServerRequestInterface with this route attribute */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '__route__' => ['name' => $routeName, 'id' => $attribute],
@@ -92,6 +100,9 @@ final class RequestTest extends TestCase
         /** @And a ServerRequestInterface with this route attribute */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '__route__' => ['name' => $routeName, ...$attributes],
@@ -119,6 +130,9 @@ final class RequestTest extends TestCase
         /** @Given a ServerRequestInterface with a route attribute */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '__route__' => ['name' => '/v1/dragons/{id}', $key => $value],
@@ -142,6 +156,9 @@ final class RequestTest extends TestCase
 
         /** @And a ServerRequestInterface with this route attribute as scalar */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -172,6 +189,9 @@ final class RequestTest extends TestCase
         /** @And a ServerRequestInterface with this route object under __route__ */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '__route__' => $routeObject,
@@ -191,6 +211,7 @@ final class RequestTest extends TestCase
     {
         /** @Given a Mezzio-style route result object that uses getMatchedParams() */
         $routeResult = new class {
+            /** @noinspection PhpUnused */
             public function getMatchedParams(): array
             {
                 return ['id' => '99', 'slug' => 'fire-dragon'];
@@ -199,6 +220,9 @@ final class RequestTest extends TestCase
 
         /** @And a ServerRequestInterface with this route result under routeResult */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -218,6 +242,9 @@ final class RequestTest extends TestCase
     {
         /** @Given Symfony stores route params as an array under _route_params */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -241,6 +268,9 @@ final class RequestTest extends TestCase
         /** @Given Symfony stores route params under _route_params and default __route__ is null */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '_route_params' => ['id' => '55'],
@@ -258,6 +288,9 @@ final class RequestTest extends TestCase
     {
         /** @Given a framework like Laravel stores route params as direct request attributes */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -278,6 +311,9 @@ final class RequestTest extends TestCase
     {
         /** @Given a user manually injects route params via withAttribute() */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('POST');
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -303,6 +339,9 @@ final class RequestTest extends TestCase
         /** @And a ServerRequestInterface with this object under __route__ */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
                 '__route__' => $routeObject,
@@ -322,6 +361,9 @@ final class RequestTest extends TestCase
         /** @Given a ServerRequestInterface with no route attributes at all */
         $serverRequest = $this->createMock(ServerRequestInterface::class);
         $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
             ->method('getAttribute')
             ->willReturn(null);
 
@@ -334,6 +376,209 @@ final class RequestTest extends TestCase
         self::assertSame(0.00, $route->get(key: 'weight')->toFloat());
         self::assertFalse($route->get(key: 'active')->toBoolean());
         self::assertSame([], $route->get(key: 'tags')->toArray());
+    }
+
+    public function testRequestDecodingWithParsedBody(): void
+    {
+        /** @Given a payload already parsed by the framework */
+        $payload = [
+            'id'           => PHP_INT_MAX,
+            'name'         => 'Drakengard Firestorm',
+            'type'         => 'Dragon',
+            'weight'       => 6000.00,
+            'skills'       => ['Fire Breath', 'Flight', 'Regeneration'],
+            'is_legendary' => true
+        ];
+
+        /** @And a ServerRequestInterface with an empty stream but a parsed body */
+        $stream = $this->createMock(StreamInterface::class);
+        $stream
+            ->method('getContents')
+            ->willReturn('');
+
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('POST');
+        $serverRequest
+            ->method('getBody')
+            ->willReturn($stream);
+        $serverRequest
+            ->method('getParsedBody')
+            ->willReturn($payload);
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we decode the body of the HTTP Request */
+        $actual = $request->decode()->body();
+
+        /** @Then the decoded body should match the parsed payload */
+        self::assertSame($payload, $actual->toArray());
+        self::assertSame($payload['id'], $actual->get(key: 'id')->toInteger());
+        self::assertSame($payload['name'], $actual->get(key: 'name')->toString());
+        self::assertSame($payload['type'], $actual->get(key: 'type')->toString());
+        self::assertSame($payload['weight'], $actual->get(key: 'weight')->toFloat());
+        self::assertSame($payload['skills'], $actual->get(key: 'skills')->toArray());
+        self::assertSame($payload['is_legendary'], $actual->get(key: 'is_legendary')->toBoolean());
+    }
+
+    public function testRequestDecodingWithFullUri(): void
+    {
+        /** @Given a full URI string */
+        $expectedUri = 'https://api.example.com/v1/dragons?sort=name&order=asc';
+
+        /** @And a PSR-7 UriInterface mock that returns this URI */
+        $uri = $this->createMock(UriInterface::class);
+        $uri
+            ->method('__toString')
+            ->willReturn($expectedUri);
+
+        /** @And a ServerRequestInterface that returns this UriInterface */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
+            ->method('getUri')
+            ->willReturn($uri);
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we retrieve the full URI string from the decoded request */
+        $actual = $request->decode()->uri()->toString();
+
+        /** @Then the URI string should match the expected full URI */
+        self::assertSame($expectedUri, $actual);
+    }
+
+    public function testRequestDecodingWithQueryParameters(): void
+    {
+        /** @Given query parameters present in the request URI */
+        $queryParams = [
+            'sort'   => 'name',
+            'order'  => 'asc',
+            'limit'  => '50',
+            'active' => 'true'
+        ];
+
+        /** @And a ServerRequestInterface that returns these query parameters */
+        $stream = $this->createMock(StreamInterface::class);
+        $stream
+            ->method('getContents')
+            ->willReturn('');
+
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
+            ->method('getQueryParams')
+            ->willReturn($queryParams);
+        $serverRequest
+            ->method('getBody')
+            ->willReturn($stream);
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we retrieve the query parameters from the decoded request */
+        $actual = $request->decode()->uri()->queryParameters();
+
+        /** @Then the query parameters should match the original values */
+        self::assertSame($queryParams, $actual->toArray());
+        self::assertSame($queryParams['sort'], $actual->get(key: 'sort')->toString());
+        self::assertSame($queryParams['order'], $actual->get(key: 'order')->toString());
+        self::assertSame(50, $actual->get(key: 'limit')->toInteger());
+        self::assertTrue($actual->get(key: 'active')->toBoolean());
+    }
+
+    public function testRequestDecodingWithQueryParametersReturnsDefaultsWhenEmpty(): void
+    {
+        /** @Given a ServerRequestInterface with no query parameters */
+        $stream = $this->createMock(StreamInterface::class);
+        $stream
+            ->method('getContents')
+            ->willReturn('');
+
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('GET');
+        $serverRequest
+            ->method('getQueryParams')
+            ->willReturn([]);
+        $serverRequest
+            ->method('getBody')
+            ->willReturn($stream);
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we try to access query parameters that do not exist */
+        $actual = $request->decode()->uri()->queryParameters();
+
+        /** @Then safe defaults should be returned */
+        self::assertSame([], $actual->toArray());
+        self::assertSame('', $actual->get(key: 'sort')->toString());
+        self::assertSame(0, $actual->get(key: 'page')->toInteger());
+        self::assertSame(0.00, $actual->get(key: 'price')->toFloat());
+        self::assertFalse($actual->get(key: 'active')->toBoolean());
+    }
+
+    public function testRequestWithMethod(): void
+    {
+        /** @Given a ServerRequestInterface with POST method */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn('POST');
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we retrieve the HTTP method */
+        $actual = $request->method();
+
+        /** @Then the method should match the expected enum value */
+        self::assertSame(Method::POST, $actual);
+        self::assertSame('POST', $actual->value);
+    }
+
+    #[DataProvider('httpMethodsProvider')]
+    public function testRequestWithDifferentHttpMethods(string $methodString, Method $expectedMethod): void
+    {
+        /** @Given a ServerRequestInterface with the specified HTTP method */
+        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest
+            ->method('getMethod')
+            ->willReturn($methodString);
+
+        /** @When we create the HTTP Request with this ServerRequestInterface */
+        $request = Request::from(request: $serverRequest);
+
+        /** @And we retrieve the HTTP method */
+        $actual = $request->method();
+
+        /** @Then the method should match the expected enum value */
+        self::assertSame($expectedMethod, $actual);
+        self::assertSame($methodString, $actual->value);
+    }
+
+    public static function httpMethodsProvider(): array
+    {
+        return [
+            'GET method'     => ['GET', Method::GET],
+            'PUT method'     => ['PUT', Method::PUT],
+            'POST method'    => ['POST', Method::POST],
+            'HEAD method'    => ['HEAD', Method::HEAD],
+            'PATCH method'   => ['PATCH', Method::PATCH],
+            'TRACE method'   => ['TRACE', Method::TRACE],
+            'DELETE method'  => ['DELETE', Method::DELETE],
+            'OPTIONS method' => ['OPTIONS', Method::OPTIONS],
+            'CONNECT method' => ['CONNECT', Method::CONNECT]
+        ];
     }
 
     public static function attributeConversionsProvider(): array

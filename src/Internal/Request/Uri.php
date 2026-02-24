@@ -7,7 +7,7 @@ namespace TinyBlocks\Http\Internal\Request;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Provides access to route parameters extracted from a PSR-7 ServerRequestInterface.
+ * Provides access to URI components and route parameters extracted from a PSR-7 ServerRequestInterface.
  *
  * The route parameters are resolved in the following priority:
  * 1. The explicitly specified attribute name (default: `__route__`).
@@ -32,6 +32,29 @@ final readonly class Uri
             routeAttributeName: self::ROUTE,
             resolver: RouteParameterResolver::from(request: $request)
         );
+    }
+
+    /**
+     * Returns the full URI of the request as a string.
+     *
+     * Delegates to the PSR-7 UriInterface's string representation,
+     * which includes scheme, host, path, query string, and fragment.
+     *
+     * @return string The complete URI string (e.g., "https://api.example.com/v1/dragons?sort=name").
+     */
+    public function toString(): string
+    {
+        return $this->request->getUri()->__toString();
+    }
+
+    /**
+     * Returns a typed wrapper around the query string parameters.
+     *
+     * @return QueryParameters Provides typed access to individual query parameters via get().
+     */
+    public function queryParameters(): QueryParameters
+    {
+        return QueryParameters::from(request: $this->request);
     }
 
     /**
