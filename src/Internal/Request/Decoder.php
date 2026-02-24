@@ -14,7 +14,10 @@ final readonly class Decoder
 
     public static function from(ServerRequestInterface $request): Decoder
     {
-        return new Decoder(uri: Uri::from(request: $request), body: Body::from(request: $request));
+        return new Decoder(
+            uri: Uri::from(request: $request),
+            body: Body::from(request: $request)
+        );
     }
 
     public function decode(): DecodedRequest

@@ -59,19 +59,64 @@ to access route parameters and JSON body fields consistently.
   $id = $decoded->uri()->route()->get(key: 'id')->toInteger();
   ```
 
+- **Access the HTTP method**: Use `method()` directly on the `Request` to retrieve the HTTP verb as a typed `Method`
+  enum.
+
+  ```php
+  use Psr\Http\Message\ServerRequestInterface;
+  use TinyBlocks\Http\Request;
+
+  /** @var ServerRequestInterface $psrRequest */
+  $request = Request::from(request: $psrRequest);
+
+  $method = $request->method();        # Method::POST
+  $method->value;                      # "POST"
+  ```
+
+- **Access the full URI**: Use `toString()` on the decoded `uri()` to retrieve the complete request URI as a string.
+
+  ```php
+  use TinyBlocks\Http\Request;
+
+  $decoded = Request::from(request: $psrRequest)->decode();
+
+  $fullUri = $decoded->uri()->toString(); # "https://api.example.com/v1/dragons?sort=name"
+  ```
+
+- **Access query parameters**: Use `queryParameters()` on the decoded `uri()` to retrieve typed access to query string
+  values. Each value is returned as an `Attribute`, providing the same safe conversions and defaults as body fields.
+
+  ```php
+  use TinyBlocks\Http\Request;
+
+  $decoded = Request::from(request: $psrRequest)->decode();
+
+  $queryParams = $decoded->uri()->queryParameters()->toArray();                     # ['sort' => 'name', 'limit' => '50']
+  $sort = $decoded->uri()->queryParameters()->get(key: 'sort')->toString();         # "name"
+  $limit = $decoded->uri()->queryParameters()->get(key: 'limit')->toInteger();      # 50
+  $active = $decoded->uri()->queryParameters()->get(key: 'active')->toBoolean();    # default: false
+  ```
+
 - **Typed access with defaults**: Each value is returned as an Attribute, which provides safe conversions and default
   values when the underlying value is missing or not compatible.
 
   ```php
   use TinyBlocks\Http\Request;
   
-  $decoded = Request::from(request: $psrRequest)->decode();
+  $request = Request::from(request: $psrRequest);
+  $decoded = $request->decode();
   
-  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();  # default: 0
-  $note = $decoded->body()->get(key: 'note')->toString();       # default: ""
-  $tags = $decoded->body()->get(key: 'tags')->toArray();        # default: []
-  $price = $decoded->body()->get(key: 'price')->toFloat();      # default: 0.00
-  $active = $decoded->body()->get(key: 'active')->toBoolean();  # default: false
+  $method = $request->method();                                                  # default: Method enum
+  
+  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();                   # default: 0
+  $uri = $decoded->uri()->toString();                                            # default: ""
+  $sort = $decoded->uri()->queryParameters()->get(key: 'sort')->toString();      # default: ""
+  $limit = $decoded->uri()->queryParameters()->get(key: 'limit')->toInteger();   # default: 0
+  
+  $note = $decoded->body()->get(key: 'note')->toString();                        # default: ""
+  $tags = $decoded->body()->get(key: 'tags')->toArray();                         # default: []
+  $price = $decoded->body()->get(key: 'price')->toFloat();                       # default: 0.00
+  $active = $decoded->body()->get(key: 'active')->toBoolean();                   # default: false
   ```
 
 - **Custom route attribute name**: If your framework stores route params in a different request attribute, you can
