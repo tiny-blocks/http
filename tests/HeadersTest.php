@@ -80,6 +80,118 @@ final class HeadersTest extends TestCase
         self::assertSame([], $actual);
     }
 
+    public function testAddHeaderAppendsDistinctValuesToExistingHeader(): void
+    {
+        /** @Given an HTTP response with a custom header */
+        $response = Response::noContent()->withHeader(name: 'X-Trace', value: 'first');
+
+        /** @When a distinct value is added to the same header */
+        $actual = $response->withAddedHeader(name: 'X-Trace', value: 'second');
+
+        /** @Then both values should be preserved in the original order */
+        self::assertSame('first, second', $actual->getHeaderLine(name: 'X-Trace'));
+        self::assertSame(['first', 'second'], $actual->getHeader(name: 'X-Trace'));
+    }
+
+    public function testAddHeaderCreatesHeaderWhenAbsent(): void
+    {
+        /** @Given an HTTP response without a custom header */
+        $response = Response::noContent();
+
+        /** @When a value is added for the absent header */
+        $actual = $response->withAddedHeader(name: 'X-Trace', value: 'only-value');
+
+        /** @Then the header should be created carrying the given value */
+        self::assertSame(['only-value'], $actual->getHeader(name: 'X-Trace'));
+        self::assertSame(
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['only-value']],
+            $actual->getHeaders()
+        );
+    }
+
+    public function testAddHeaderIsCaseInsensitiveWhenMatchingExistingHeader(): void
+    {
+        /** @Given an HTTP response with a custom header */
+        $response = Response::noContent()->withHeader(name: 'X-Trace', value: 'first');
+
+        /** @When a value is added using a differently cased header name */
+        $actual = $response->withAddedHeader(name: 'x-trace', value: 'second');
+
+        /** @Then the value should be appended preserving the original case of the header name */
+        self::assertSame(['first', 'second'], $actual->getHeader(name: 'X-Trace'));
+        self::assertSame(
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['first', 'second']],
+            $actual->getHeaders()
+        );
+    }
+
+    public function testWithoutHeaderIsCaseInsensitive(): void
+    {
+        /** @Given an HTTP response with a custom header */
+        $response = Response::noContent()->withHeader(name: 'X-Trace', value: 'value');
+
+        /** @When the header is removed using a differently cased name */
+        $actual = $response->withoutHeader(name: 'x-trace');
+
+        /** @Then the header should no longer be present */
+        self::assertFalse($actual->hasHeader(name: 'X-Trace'));
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
+    public function testWithoutHeaderIsNoOpWhenHeaderIsAbsent(): void
+    {
+        /** @Given an HTTP response without the target header */
+        $response = Response::noContent();
+
+        /** @When the missing header is requested to be removed */
+        $actual = $response->withoutHeader(name: 'X-Trace');
+
+        /** @Then the headers should remain unchanged */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
+    public function testReplaceHeaderCreatesHeaderWhenAbsent(): void
+    {
+        /** @Given an HTTP response without the target header */
+        $response = Response::noContent();
+
+        /** @When the header is replaced (i.e., set) */
+        $actual = $response->withHeader(name: 'X-Trace', value: 'value');
+
+        /** @Then the header should be created with the given value */
+        self::assertSame(['value'], $actual->getHeader(name: 'X-Trace'));
+    }
+
+    public function testReplaceHeaderIsCaseInsensitiveOnExistingHeader(): void
+    {
+        /** @Given an HTTP response with a custom header */
+        $response = Response::noContent()->withHeader(name: 'X-Trace', value: 'first');
+
+        /** @When the header is replaced using a differently cased name */
+        $actual = $response->withHeader(name: 'x-trace', value: 'second');
+
+        /** @Then the original casing of the header name should be preserved and the value replaced */
+        self::assertSame(['second'], $actual->getHeader(name: 'X-Trace'));
+        self::assertSame(
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['second']],
+            $actual->getHeaders()
+        );
+    }
+
+    public function testMergingMultipleHeadersCombinesEntries(): void
+    {
+        /** @Given a Cache-Control and a Content-Type header */
+        $cacheControl = CacheControl::fromResponseDirectives(noStore: ResponseCacheDirectives::noStore());
+        $contentType = ContentType::textPlain();
+
+        /** @When a response is created with both */
+        $actual = Response::noContent($cacheControl, $contentType);
+
+        /** @Then both headers should be present */
+        self::assertSame(['no-store'], $actual->getHeader(name: 'Cache-Control'));
+        self::assertSame(['text/plain'], $actual->getHeader(name: 'Content-Type'));
+    }
+
     public function testResponseWithCacheControl(): void
     {
         /** @Given a Cache-Control header with multiple directives */
