@@ -235,6 +235,113 @@ to the [PSR-7](https://www.php-fig.org/psr/psr-7) standard.
       ->withHeader(name: 'X-NAME', value: 'Xpto');
   ```
 
+#### Setting cookies
+
+The library models the `Set-Cookie` HTTP response header through the `Cookie` value object, covering the full
+[RFC 6265](https://datatracker.ietf.org/doc/html/rfc6265) attribute set plus modern additions such as `SameSite` and
+`Partitioned`. Instances are immutable and fluent — every builder call returns a new `Cookie`. Like `ContentType` and
+`CacheControl`, `Cookie` implements `Headers`, so it composes naturally with any `Response` factory via varargs.
+
+- **Setting a session cookie**: Build a cookie with the required security flags and attach it to a response.
+
+  ```php
+  use TinyBlocks\Http\Cookie;
+  use TinyBlocks\Http\Response;
+  use TinyBlocks\Http\SameSite;
+  
+  $cookie = Cookie::create(name: 'refresh_token', value: $opaqueToken)
+      ->httpOnly()
+      ->secure()
+      ->withSameSite(sameSite: SameSite::STRICT)
+      ->withPath(path: '/v1/sessions')
+      ->withMaxAge(seconds: 604800);
+  
+  Response::ok(body: ['ok' => true], $cookie);
+  ```
+
+- **Setting multiple cookies**: Pass each `Cookie` as an additional header argument. The response emits one
+  `Set-Cookie` header per cookie, preserving all of them (this follows the PSR-7 multi-value header model).
+
+  ```php
+  use TinyBlocks\Http\Cookie;
+  use TinyBlocks\Http\Response;
+  use TinyBlocks\Http\SameSite;
+  
+  $accessCookie = Cookie::create(name: 'access_token', value: $accessToken)
+      ->httpOnly()
+      ->secure()
+      ->withPath(path: '/');
+  
+  $refreshCookie = Cookie::create(name: 'refresh_token', value: $refreshToken)
+      ->httpOnly()
+      ->secure()
+      ->withSameSite(sameSite: SameSite::STRICT)
+      ->withPath(path: '/v1/sessions')
+      ->withMaxAge(seconds: 604800);
+  
+  Response::ok(body: ['ok' => true], $accessCookie, $refreshCookie);
+  ```
+
+- **Expiring a cookie**: Use `Cookie::expire()` to instruct the browser to delete a previously set cookie. Chain the
+  same `Path` (and `Domain`, if applicable) used when the cookie was issued; otherwise the browser will not match the
+  cookie and the deletion will have no effect.
+
+  ```php
+  use TinyBlocks\Http\Cookie;
+  use TinyBlocks\Http\Response;
+  use TinyBlocks\Http\SameSite;
+  
+  $expired = Cookie::expire(name: 'refresh_token')
+      ->httpOnly()
+      ->secure()
+      ->withSameSite(sameSite: SameSite::STRICT)
+      ->withPath(path: '/v1/sessions');
+  
+  Response::noContent($expired);
+  ```
+
+- **Using an absolute expiration date**: When an explicit deletion moment is preferable over `Max-Age`, use
+  `withExpires()`. The date is converted to UTC and rendered in
+  the [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231)
+  date format required by the `Expires` attribute. `Max-Age` and `Expires` are mutually exclusive — setting both
+  throws `ConflictingLifetimeAttributes` when the response is serialized.
+
+  ```php
+  use DateTimeImmutable;
+  use DateTimeZone;
+  use TinyBlocks\Http\Cookie;
+  
+  Cookie::create(name: 'preference', value: 'dark-mode')->withExpires(
+      expires: new DateTimeImmutable(datetime: '2030-01-15 12:00:00', timezone: new DateTimeZone(timezone: 'UTC'))
+  );
+  ```
+
+- **Cross-site cookies**: `SameSite::NONE` requires the `Secure` flag — modern browsers reject `SameSite=None` cookies
+  sent over insecure connections. The library enforces this invariant at serialization time and throws
+  `SameSiteNoneRequiresSecure` when the combination is incomplete.
+
+  ```php
+  use TinyBlocks\Http\Cookie;
+  use TinyBlocks\Http\SameSite;
+  
+  Cookie::create(name: 'embed_session', value: $token)
+      ->withSameSite(sameSite: SameSite::NONE)
+      ->secure();
+  ```
+
+- **Validation at construction time**: Cookie names and values are validated against
+  [RFC 6265](https://datatracker.ietf.org/doc/html/rfc6265). Names cannot be empty nor contain control characters,
+  whitespace, or token separators (``( ) < > @ , ; : \ " / [ ] ? = { }``). Values cannot contain control characters,
+  whitespace, double quotes, commas, semicolons, or backslashes. Encode the value (e.g., URL-encode or Base64) before
+  passing it when it may contain arbitrary text.
+
+  ```php
+  use TinyBlocks\Http\Cookie;
+  
+  Cookie::create(name: 'user_id', value: (string)$userId);           # valid
+  Cookie::create(name: 'payload', value: base64_encode($jsonBody));  # encode arbitrary values first
+  ```
+
 #### Using the status code
 
 The library exposes a concrete implementation through the `Code` enum. You can retrieve the status codes, their

@@ -59,39 +59,30 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function withHeader(string $name, $value): MessageInterface
     {
-        $headers = ResponseHeaders::fromOrDefault(
-            $this->headers,
-            ResponseHeaders::fromNameAndValue(name: $name, value: $value)
-        );
-
         return new InternalResponse(
             body: $this->body,
             code: $this->code,
-            headers: $headers,
+            headers: $this->headers->withReplaced(name: $name, value: $value),
             protocolVersion: $this->protocolVersion
         );
     }
 
     public function withoutHeader(string $name): MessageInterface
     {
-        $headers = $this->headers->removeByName(name: $name);
-
         return new InternalResponse(
             body: $this->body,
             code: $this->code,
-            headers: $headers,
+            headers: $this->headers->removeByName(name: $name),
             protocolVersion: $this->protocolVersion
         );
     }
 
     public function withAddedHeader(string $name, $value): MessageInterface
     {
-        $headers = ResponseHeaders::fromNameAndValue(name: $name, value: $value);
-
         return new InternalResponse(
             body: $this->body,
             code: $this->code,
-            headers: $headers,
+            headers: $this->headers->withAdded(name: $name, value: $value),
             protocolVersion: $this->protocolVersion
         );
     }

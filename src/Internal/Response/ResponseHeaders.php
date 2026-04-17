@@ -16,23 +16,26 @@ final readonly class ResponseHeaders implements Headers
 
     public static function fromOrDefault(Headers ...$headers): ResponseHeaders
     {
-        $mappedHeaders = empty($headers)
-            ? [ContentType::applicationJson(charset: Charset::UTF_8)->toArray()]
-            : array_map(fn(Headers $header) => $header->toArray(), $headers);
+        if (empty($headers)) {
+            return new ResponseHeaders(headers: ContentType::applicationJson(charset: Charset::UTF_8)->toArray());
+        }
 
-        return new ResponseHeaders(headers: array_merge([], ...$mappedHeaders));
-    }
+        $merged = [];
 
-    public static function fromNameAndValue(string $name, mixed $value): ResponseHeaders
-    {
-        return new ResponseHeaders(headers: [$name => [$value]]);
+        foreach ($headers as $header) {
+            foreach ($header->toArray() as $name => $values) {
+                $merged[$name] = isset($merged[$name]) ? array_merge($merged[$name], $values) : $values;
+            }
+        }
+
+        return new ResponseHeaders(headers: $merged);
     }
 
     public function getByName(string $name): array
     {
-        $headers = array_change_key_case($this->headers);
+        $key = $this->findKey(name: $name);
 
-        return $headers[strtolower($name)] ?? [];
+        return $key === null ? [] : $this->headers[$key];
     }
 
     public function hasHeader(string $name): bool
@@ -43,11 +46,44 @@ final readonly class ResponseHeaders implements Headers
     public function removeByName(string $name): ResponseHeaders
     {
         $headers = $this->headers;
-        $existingHeader = $this->getByName(name: $name);
+        $existingKey = $this->findKey(name: $name);
 
-        if (!empty($existingHeader)) {
-            unset($headers[$name]);
+        if ($existingKey !== null) {
+            unset($headers[$existingKey]);
         }
+
+        return new ResponseHeaders(headers: $headers);
+    }
+
+    public function withReplaced(string $name, mixed $value): ResponseHeaders
+    {
+        $headers = $this->headers;
+        $existingKey = $this->findKey(name: $name);
+        $targetKey = $existingKey ?? $name;
+        $headers[$targetKey] = [$value];
+
+        return new ResponseHeaders(headers: $headers);
+    }
+
+    public function withAdded(string $name, mixed $value): ResponseHeaders
+    {
+        $headers = $this->headers;
+        $existingKey = $this->findKey(name: $name);
+
+        if ($existingKey === null) {
+            $headers[$name] = [$value];
+
+            return new ResponseHeaders(headers: $headers);
+        }
+
+        $existingValues = $headers[$existingKey];
+
+        if (in_array($value, $existingValues, strict: true)) {
+            return new ResponseHeaders(headers: $headers);
+        }
+
+        $existingValues[] = $value;
+        $headers[$existingKey] = $existingValues;
 
         return new ResponseHeaders(headers: $headers);
     }
@@ -55,5 +91,18 @@ final readonly class ResponseHeaders implements Headers
     public function toArray(): array
     {
         return $this->headers;
+    }
+
+    private function findKey(string $name): ?string
+    {
+        $lowered = strtolower($name);
+
+        foreach (array_keys($this->headers) as $key) {
+            if (strtolower($key) === $lowered) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 }
