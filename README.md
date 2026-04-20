@@ -14,10 +14,10 @@
 
 ## Overview
 
-Common implementations for the HTTP protocol. The library exposes concrete implementations that follow the PSR standards
-and are **framework-agnostic**, designed to work consistently across any ecosystem that supports
-[PSR-7](https://www.php-fig.org/psr/psr-7) and [PSR-15](https://www.php-fig.org/psr/psr-15), providing solutions for
-building HTTP responses, requests, and other HTTP-related components.
+Implements [PSR-7](https://www.php-fig.org/psr/psr-7) and [PSR-15](https://www.php-fig.org/psr/psr-15) HTTP primitives
+for PHP, covering requests, responses, streams, cookies, headers, methods, status codes, and cache-control directives.
+Ships with a fluent response builder that maps common outcomes to the correct HTTP semantics out of the box.
+Interoperable with Slim, Laminas, and any PSR-compliant framework.
 
 <div id='installation'></div>
 

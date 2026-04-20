@@ -1,10 +1,12 @@
 # Project
 
-PHP microservices platform. Hexagonal architecture (ports & adapters), DDD, CQRS.
+PHP library (tiny-blocks ecosystem). Self-contained package: immutable models, zero infrastructure
+dependencies in core, small public surface area. Public API at `src/` root; implementation details
+under `src/Internal/`.
 
 ## Rules
 
-All coding standards, architecture, naming, testing, documentation, and OpenAPI conventions
+All coding standards, architecture, naming, testing, and documentation conventions
 are defined in `rules/`. Read the applicable rule files before generating any code or documentation.
 
 ## Commands

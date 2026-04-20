@@ -198,6 +198,20 @@ final class StreamTest extends TestCase
         self::assertNull($stream->getSize());
     }
 
+    public function testIsSeekableReturnsFalseWhenUnderlyingResourceIsClosedExternally(): void
+    {
+        /** @Given a stream whose underlying resource was closed outside the stream API */
+        $resource = fopen('php://memory', 'w+');
+        $stream = Stream::from(resource: $resource);
+        fclose($resource);
+
+        /** @When checking if the stream is seekable */
+        $actual = $stream->isSeekable();
+
+        /** @Then it should return false because the resource is no longer valid */
+        self::assertFalse($actual);
+    }
+
     public function testExceptionWhenNonSeekableStream(): void
     {
         /** @Given a stream */

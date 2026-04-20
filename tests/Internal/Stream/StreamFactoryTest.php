@@ -28,7 +28,7 @@ final class StreamFactoryTest extends TestCase
     public function testFromStreamShouldRewindBeforeAndAfterReadingWhenSeekable(): void
     {
         /** @Given a seekable stream */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream->method('isSeekable')->willReturn(true);
 
         /** @And rewind call counter */
@@ -59,7 +59,7 @@ final class StreamFactoryTest extends TestCase
     public function testFromStreamShouldNotRewindWhenNotSeekable(): void
     {
         /** @Given a non-seekable stream */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream->method('isSeekable')->willReturn(false);
 
         /** @And rewind call counter */

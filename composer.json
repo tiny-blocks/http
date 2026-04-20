@@ -1,39 +1,36 @@
 {
     "name": "tiny-blocks/http",
-    "type": "library",
+    "description": "Implements PSR-7 and PSR-15 HTTP primitives for PHP, with a fluent response builder, cookies, and cache control.\n\nThe package is designed to be used in any PHP application, and can be used as a standalone library or as part of a larger framework.",
     "license": "MIT",
-    "homepage": "https://github.com/tiny-blocks/http",
-    "description": "Common implementations for HTTP protocol.",
-    "prefer-stable": true,
-    "minimum-stability": "stable",
-    "keywords": [
-        "psr",
-        "http",
-        "psr-7",
-        "psr-15",
-        "request",
-        "response",
-        "http-code",
-        "tiny-blocks",
-        "http-status",
-        "http-methods"
-    ],
+    "type": "library",
     "authors": [
         {
             "name": "Gustavo Freze de Araujo Santos",
             "homepage": "https://github.com/gustavofreze"
         }
     ],
+    "homepage": "https://github.com/tiny-blocks/http",
     "support": {
         "issues": "https://github.com/tiny-blocks/http/issues",
         "source": "https://github.com/tiny-blocks/http"
     },
-    "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "infection/extension-installer": true
-        }
+    "require": {
+        "php": "^8.5",
+        "psr/http-message": "^2.0",
+        "tiny-blocks/mapper": "^2.0"
     },
+    "require-dev": {
+        "ergebnis/composer-normalize": "^2.51",
+        "infection/infection": "^0.32",
+        "laminas/laminas-httphandlerrunner": "^2.12",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^13.1",
+        "slim/psr7": "^1.7",
+        "slim/slim": "^4.14",
+        "squizlabs/php_codesniffer": "^4.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
     "autoload": {
         "psr-4": {
             "TinyBlocks\\Http\\": "src/"
@@ -44,31 +41,24 @@
             "Test\\TinyBlocks\\Http\\": "tests/"
         }
     },
-    "require": {
-        "php": "^8.5",
-        "psr/http-message": "^2.0",
-        "tiny-blocks/mapper": "^2.0"
-    },
-    "require-dev": {
-        "slim/psr7": "^1.8",
-        "slim/slim": "^4.15",
-        "phpunit/phpunit": "^11.5",
-        "phpstan/phpstan": "^2.1",
-        "infection/infection": "^0.32",
-        "squizlabs/php_codesniffer": "^4.0",
-        "laminas/laminas-httphandlerrunner": "^2.13"
+    "config": {
+        "allow-plugins": {
+            "ergebnis/composer-normalize": true,
+            "infection/extension-installer": true
+        },
+        "sort-packages": true
     },
     "scripts": {
-        "test": "php -d memory_limit=2G ./vendor/bin/phpunit --configuration phpunit.xml tests",
+        "mutation-test": "php ./vendor/bin/infection --threads=max --logger-html=report/coverage/mutation-report.html --coverage=report/coverage",
         "phpcs": "php ./vendor/bin/phpcs --standard=PSR12 --extensions=php ./src",
         "phpstan": "php ./vendor/bin/phpstan analyse -c phpstan.neon.dist --quiet --no-progress",
-        "test-file": "php ./vendor/bin/phpunit --configuration phpunit.xml --no-coverage --filter",
-        "mutation-test": "php ./vendor/bin/infection --threads=max --logger-html=report/coverage/mutation-report.html --coverage=report/coverage",
-        "test-no-coverage": "php ./vendor/bin/phpunit --configuration phpunit.xml --no-coverage tests",
         "review": [
             "@phpcs",
             "@phpstan"
         ],
+        "test": "php -d memory_limit=2G ./vendor/bin/phpunit --configuration phpunit.xml tests",
+        "test-file": "php ./vendor/bin/phpunit --configuration phpunit.xml --no-coverage --filter",
+        "test-no-coverage": "php ./vendor/bin/phpunit --configuration phpunit.xml --no-coverage tests",
         "tests": [
             "@test",
             "@mutation-test"

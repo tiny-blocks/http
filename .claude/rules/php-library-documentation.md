@@ -1,7 +1,7 @@
 ---
 description: Standards for README files and all project documentation in PHP libraries.
 paths:
-  - "**/*.md"
+    - "**/*.md"
 ---
 
 # Documentation
@@ -21,7 +21,8 @@ paths:
    frequently ask about. Each entry is a numbered question as heading (e.g., `### 01. Why does X happen?`)
    followed by a concise explanation. Only include entries that address real confusion points.
 9. **License** and **Contributing** sections at the end.
-10. Write strictly in American English. See `rules/code-style.md` American English section for spelling conventions.
+10. Write strictly in American English. See `php-library-code-style.md` American English section for spelling
+    conventions.
 
 ## Structured data
 
@@ -34,4 +35,6 @@ paths:
 1. Keep language concise and scannable.
 2. Never include placeholder content (`TODO`, `TBD`).
 3. Code examples must be syntactically correct and self-contained.
-4. Do not document `Internal/` classes or private API. Only document what consumers interact with.
+4. Code examples include every `use` statement needed to compile. Each example stands alone — copyable into
+   a fresh file without modification.
+5. Do not document `Internal/` classes or private API. Only document what consumers interact with.
