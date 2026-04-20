@@ -35,7 +35,7 @@ final class LaminasTest extends TestCase
     public function testResponseProcessedWithLaminas(): void
     {
         /** @Given a valid request */
-        $request = $this->createMock(ServerRequestInterface::class);
+        $request = $this->createStub(ServerRequestInterface::class);
 
         /** @And the Content-Type for the response is set to application/json with UTF-8 charset */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
@@ -53,7 +53,7 @@ final class LaminasTest extends TestCase
         self::assertSame(Code::OK->value, $actual->getStatusCode());
 
         /** @And the response body should match the expected body */
-        self::assertSame($response->getBody()->getContents(), $actual->getBody()->getContents());
+        self::assertSame($response->getBody()->__toString(), $actual->getBody()->__toString());
 
         /** @And the response headers should match the expected headers */
         self::assertSame($response->getHeaders(), $actual->getHeaders());

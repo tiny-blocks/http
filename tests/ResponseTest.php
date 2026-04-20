@@ -16,7 +16,6 @@ use Test\TinyBlocks\Http\Models\Product;
 use Test\TinyBlocks\Http\Models\Products;
 use Test\TinyBlocks\Http\Models\Status;
 use TinyBlocks\Http\Code;
-use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
 use TinyBlocks\Http\Internal\Stream\StreamFactory;
 use TinyBlocks\Http\Response;
 
@@ -34,7 +33,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the expected output */
         self::assertSame($expectedBody, $actual->getBody()->__toString());
-        self::assertSame($expectedBody, $actual->getBody()->getContents());
 
         /** @And the status code should match the provided code */
         self::assertSame($code->value, $actual->getStatusCode());
@@ -65,7 +63,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 200 */
         self::assertSame(Code::OK->value, $actual->getStatusCode());
@@ -97,7 +94,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 201 */
         self::assertSame(Code::CREATED->value, $actual->getStatusCode());
@@ -127,7 +123,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 202 */
         self::assertSame(Code::ACCEPTED->value, $actual->getStatusCode());
@@ -152,7 +147,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should be empty */
         self::assertEmpty($actual->getBody()->__toString());
-        self::assertEmpty($actual->getBody()->getContents());
 
         /** @And the status code should be 204 */
         self::assertSame(Code::NO_CONTENT->value, $actual->getStatusCode());
@@ -182,7 +176,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 400 */
         self::assertSame(Code::BAD_REQUEST->value, $actual->getStatusCode());
@@ -212,7 +205,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 401 */
         self::assertSame(Code::UNAUTHORIZED->value, $actual->getStatusCode());
@@ -242,7 +234,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 403 */
         self::assertSame(Code::FORBIDDEN->value, $actual->getStatusCode());
@@ -272,7 +263,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 404 */
         self::assertSame(Code::NOT_FOUND->value, $actual->getStatusCode());
@@ -302,7 +292,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 409 */
         self::assertSame(Code::CONFLICT->value, $actual->getStatusCode());
@@ -332,7 +321,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 422 */
         self::assertSame(Code::UNPROCESSABLE_ENTITY->value, $actual->getStatusCode());
@@ -362,7 +350,6 @@ final class ResponseTest extends TestCase
 
         /** @And the body of the response should match the JSON-encoded body */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->getContents());
 
         /** @And the status code should be 500 */
         self::assertSame(Code::INTERNAL_SERVER_ERROR->value, $actual->getStatusCode());
@@ -416,7 +403,6 @@ final class ResponseTest extends TestCase
 
         /** @Then the body of the response should match the expected output */
         self::assertSame($expected, $actual->getBody()->__toString());
-        self::assertSame($expected, $actual->getBody()->getContents());
     }
 
     public function testResponseWithBody(): void
@@ -426,7 +412,6 @@ final class ResponseTest extends TestCase
 
         /** @When the body of the response is initially empty */
         self::assertEmpty($response->getBody()->__toString());
-        self::assertEmpty($response->getBody()->getContents());
 
         /** @And a new body is set for the response */
         $body = 'This is a new body';
@@ -434,20 +419,18 @@ final class ResponseTest extends TestCase
 
         /** @Then the response body should be updated to match the new content */
         self::assertSame($body, $actual->getBody()->__toString());
-        self::assertSame($body, $actual->getBody()->getContents());
     }
 
-    public function testExceptionWhenBadMethodCallOnWithStatus(): void
+    public function testWithStatusReturnsResponseWithUpdatedCode(): void
     {
         /** @Given an HTTP response */
         $response = Response::noContent();
 
-        /** @Then a BadMethodCall exception should be thrown when calling withStatus */
-        self::expectException(BadMethodCall::class);
-        self::expectExceptionMessage('Method <withStatus> cannot be used.');
+        /** @When calling withStatus with a new code */
+        $updated = $response->withStatus(Code::OK->value);
 
-        /** @When attempting to call withStatus */
-        $response->withStatus(code: Code::OK->value);
+        /** @Then the returned response reflects the new status code */
+        self::assertSame(Code::OK->value, $updated->getStatusCode());
     }
 
     public static function bodyProviderData(): array

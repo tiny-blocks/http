@@ -1,12 +1,13 @@
 ---
 description: BDD Given/When/Then structure, PHPUnit conventions, test organization, and fixture rules for PHP libraries.
 paths:
-  - "tests/**/*.php"
+    - "tests/**/*.php"
 ---
 
 # Testing conventions
 
-Framework: **PHPUnit**. Refer to `rules/code-style.md` for the code style checklist, which also applies to test files.
+Framework: **PHPUnit**. Refer to `php-library-code-style.md` for the code style checklist, which also applies to
+test files.
 
 ## Structure: Given/When/Then (BDD)
 
@@ -62,15 +63,14 @@ Use `@And` for complementary preconditions or actions within the same scenario, 
 5. Never include conditional logic inside tests.
 6. Include one logical concept per `@Then` block.
 7. Maintain strict independence between tests. No inherited state.
-8. For exception tests, place `@Then` (expectException) before `@When`.
-9. Use domain-specific model classes in `tests/Models/` for test fixtures that represent domain concepts
+8. Use domain-specific model classes in `tests/Models/` for test fixtures that represent domain concepts
    (e.g., `Amount`, `Invoice`, `Order`).
-10. Use mock classes in `tests/Mocks/` (or `tests/Unit/Mocks/`) for test doubles of system boundaries
-    (e.g., `ClientMock`, `ExecutionCompletedMock`).
-11. Exercise invariants and edge cases through the library's public entry point. Create a dedicated test class
+9. Use mock classes in `tests/Mocks/` (or `tests/Unit/Mocks/`) for test doubles of system boundaries
+   (e.g., `ClientMock`, `ExecutionCompletedMock`).
+10. Exercise invariants and edge cases through the library's public entry point. Create a dedicated test class
     for an internal model only when the condition cannot be reached through the public API.
-12. Never use `/** @test */` annotation. Test methods are discovered by the `test` prefix in the method name.
-13. Never use named arguments on PHPUnit assertions (`assertEquals`, `assertSame`, `assertTrue`,
+11. Never use `/** @test */` annotation. Test methods are discovered by the `test` prefix in the method name.
+12. Never use named arguments on PHPUnit assertions (`assertEquals`, `assertSame`, `assertTrue`,
     `expectException`, etc.). Pass arguments positionally.
 
 ## Test setup and fixtures
@@ -104,11 +104,7 @@ tests/
 └── bootstrap.php   # Test bootstrap when needed
 ```
 
-- `tests/` or `tests/Unit/`: pure unit tests exercising the library's public API.
-- `tests/Integration/`: tests requiring real external resources (e.g., Docker containers, databases).
-  Only present when the library interacts with infrastructure.
-- `tests/Models/`: domain-specific fixture classes reused across test files.
-- `tests/Mocks/` or `tests/Unit/Mocks/`: test doubles for system boundaries.
+`tests/Integration/` is only present when the library interacts with infrastructure.
 
 ## Coverage and mutation testing
 

@@ -27,12 +27,12 @@ final class RequestTest extends TestCase
         ];
 
         /** @And this payload is used to create a ServerRequestInterface */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream
             ->method('getContents')
             ->willReturn(json_encode($payload, JSON_PRESERVE_ZERO_FRACTION));
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('POST');
@@ -65,7 +65,7 @@ final class RequestTest extends TestCase
         $attribute = 'dragon-id';
 
         /** @And a ServerRequestInterface with this route attribute */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -98,7 +98,7 @@ final class RequestTest extends TestCase
         ];
 
         /** @And a ServerRequestInterface with this route attribute */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -128,7 +128,7 @@ final class RequestTest extends TestCase
         mixed $expected
     ): void {
         /** @Given a ServerRequestInterface with a route attribute */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -155,7 +155,7 @@ final class RequestTest extends TestCase
         $attribute = 'dragon-id';
 
         /** @And a ServerRequestInterface with this route attribute as scalar */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -187,7 +187,7 @@ final class RequestTest extends TestCase
         };
 
         /** @And a ServerRequestInterface with this route object under __route__ */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -219,7 +219,7 @@ final class RequestTest extends TestCase
         };
 
         /** @And a ServerRequestInterface with this route result under routeResult */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -241,7 +241,7 @@ final class RequestTest extends TestCase
     public function testRequestDecodingWithSymfonyStyleRouteParams(): void
     {
         /** @Given Symfony stores route params as an array under _route_params */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -266,7 +266,7 @@ final class RequestTest extends TestCase
     public function testRequestDecodingWithSymfonyStyleFallbackScan(): void
     {
         /** @Given Symfony stores route params under _route_params and default __route__ is null */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -287,7 +287,7 @@ final class RequestTest extends TestCase
     public function testRequestDecodingWithDirectAttributes(): void
     {
         /** @Given a framework like Laravel stores route params as direct request attributes */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -310,7 +310,7 @@ final class RequestTest extends TestCase
     public function testRequestDecodingWithManualWithAttribute(): void
     {
         /** @Given a user manually injects route params via withAttribute() */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('POST');
@@ -337,7 +337,7 @@ final class RequestTest extends TestCase
         };
 
         /** @And a ServerRequestInterface with this object under __route__ */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -359,7 +359,7 @@ final class RequestTest extends TestCase
     public function testRequestDecodingReturnsDefaultsWhenNoRouteParams(): void
     {
         /** @Given a ServerRequestInterface with no route attributes at all */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -391,12 +391,12 @@ final class RequestTest extends TestCase
         ];
 
         /** @And a ServerRequestInterface with an empty stream but a parsed body */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream
             ->method('getContents')
             ->willReturn('');
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('POST');
@@ -429,13 +429,13 @@ final class RequestTest extends TestCase
         $expectedUri = 'https://api.example.com/v1/dragons?sort=name&order=asc';
 
         /** @And a PSR-7 UriInterface mock that returns this URI */
-        $uri = $this->createMock(UriInterface::class);
+        $uri = $this->createStub(UriInterface::class);
         $uri
             ->method('__toString')
             ->willReturn($expectedUri);
 
         /** @And a ServerRequestInterface that returns this UriInterface */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -464,12 +464,12 @@ final class RequestTest extends TestCase
         ];
 
         /** @And a ServerRequestInterface that returns these query parameters */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream
             ->method('getContents')
             ->willReturn('');
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -497,12 +497,12 @@ final class RequestTest extends TestCase
     public function testRequestDecodingWithQueryParametersReturnsDefaultsWhenEmpty(): void
     {
         /** @Given a ServerRequestInterface with no query parameters */
-        $stream = $this->createMock(StreamInterface::class);
+        $stream = $this->createStub(StreamInterface::class);
         $stream
             ->method('getContents')
             ->willReturn('');
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('GET');
@@ -530,7 +530,7 @@ final class RequestTest extends TestCase
     public function testRequestWithMethod(): void
     {
         /** @Given a ServerRequestInterface with POST method */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn('POST');
@@ -550,7 +550,7 @@ final class RequestTest extends TestCase
     public function testRequestWithDifferentHttpMethods(string $methodString, Method $expectedMethod): void
     {
         /** @Given a ServerRequestInterface with the specified HTTP method */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getMethod')
             ->willReturn($methodString);

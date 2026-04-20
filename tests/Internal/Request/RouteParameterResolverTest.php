@@ -13,7 +13,7 @@ final class RouteParameterResolverTest extends TestCase
     public function testResolveWithArrayAttribute(): void
     {
         /** @Given a request with an array attribute under __route__ */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -39,7 +39,7 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -65,7 +65,7 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -88,7 +88,7 @@ final class RouteParameterResolverTest extends TestCase
             public array $arguments = ['key' => 'value'];
         };
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -107,7 +107,7 @@ final class RouteParameterResolverTest extends TestCase
     public function testResolveReturnsEmptyArrayWhenAttributeIsNull(): void
     {
         /** @Given a request with no matching attribute */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturn(null);
@@ -130,7 +130,7 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -149,7 +149,7 @@ final class RouteParameterResolverTest extends TestCase
     public function testResolveFromKnownAttributesScansMultipleKeys(): void
     {
         /** @Given params stored under _route_params (Symfony-style) */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -168,7 +168,7 @@ final class RouteParameterResolverTest extends TestCase
     public function testResolveDirectAttribute(): void
     {
         /** @Given a request with direct attributes (Laravel-style) */
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {
@@ -196,7 +196,7 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createMock(ServerRequestInterface::class);
+        $serverRequest = $this->createStub(ServerRequestInterface::class);
         $serverRequest
             ->method('getAttribute')
             ->willReturnCallback(static fn(string $name) => match ($name) {

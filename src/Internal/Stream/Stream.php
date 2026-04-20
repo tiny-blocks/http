@@ -15,9 +15,6 @@ final class Stream implements StreamInterface
 {
     private const int OFFSET_ZERO = 0;
 
-    private string $content = '';
-    private bool $contentFetched = false;
-
     /**
      * @param resource|null $resource
      * @param StreamMetaData $metaData
@@ -122,7 +119,7 @@ final class Stream implements StreamInterface
 
         $mode = $this->metaData->getMode();
 
-        return $mode === 'r' || strstr($mode, '+');
+        return str_contains($mode, 'r') || str_contains($mode, '+');
     }
 
     public function isWritable(): bool
@@ -145,12 +142,7 @@ final class Stream implements StreamInterface
             throw new NonReadableStream();
         }
 
-        if (!$this->contentFetched) {
-            $this->content = stream_get_contents($this->resource);
-            $this->contentFetched = true;
-        }
-
-        return $this->content;
+        return stream_get_contents($this->resource);
     }
 
     public function getMetadata(?string $key = null): mixed
@@ -175,6 +167,6 @@ final class Stream implements StreamInterface
 
     private function noResource(): bool
     {
-        return empty($this->resource);
+        return !is_resource($this->resource);
     }
 }

@@ -9,7 +9,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Internal\Exceptions\BadMethodCall;
 use TinyBlocks\Http\Internal\Stream\StreamFactory;
 
 final readonly class InternalResponse implements ResponseInterface
@@ -54,7 +53,12 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function withStatus(int $code, string $reasonPhrase = ''): ResponseInterface
     {
-        throw new BadMethodCall(method: __FUNCTION__);
+        return new InternalResponse(
+            body: $this->body,
+            code: Code::from($code),
+            headers: $this->headers,
+            protocolVersion: $this->protocolVersion
+        );
     }
 
     public function withHeader(string $name, $value): MessageInterface
