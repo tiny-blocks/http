@@ -40,12 +40,39 @@ Breaking changes inside `Internal/` are not semver-breaking for the library.
 1. Every class, property, method, and exception name reflects the **concept** the library represents. A math library
    uses `Precision`, `RoundingMode`; a money library uses `Currency`, `Amount`; a collection library uses
    `Collectible`, `Order`.
-2. Never use generic technical names as class suffixes, prefixes, or method names: `Manager`, `Helper`, `Processor`,
-   `Handler`, `Service`, `Data`, `Info`, `Utils`, `Item`, `Record`, `Entity`, `Exception`, `process`, `handle`,
-   `execute`, `mark`, `enforce`, `manage`, `ensure`, `validate`, `check`, `verify`, `assert`, `transform`, `parse`,
-   `compute`, `sanitize`, or `normalize`.
-3. Name classes after what they represent: `Money`, `Color`, `Pipeline` — not after what they do technically.
-4. Name methods after the operation in its vocabulary: `add()`, `convertTo()`, `splitAt()`.
+2. Name classes after what they represent: `Money`, `Color`, `Pipeline` — not after what they do technically.
+3. Name methods after the operation in the library's vocabulary: `add()`, `convertTo()`, `splitAt()`.
+
+### Always banned
+
+These names carry zero semantic content. Never use them anywhere, as class suffixes, prefixes, or method names:
+
+- `Data`, `Info`, `Utils`, `Item`, `Record`, `Entity`.
+- `Exception` as a class suffix (e.g., `FooException` — use `Foo` when it already extends a native exception).
+
+### Anemic verbs (banned by default)
+
+These verbs hide what is actually happening behind a generic action. Banned unless the verb **is** the operation
+that constitutes the library's reason to exist (e.g., a JSON parser may have `parse()`; a hashing library may
+have `compute()`):
+
+- `ensure`, `validate`, `check`, `verify`, `assert`, `mark`, `enforce`, `sanitize`, `normalize`, `compute`,
+  `transform`, `parse`.
+
+When in doubt, prefer the domain operation name. `Password::hash()` beats `Password::compute()`; `Email::parse()`
+is fine in a parser library but suspicious elsewhere (use `Email::from()` instead).
+
+### Architectural roles (allowed with justification)
+
+These names describe a role the library offers as a building block. Acceptable when the class **is** that role
+(e.g., `EventHandler` in an events library, `CacheManager` in a cache library, `Upcaster` in an event-sourcing
+library). Not acceptable on domain objects inside the library (value objects, enums, contract interfaces):
+
+- `Manager`, `Handler`, `Processor`, `Service`, and their verb forms `process`, `handle`, `execute`.
+
+The test: if the consumer instantiates or extends this class to integrate with the library, the role name is
+legitimate. If the class models a concept the consumer manipulates (a money amount, a country code, a color),
+the role name is wrong.
 
 ## Value objects
 
@@ -60,20 +87,23 @@ Breaking changes inside `Internal/` are not semver-breaking for the library.
 
 1. Every failure throws a **dedicated exception class** named after the invariant it guards — never
    `throw new DomainException('...')`, `throw new InvalidArgumentException('...')`,
-   `throw new RuntimeException('...')`, or any other generic native exception with a string message. If the
-   invariant is worth throwing for, it is worth a named class.
+   `throw new RuntimeException('...')`, or any other generic native exception thrown directly. If the invariant
+   is worth throwing for, it is worth a named class.
 2. Dedicated exception classes **extend** the appropriate native PHP exception (`DomainException`,
    `InvalidArgumentException`, `OverflowException`, etc.) — the native class is the parent, never the thing that
    is thrown. Consumers that catch the broad standard types continue to work; consumers that need precise handling
    can catch the specific classes.
-3. Exceptions are pure: no transport-specific fields (`code`, formatted `message`). Formatting to any transport
-   happens at the consumer's boundary, not inside the library.
+3. Exceptions are pure: no transport-specific fields (`code` populated with HTTP status, formatted `message` meant
+   for end-user display). Formatting to any transport happens at the consumer's boundary, not inside the library.
 4. Exceptions signal invariant violations only, not control flow.
 5. Name the class after the invariant violated, never after the technical type:
     - `PrecisionOutOfRange` — not `InvalidPrecisionException`.
     - `CurrencyMismatch` — not `BadCurrencyException`.
     - `ContainerWaitTimeout` — not `TimeoutException`.
-6. No exception-formatting constructor, no custom message argument — the class name is the message.
+6. A descriptive `message` argument is allowed and encouraged when it carries **debugging context** — the violating
+   value, the boundary that was crossed, the state the library was in. The class name identifies the invariant;
+   the message describes the specific violation for stack traces and test assertions. Do not build messages meant
+   for end-user display or transport rendering. Keep them short, factual, and in American English.
 7. Public exceptions live in `src/Exceptions/`. Internal exceptions live in `src/Internal/Exceptions/`.
 
 **Prohibited** — throwing a native exception directly:
@@ -84,7 +114,7 @@ if ($value < 0) {
 }
 ```
 
-**Correct** — dedicated class extending the native exception:
+**Correct** — dedicated class, no message (class name is sufficient):
 
 ```php
 // src/Exceptions/PrecisionOutOfRange.php
@@ -95,6 +125,14 @@ final class PrecisionOutOfRange extends InvalidArgumentException
 // at the callsite
 if ($value < 0) {
     throw new PrecisionOutOfRange();
+}
+```
+
+**Correct** — dedicated class with debugging context:
+
+```php
+if ($value < 0 || $value > 16) {
+    throw new PrecisionOutOfRange(sprintf('Precision must be between 0 and 16, got %d.', $value));
 }
 ```
 
