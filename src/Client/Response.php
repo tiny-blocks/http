@@ -30,23 +30,14 @@ final readonly class Response
         );
     }
 
-    public static function with(Code $code, ?array $body = null, array $headers = []): Response
+    public static function with(Code $code, ?array $body = null, ?Headers $headers = null): Response
     {
         return new Response(
             psr: null,
             body: Body::fromArray(data: $body ?? []),
             code: $code,
-            headers: Headers::fromArray(entries: $headers)
+            headers: $headers ?? new Headers(entries: [])
         );
-    }
-
-    public function raw(): ResponseInterface
-    {
-        if (is_null($this->psr)) {
-            throw SynthesizedResponseHasNoRaw::create();
-        }
-
-        return $this->psr;
     }
 
     public function code(): Code
@@ -59,18 +50,27 @@ final readonly class Response
         return $this->body;
     }
 
-    public function isError(): bool
-    {
-        return $this->code->isError();
-    }
-
     public function headers(): Headers
     {
         return $this->headers;
     }
 
+    public function isError(): bool
+    {
+        return $this->code->isError();
+    }
+
     public function isSuccess(): bool
     {
         return $this->code->isSuccess();
+    }
+
+    public function raw(): ResponseInterface
+    {
+        if (is_null($this->psr)) {
+            throw SynthesizedResponseHasNoRaw::create();
+        }
+
+        return $this->psr;
     }
 }

@@ -13,11 +13,7 @@ final readonly class Url
     private const string SCHEME_REASON_TEMPLATE = 'Path "%s" must not contain a scheme or be protocol-relative.';
     private const string SCHEME_OR_PROTOCOL_RELATIVE_PATTERN = '#^(?://|\\\\\\\\|[a-z][a-z0-9+.-]*:)#i';
 
-    private function __construct(public string $value)
-    {
-    }
-
-    public static function compose(string $path, array $query, string $baseUrl): Url
+    public static function compose(string $path, ?array $query, string $baseUrl): string
     {
         if (preg_match(self::SCHEME_OR_PROTOCOL_RELATIVE_PATTERN, $path) === 1) {
             throw new InvalidArgumentException(sprintf(self::SCHEME_REASON_TEMPLATE, $path));
@@ -31,15 +27,10 @@ final readonly class Url
             ? $path
             : sprintf('%s/%s', rtrim($baseUrl, '/'), ltrim($path, '/'));
 
-        if ($query === []) {
-            return new Url($absolute);
+        if (is_null($query) || $query === []) {
+            return $absolute;
         }
 
-        return new Url(sprintf('%s?%s', $absolute, http_build_query($query, '', '&', PHP_QUERY_RFC3986)));
-    }
-
-    public function toString(): string
-    {
-        return $this->value;
+        return sprintf('%s?%s', $absolute, http_build_query($query, '', '&', PHP_QUERY_RFC3986));
     }
 }

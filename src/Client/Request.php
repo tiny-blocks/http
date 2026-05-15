@@ -13,7 +13,7 @@ final readonly class Request
     public function __construct(
         public string $url,
         public ?array $body,
-        public array $query,
+        public ?array $query,
         public Method $method,
         public Headers $headers
     ) {
@@ -22,16 +22,16 @@ final readonly class Request
     public static function create(
         string $url,
         ?array $body = null,
-        array $query = [],
+        ?array $query = null,
         Method $method = Method::GET,
-        Headerable ...$headerables
+        Headerable ...$headers
     ): Request {
         return new Request(
             url: $url,
             body: $body,
             query: $query,
             method: $method,
-            headers: Headers::from(...$headerables)
+            headers: Headers::from(...$headers)
         );
     }
 
@@ -46,7 +46,7 @@ final readonly class Request
         );
     }
 
-    public function withQuery(array $query): Request
+    public function withQuery(?array $query): Request
     {
         return new Request(
             url: $this->url,
@@ -57,14 +57,14 @@ final readonly class Request
         );
     }
 
-    public function withMergedHeaders(array $defaults): Request
+    public function withMergedHeaders(Headers $defaults): Request
     {
         return new Request(
             url: $this->url,
             body: $this->body,
             query: $this->query,
             method: $this->method,
-            headers: $this->headers->mergedWith(defaults: $defaults)
+            headers: $this->headers->mergedWith(other: $defaults)
         );
     }
 }

@@ -7,6 +7,7 @@ namespace TinyBlocks\Http\Internal\Client;
 use InvalidArgumentException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Exceptions\MalformedPath;
+use TinyBlocks\Http\Headers;
 
 final readonly class RequestResolver
 {
@@ -27,18 +28,14 @@ final readonly class RequestResolver
     public function resolve(Request $request): Request
     {
         try {
-            $url = Url::compose(
-                path: $request->url,
-                query: $request->query,
-                baseUrl: $this->baseUrl
-            );
+            $url = Url::compose(path: $request->url, query: $request->query, baseUrl: $this->baseUrl);
         } catch (InvalidArgumentException) {
             throw MalformedPath::fromRequest(request: $request);
         }
 
         return $request
-            ->withUrl(url: $url->toString())
-            ->withQuery(query: [])
-            ->withMergedHeaders(defaults: self::JSON_DEFAULTS);
+            ->withUrl(url: $url)
+            ->withQuery(query: null)
+            ->withMergedHeaders(defaults: new Headers(entries: self::JSON_DEFAULTS));
     }
 }

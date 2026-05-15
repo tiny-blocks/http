@@ -8,9 +8,12 @@ use Psr\Http\Message\MessageInterface;
 
 final readonly class Headers
 {
+    /** @var array<string, string> */
     private array $entries;
+    /** @var array<string, string> */
     private array $lowerIndex;
 
+    /** @param array<string, string> $entries */
     public function __construct(array $entries)
     {
         $lowerIndex = [];
@@ -23,11 +26,6 @@ final readonly class Headers
         $this->lowerIndex = $lowerIndex;
     }
 
-    public static function fromArray(array $entries): Headers
-    {
-        return new Headers(entries: $entries);
-    }
-
     public static function fromMessage(MessageInterface $message): Headers
     {
         $entries = array_map(function ($values) {
@@ -37,12 +35,12 @@ final readonly class Headers
         return new Headers(entries: $entries);
     }
 
-    public static function from(Headerable ...$headerables): Headers
+    public static function from(Headerable ...$headers): Headers
     {
         $entries = [];
 
-        foreach ($headerables as $headerable) {
-            foreach ($headerable->toArray() as $name => $value) {
+        foreach ($headers as $header) {
+            foreach ($header->toArray() as $name => $value) {
                 $entries[$name] = is_array($value) ? implode(', ', $value) : $value;
             }
         }
@@ -55,20 +53,10 @@ final readonly class Headers
         return isset($this->lowerIndex[strtolower($name)]);
     }
 
+    /** @return array<string, string> */
     public function toArray(): array
     {
         return $this->entries;
-    }
-
-    public function applyTo(MessageInterface $message): MessageInterface
-    {
-        $applied = $message;
-
-        foreach ($this->entries as $name => $value) {
-            $applied = $applied->withHeader($name, $value);
-        }
-
-        return $applied;
     }
 
     public function get(string $name): ?string
@@ -82,19 +70,26 @@ final readonly class Headers
         return $this->entries[$this->lowerIndex[$key]];
     }
 
-    public function mergedWith(array $defaults): Headers
+    public function applyTo(MessageInterface $message): MessageInterface
     {
-        $merged = [];
+        $applied = $message;
 
-        foreach ($defaults as $name => $value) {
+        foreach ($this->entries as $name => $value) {
+            $applied = $applied->withHeader($name, $value);
+        }
+
+        return $applied;
+    }
+
+    public function mergedWith(Headers $other): Headers
+    {
+        $merged = $this->entries;
+
+        foreach ($other->entries as $name => $value) {
             if (isset($this->lowerIndex[strtolower($name)])) {
                 continue;
             }
 
-            $merged[$name] = $value;
-        }
-
-        foreach ($this->entries as $name => $value) {
             $merged[$name] = $value;
         }
 
