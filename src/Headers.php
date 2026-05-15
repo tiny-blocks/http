@@ -23,7 +23,7 @@ final readonly class Headers
 
     public static function fromArray(array $entries): Headers
     {
-        return new Headers($entries);
+        return new Headers(entries: $entries);
     }
 
     public static function from(Headerable ...$headerables): Headers
@@ -36,7 +36,7 @@ final readonly class Headers
             }
         }
 
-        return new Headers($entries);
+        return new Headers(entries: $entries);
     }
 
     public function get(string $name): ?string
@@ -71,7 +71,7 @@ final readonly class Headers
             $merged[$name] = $value;
         }
 
-        return new Headers($merged);
+        return new Headers(entries: $merged);
     }
 
     public function toArray(): array

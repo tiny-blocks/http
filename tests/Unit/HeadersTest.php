@@ -16,7 +16,7 @@ final class HeadersTest extends TestCase
     {
         /** @Given an array of headers */
         /** @When creating Headers from an array */
-        $headers = Headers::fromArray(['Content-Type' => 'application/json', 'Accept' => 'application/json']);
+        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json', 'Accept' => 'application/json']);
 
         /** @Then the entries are accessible */
         self::assertSame('application/json', $headers->get('Content-Type'));
@@ -49,7 +49,7 @@ final class HeadersTest extends TestCase
     public function testGetIsCaseInsensitive(): void
     {
         /** @Given headers with a mixed-case key */
-        $headers = Headers::fromArray(['Content-Type' => 'application/json']);
+        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json']);
 
         /** @When looking up with different casing */
         /** @Then the lookup succeeds */
@@ -61,7 +61,7 @@ final class HeadersTest extends TestCase
     public function testGetReturnsNullForMissingKey(): void
     {
         /** @Given headers with one entry */
-        $headers = Headers::fromArray(['Content-Type' => 'application/json']);
+        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json']);
 
         /** @When looking up a non-existent header */
         /** @Then null is returned */
@@ -71,7 +71,7 @@ final class HeadersTest extends TestCase
     public function testHasIsCaseInsensitive(): void
     {
         /** @Given headers with a mixed-case key */
-        $headers = Headers::fromArray(['X-Trace' => 'abc']);
+        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc']);
 
         /** @When checking existence with different casing */
         /** @Then has() returns true regardless of case */
@@ -83,7 +83,7 @@ final class HeadersTest extends TestCase
     public function testHasReturnsFalseForMissingKey(): void
     {
         /** @Given empty headers */
-        $headers = Headers::fromArray([]);
+        $headers = Headers::fromArray(entries: []);
 
         /** @When checking for a non-existent header */
         /** @Then has() returns false */
@@ -93,7 +93,7 @@ final class HeadersTest extends TestCase
     public function testMergedWithDefaultAppearsWhenNoConflict(): void
     {
         /** @Given headers with one entry */
-        $headers = Headers::fromArray(['Accept' => 'application/json']);
+        $headers = Headers::fromArray(entries: ['Accept' => 'application/json']);
 
         /** @When merging with a default that does not conflict */
         $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
@@ -106,7 +106,7 @@ final class HeadersTest extends TestCase
     public function testMergedWithExistingHeaderWinsOverDefault(): void
     {
         /** @Given headers with a Content-Type entry */
-        $headers = Headers::fromArray(['Content-Type' => 'application/json; charset=utf-8']);
+        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json; charset=utf-8']);
 
         /** @When merging with a default Content-Type */
         $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
@@ -121,7 +121,7 @@ final class HeadersTest extends TestCase
     public function testMergedWithIsCaseInsensitiveWhenCheckingConflicts(): void
     {
         /** @Given headers with a lowercase key */
-        $headers = Headers::fromArray(['content-type' => 'application/json; charset=utf-8']);
+        $headers = Headers::fromArray(entries: ['content-type' => 'application/json; charset=utf-8']);
 
         /** @When merging with a default that uses mixed casing */
         $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
@@ -136,7 +136,7 @@ final class HeadersTest extends TestCase
     public function testToArrayReturnsAllEntries(): void
     {
         /** @Given headers with two entries */
-        $headers = Headers::fromArray(['X-Trace' => 'abc', 'X-Request-ID' => '123']);
+        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc', 'X-Request-ID' => '123']);
 
         /** @When converting to array */
         $array = $headers->toArray();
