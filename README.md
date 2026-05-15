@@ -34,8 +34,8 @@ The library covers both sides of an HTTP exchange:
 - **Client side** (`TinyBlocks\Http\Client`) — composes outbound requests, sends them through a `Transport` port backed
   by any PSR-18 client, and exposes responses with typed body and header access.
 
-Shared primitives (`Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `Cookie`, `CacheControl`) live at the root
-namespace.
+Shared primitives at `TinyBlocks\Http\`: `Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `MimeType`,
+`Charset`, `Cookie`, `SameSite`, `CacheControl`, `ResponseCacheDirectives`, `UserAgent`.
 
 ## Installation
 
@@ -352,7 +352,9 @@ $response = $http->send(
 
 #### Error handling
 
-Every failure raises an `HttpException`. Catch by specificity:
+Every failure raises an `HttpException`. The hierarchy is flat — each exception extends a native PHP base
+(`RuntimeException` or `LogicException`) and implements `HttpException` directly. Catch the specific class when
+you need to react to a particular failure mode; otherwise catch the umbrella `HttpException`.
 
 ```php
 use TinyBlocks\Http\Exceptions\HttpException;
@@ -375,12 +377,12 @@ try {
 
 | Exception                     | Cause                                                                                 |
 |-------------------------------|---------------------------------------------------------------------------------------|
-| `HttpRequestFailed`           | Generic PSR-18 `ClientExceptionInterface`. Base class for the others below.           |
+| `HttpRequestFailed`           | Generic PSR-18 `ClientExceptionInterface`.                                            |
 | `HttpNetworkFailed`           | PSR-18 `NetworkExceptionInterface` — DNS, timeout, connection refused.                |
 | `HttpRequestInvalid`          | PSR-18 `RequestExceptionInterface` — request malformed before transport.              |
 | `MalformedPath`               | Path attempts to escape the base URL (scheme, protocol-relative, control characters). |
-| `NoMoreResponses`             | `InMemoryTransport` exhausted.                                                        |
-| `HttpConfigurationInvalid`    | Builder called without `withBaseUrl` or `withTransport`.                              |
+| `NoMoreResponses`             | `InMemoryTransport` exhausted (programmer error).                                     |
+| `HttpConfigurationInvalid`    | Builder called without required dependencies.                                         |
 | `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`.             |
 
 #### Configuring timeouts
