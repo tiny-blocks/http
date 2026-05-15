@@ -15,11 +15,7 @@ final class Stream implements StreamInterface
 {
     private const int OFFSET_ZERO = 0;
 
-    /**
-     * @param resource|null $resource
-     * @param StreamMetaData $metaData
-     */
-    private function __construct(private mixed $resource, private readonly StreamMetaData $metaData)
+    private function __construct(private readonly StreamMetaData $metaData, private mixed $resource)
     {
     }
 
@@ -31,17 +27,17 @@ final class Stream implements StreamInterface
 
         $metaData = StreamMetaData::from(data: stream_get_meta_data($resource));
 
-        return new Stream(resource: $resource, metaData: $metaData);
+        return new Stream(metaData: $metaData, resource: $resource);
     }
 
     public function close(): void
     {
-        if ($this->noResource()) {
+        if (!is_resource($this->resource)) {
             return;
         }
 
-        /** @var resource $resource */
-        $resource = $this->detach();
+        $resource = $this->resource;
+        $this->resource = null;
 
         fclose($resource);
     }
@@ -56,7 +52,7 @@ final class Stream implements StreamInterface
 
     public function getSize(): ?int
     {
-        if ($this->noResource()) {
+        if (!is_resource($this->resource)) {
             return null;
         }
 
@@ -67,7 +63,7 @@ final class Stream implements StreamInterface
 
     public function tell(): int
     {
-        if ($this->noResource()) {
+        if (!is_resource($this->resource)) {
             throw new MissingResourceStream();
         }
 
@@ -76,12 +72,16 @@ final class Stream implements StreamInterface
 
     public function eof(): bool
     {
-        return $this->resource && feof($this->resource);
+        return is_resource($this->resource) && feof($this->resource);
     }
 
     public function seek(int $offset, int $whence = SEEK_SET): void
     {
-        if (!$this->isSeekable()) {
+        if (!is_resource($this->resource)) {
+            throw new NonSeekableStream();
+        }
+
+        if (!$this->metaData->isSeekable()) {
             throw new NonSeekableStream();
         }
 
@@ -95,7 +95,11 @@ final class Stream implements StreamInterface
 
     public function read(int $length): string
     {
-        if (!$this->isReadable()) {
+        if (!is_resource($this->resource)) {
+            throw new NonReadableStream();
+        }
+
+        if (!$this->modeAllowsReading()) {
             throw new NonReadableStream();
         }
 
@@ -104,7 +108,11 @@ final class Stream implements StreamInterface
 
     public function write(string $string): int
     {
-        if (!$this->isWritable()) {
+        if (!is_resource($this->resource)) {
+            throw new NonWritableStream();
+        }
+
+        if (!$this->modeAllowsWriting()) {
             throw new NonWritableStream();
         }
 
@@ -113,32 +121,26 @@ final class Stream implements StreamInterface
 
     public function isReadable(): bool
     {
-        if ($this->noResource()) {
-            return false;
-        }
-
-        $mode = $this->metaData->getMode();
-
-        return str_contains($mode, 'r') || str_contains($mode, '+');
+        return is_resource($this->resource) && $this->modeAllowsReading();
     }
 
     public function isWritable(): bool
     {
-        if ($this->noResource()) {
-            return false;
-        }
-
-        return strpbrk($this->metaData->getMode(), 'xwca+') !== false;
+        return is_resource($this->resource) && $this->modeAllowsWriting();
     }
 
     public function isSeekable(): bool
     {
-        return !$this->noResource() && $this->metaData->isSeekable();
+        return is_resource($this->resource) && $this->metaData->isSeekable();
     }
 
     public function getContents(): string
     {
-        if (!$this->isReadable()) {
+        if (!is_resource($this->resource)) {
+            throw new NonReadableStream();
+        }
+
+        if (!$this->modeAllowsReading()) {
             throw new NonReadableStream();
         }
 
@@ -165,8 +167,15 @@ final class Stream implements StreamInterface
         return $this->getContents();
     }
 
-    private function noResource(): bool
+    private function modeAllowsReading(): bool
     {
-        return !is_resource($this->resource);
+        $mode = $this->metaData->getMode();
+
+        return str_contains($mode, 'r') || str_contains($mode, '+');
+    }
+
+    private function modeAllowsWriting(): bool
+    {
+        return strpbrk($this->metaData->getMode(), 'xwca+') !== false;
     }
 }

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http\Internal\Server\CacheControl;
 
-/**
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#cache_directives
- */
 enum Directives: string
 {
     case MAX_AGE = 'max-age';

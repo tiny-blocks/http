@@ -6,15 +6,6 @@ namespace TinyBlocks\Http\Internal\Server\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
 
-/**
- * Resolves route parameters from a PSR-7 ServerRequestInterface in a framework-agnostic way.
- *
- * Supports multiple attribute formats used by popular frameworks:
- * - Plain arrays (e.g., Symfony's `_route_params`)
- * - Objects with accessor methods (e.g., Slim's `getArguments()`, Mezzio's `getMatchedParams()`)
- * - Objects with public properties (e.g., `arguments`, `params`, `vars`)
- * - Direct attributes on the request (e.g., Laravel's `getAttribute('id')`)
- */
 final readonly class RouteParameterResolver
 {
     private const array KNOWN_ATTRIBUTE_KEYS = [

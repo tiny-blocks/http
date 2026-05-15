@@ -24,8 +24,8 @@ final readonly class Cookie implements Headerable
         private ?int $maxAge,
         private bool $secure,
         private ?DateTimeImmutable $expires,
-        private ?SameSite $sameSite,
         private bool $httpOnly,
+        private ?SameSite $sameSite,
         private bool $partitioned
     ) {
     }
@@ -40,8 +40,8 @@ final readonly class Cookie implements Headerable
             maxAge: null,
             secure: false,
             expires: null,
-            sameSite: null,
             httpOnly: false,
+            sameSite: null,
             partitioned: false
         );
     }
@@ -56,8 +56,8 @@ final readonly class Cookie implements Headerable
             maxAge: 0,
             secure: false,
             expires: null,
-            sameSite: null,
             httpOnly: false,
+            sameSite: null,
             partitioned: false
         );
     }
@@ -72,8 +72,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: true,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -88,8 +88,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: true,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -104,8 +104,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: true
         );
     }
@@ -120,8 +120,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -136,8 +136,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -152,8 +152,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -168,8 +168,8 @@ final readonly class Cookie implements Headerable
             maxAge: $seconds,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -184,8 +184,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: DateTimeImmutable::createFromInterface($expires)->setTimezone(new DateTimeZone('UTC')),
-            sameSite: $this->sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
             partitioned: $this->partitioned
         );
     }
@@ -200,8 +200,8 @@ final readonly class Cookie implements Headerable
             maxAge: $this->maxAge,
             secure: $this->secure,
             expires: $this->expires,
-            sameSite: $sameSite,
             httpOnly: $this->httpOnly,
+            sameSite: $sameSite,
             partitioned: $this->partitioned
         );
     }

@@ -89,11 +89,25 @@ enum Code: int
     case NOT_EXTENDED = 510;
     case NETWORK_AUTHENTICATION_REQUIRED = 511;
 
+    /**
+     * Indicates whether the status code falls in the 4xx or 5xx range.
+     *
+     * @return bool True when the code represents an error response.
+     *
+     * @complexity O(1) time and space.
+     */
     public function isError(): bool
     {
         return self::isErrorCode(code: $this->value);
     }
 
+    /**
+     * Indicates whether the status code falls in the 2xx range.
+     *
+     * @return bool True when the code represents a successful response.
+     *
+     * @complexity O(1) time and space.
+     */
     public function isSuccess(): bool
     {
         return self::isSuccessCode(code: $this->value);
