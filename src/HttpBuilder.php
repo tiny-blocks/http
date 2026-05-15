@@ -33,6 +33,6 @@ final readonly class HttpBuilder
             throw HttpConfigurationInvalid::missingBaseUrl();
         }
 
-        return new Http(baseUrl: $this->baseUrl, transport: $this->transport);
+        return Http::with(baseUrl: $this->baseUrl, transport: $this->transport);
     }
 }

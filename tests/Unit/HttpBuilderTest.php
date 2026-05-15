@@ -115,4 +115,18 @@ final class HttpBuilderTest extends TestCase
         /** @Then the response is returned correctly */
         self::assertSame(Code::OK, $response->code());
     }
+
+    public function testWithReturnsWorkingHttpInstance(): void
+    {
+        /** @Given a transport seeded with one response */
+        $transport = InMemoryTransport::with(
+            responses: [Response::with(code: Code::OK)]
+        );
+
+        /** @When constructing Http directly via Http::with */
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+
+        /** @Then the instance can send requests and returns the correct response */
+        self::assertSame(Code::OK, $http->send(request: Request::create(url: '/dragons'))->code());
+    }
 }
