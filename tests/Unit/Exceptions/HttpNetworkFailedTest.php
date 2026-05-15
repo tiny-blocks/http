@@ -12,12 +12,11 @@ use RuntimeException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Exceptions\HttpException;
 use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
-use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Method;
 
 final class HttpNetworkFailedTest extends TestCase
 {
-    public function testFromBuildsExceptionWithAllFields(): void
+    public function testFromWhenAllFieldsGivenThenExposesEveryAccessor(): void
     {
         /** @Given a URL, method, and reason */
         $url = 'https://api.example.com/dragons';
@@ -27,15 +26,15 @@ final class HttpNetworkFailedTest extends TestCase
         /** @When constructing the exception */
         $exception = HttpNetworkFailed::from(url: $url, method: $method, reason: $reason);
 
-        /** @Then it carries the correct fields */
-        self::assertInstanceOf(HttpRequestFailed::class, $exception);
+        /** @Then it carries the correct fields and is recognized as HttpException */
+        self::assertInstanceOf(HttpException::class, $exception);
         self::assertSame($url, $exception->url());
         self::assertSame($method, $exception->method());
         self::assertSame($reason, $exception->reason());
-        self::assertSame($reason, $exception->getMessage());
+        self::assertStringContainsString($reason, $exception->getMessage());
     }
 
-    public function testFromChainsPreviousThrowable(): void
+    public function testFromWhenPreviousGivenThenPreservesChain(): void
     {
         /** @Given a previous throwable */
         $previous = new RuntimeException('socket error');
@@ -52,7 +51,7 @@ final class HttpNetworkFailedTest extends TestCase
         self::assertSame($previous, $exception->getPrevious());
     }
 
-    public function testFromClientExceptionBuildsFromNetworkException(): void
+    public function testFromClientExceptionWhenNetworkExceptionGivenThenWrapsOriginal(): void
     {
         /** @Given a request and a network exception */
         $request = Request::create(url: 'https://api.example.com/dragons');
@@ -70,18 +69,5 @@ final class HttpNetworkFailedTest extends TestCase
         self::assertSame('https://api.example.com/dragons', $exception->url());
         self::assertSame($networkException, $exception->getPrevious());
         self::assertInstanceOf(HttpException::class, $exception);
-    }
-
-    public function testExceptionIsCatchableAsHttpRequestFailed(): void
-    {
-        /** @Given an HttpNetworkFailed exception */
-        $exception = HttpNetworkFailed::from(
-            url: 'https://api.example.com',
-            method: Method::GET,
-            reason: 'Failure.'
-        );
-
-        /** @Then it is catchable as HttpRequestFailed */
-        self::assertInstanceOf(HttpRequestFailed::class, $exception);
     }
 }

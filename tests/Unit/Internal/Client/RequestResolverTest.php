@@ -14,7 +14,7 @@ use TinyBlocks\Http\Method;
 
 final class RequestResolverTest extends TestCase
 {
-    public function testRequestWithoutExplicitHeadersReceivesJsonDefaults(): void
+    public function testResolveWhenNoExplicitHeadersThenAppliesJsonDefaults(): void
     {
         /** @Given a resolver with a base URL and a request with no headers */
         $resolver = RequestResolver::withBaseUrl(baseUrl: 'https://api.example.com');
@@ -28,14 +28,14 @@ final class RequestResolverTest extends TestCase
         self::assertSame('application/json', $resolved->headers->get('Accept'));
     }
 
-    public function testExplicitContentTypeWinsOverDefault(): void
+    public function testResolveWhenExplicitContentTypeGivenThenWinsOverDefault(): void
     {
         /** @Given a resolver and a request with an explicit Content-Type */
         $resolver = RequestResolver::withBaseUrl(baseUrl: 'https://api.example.com');
         $request = Request::create(
             url: '/dragons',
             method: Method::POST,
-            headerables: ContentType::applicationJson(charset: Charset::UTF_8)
+            headers: ContentType::applicationJson(charset: Charset::UTF_8)
         );
 
         /** @When resolving the request */
@@ -45,7 +45,7 @@ final class RequestResolverTest extends TestCase
         self::assertSame('application/json; charset=utf-8', $resolved->headers->get('Content-Type'));
     }
 
-    public function testRelativeUrlIsComposedWithBaseUrl(): void
+    public function testResolveWhenRelativeUrlGivenThenComposesAgainstBaseUrl(): void
     {
         /** @Given a resolver with a base URL and a request with a relative path */
         $resolver = RequestResolver::withBaseUrl(baseUrl: 'https://api.example.com');
@@ -58,7 +58,7 @@ final class RequestResolverTest extends TestCase
         self::assertSame('https://api.example.com/dragons', $resolved->url);
     }
 
-    public function testQueryIsEmbeddedInUrlAndClearedFromRequest(): void
+    public function testResolveWhenQueryGivenThenEmbedsInUrlAndClearsRequestQuery(): void
     {
         /** @Given a resolver and a request with query parameters */
         $resolver = RequestResolver::withBaseUrl(baseUrl: 'https://api.example.com');
@@ -70,10 +70,10 @@ final class RequestResolverTest extends TestCase
         /** @Then the query is embedded in the URL and cleared from the request object */
         self::assertStringContainsString('sort=name', $resolved->url);
         self::assertStringContainsString('order=asc', $resolved->url);
-        self::assertSame([], $resolved->query);
+        self::assertNull($resolved->query);
     }
 
-    public function testMalformedPathThrowsMalformedPath(): void
+    public function testResolveWhenMalformedPathGivenThenThrowsMalformedPath(): void
     {
         /** @Given a resolver and a request with a malformed path */
         $resolver = RequestResolver::withBaseUrl(baseUrl: 'https://api.example.com');

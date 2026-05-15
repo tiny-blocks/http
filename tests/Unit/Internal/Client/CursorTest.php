@@ -9,7 +9,7 @@ use TinyBlocks\Http\Internal\Client\Cursor;
 
 final class CursorTest extends TestCase
 {
-    public function testFirstAdvanceReturnsZero(): void
+    public function testAdvanceWhenInvokedFirstTimeThenReturnsZero(): void
     {
         /** @Given a new cursor */
         $cursor = new Cursor();
@@ -21,7 +21,7 @@ final class CursorTest extends TestCase
         self::assertSame(0, $position);
     }
 
-    public function testSecondAdvanceReturnsOne(): void
+    public function testAdvanceWhenInvokedTwiceThenReturnsOne(): void
     {
         /** @Given a cursor that has been advanced once */
         $cursor = new Cursor();
@@ -34,7 +34,7 @@ final class CursorTest extends TestCase
         self::assertSame(1, $position);
     }
 
-    public function testThirdAdvanceReturnsTwo(): void
+    public function testAdvanceWhenInvokedThreeTimesThenReturnsTwo(): void
     {
         /** @Given a cursor that has been advanced twice */
         $cursor = new Cursor();

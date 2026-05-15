@@ -11,13 +11,12 @@ use Psr\Http\Message\RequestInterface;
 use RuntimeException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Exceptions\HttpException;
-use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 use TinyBlocks\Http\Method;
 
 final class HttpRequestInvalidTest extends TestCase
 {
-    public function testFromBuildsExceptionWithAllFields(): void
+    public function testFromWhenAllFieldsGivenThenExposesEveryAccessor(): void
     {
         /** @Given a URL, method, and reason */
         $url = 'https://api.example.com/dragons';
@@ -27,15 +26,15 @@ final class HttpRequestInvalidTest extends TestCase
         /** @When constructing the exception */
         $exception = HttpRequestInvalid::from(url: $url, method: $method, reason: $reason);
 
-        /** @Then it is an instance of HttpRequestFailed and carries the correct fields */
-        self::assertInstanceOf(HttpRequestFailed::class, $exception);
+        /** @Then it implements HttpException and carries the correct fields */
+        self::assertInstanceOf(HttpException::class, $exception);
         self::assertSame($url, $exception->url());
         self::assertSame($method, $exception->method());
         self::assertSame($reason, $exception->reason());
-        self::assertSame($reason, $exception->getMessage());
+        self::assertStringContainsString($reason, $exception->getMessage());
     }
 
-    public function testFromChainsPreviousThrowable(): void
+    public function testFromWhenPreviousGivenThenPreservesChain(): void
     {
         /** @Given a previous throwable */
         $previous = new RuntimeException('bad request object');
@@ -52,7 +51,7 @@ final class HttpRequestInvalidTest extends TestCase
         self::assertSame($previous, $exception->getPrevious());
     }
 
-    public function testFromClientExceptionBuildsFromRequestException(): void
+    public function testFromClientExceptionWhenRequestExceptionGivenThenWrapsOriginal(): void
     {
         /** @Given a request and a request exception */
         $request = Request::create(url: 'https://api.example.com/dragons', method: Method::POST);
@@ -70,18 +69,5 @@ final class HttpRequestInvalidTest extends TestCase
         self::assertSame('https://api.example.com/dragons', $exception->url());
         self::assertSame($requestException, $exception->getPrevious());
         self::assertInstanceOf(HttpException::class, $exception);
-    }
-
-    public function testExceptionIsCatchableAsHttpRequestFailed(): void
-    {
-        /** @Given an HttpRequestInvalid exception */
-        $exception = HttpRequestInvalid::from(
-            url: 'https://api.example.com',
-            method: Method::GET,
-            reason: 'Invalid.'
-        );
-
-        /** @Then it is catchable as HttpRequestFailed */
-        self::assertInstanceOf(HttpRequestFailed::class, $exception);
     }
 }

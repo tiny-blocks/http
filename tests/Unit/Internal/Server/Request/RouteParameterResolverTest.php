@@ -4,32 +4,27 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit\Internal\Server\Request;
 
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ServerRequestInterface;
 use TinyBlocks\Http\Internal\Server\Request\RouteParameterResolver;
 
 final class RouteParameterResolverTest extends TestCase
 {
-    public function testResolveWithArrayAttribute(): void
+    public function testResolveWhenArrayAttributeGivenThenReturnsItDirectly(): void
     {
         /** @Given a request with an array attribute under __route__ */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => ['id' => '42', 'slug' => 'test'],
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('__route__', ['id' => '42', 'slug' => 'test']);
 
         /** @When resolving parameters */
         $resolver = RouteParameterResolver::from(request: $serverRequest);
         $params = $resolver->resolve(attributeName: '__route__');
 
-        /** @Then the array should be returned directly */
+        /** @Then the array is returned directly */
         self::assertSame(['id' => '42', 'slug' => 'test'], $params);
     }
 
-    public function testResolveWithObjectUsingGetArguments(): void
+    public function testResolveWhenObjectExposesGetArgumentsThenUsesThatMethod(): void
     {
         /** @Given a Slim-style route object */
         $routeObject = new class {
@@ -39,23 +34,17 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('__route__', $routeObject);
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: '__route__');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: '__route__');
 
-        /** @Then getArguments() result should be returned */
+        /** @Then getArguments() result is returned */
         self::assertSame(['id' => '1', 'name' => 'dragon'], $params);
     }
 
-    public function testResolveWithObjectUsingGetMatchedParams(): void
+    public function testResolveWhenObjectExposesGetMatchedParamsThenUsesThatMethod(): void
     {
         /** @Given a Mezzio-style route result object */
         $routeResult = new class {
@@ -65,62 +54,46 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                'routeResult' => $routeResult,
-                default       => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('routeResult', $routeResult);
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: 'routeResult');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: 'routeResult');
 
-        /** @Then getMatchedParams() result should be returned */
+        /** @Then getMatchedParams() result is returned */
         self::assertSame(['id' => '99', 'action' => 'view'], $params);
     }
 
-    public function testResolveWithObjectUsingPublicProperty(): void
+    public function testResolveWhenObjectExposesPublicPropertyThenReadsIt(): void
     {
         /** @Given a route object with a public arguments property */
         $routeObject = new class {
             public array $arguments = ['key' => 'value'];
         };
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('__route__', $routeObject);
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: '__route__');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: '__route__');
 
-        /** @Then the public property value should be returned */
+        /** @Then the public property value is returned */
         self::assertSame(['key' => 'value'], $params);
     }
 
-    public function testResolveReturnsEmptyArrayWhenAttributeIsNull(): void
+    public function testResolveWhenAttributeAbsentThenReturnsEmptyArray(): void
     {
         /** @Given a request with no matching attribute */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturn(null);
+        $serverRequest = new ServerRequest(method: 'GET', uri: '/');
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: '__route__');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: '__route__');
 
-        /** @Then an empty array should be returned */
+        /** @Then an empty array is returned */
         self::assertSame([], $params);
     }
 
-    public function testResolveReturnsEmptyArrayForUnextractableObject(): void
+    public function testResolveWhenObjectExposesNoKnownAccessorThenReturnsEmptyArray(): void
     {
         /** @Given a route object without known methods or properties */
         $routeObject = new class {
@@ -130,61 +103,44 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('__route__', $routeObject);
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: '__route__');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: '__route__');
 
-        /** @Then an empty array should be returned */
+        /** @Then an empty array is returned */
         self::assertSame([], $params);
     }
 
-    public function testResolveFromKnownAttributesScansMultipleKeys(): void
+    public function testResolveFromKnownAttributesWhenSymfonyKeyGivenThenScanFindsIt(): void
     {
         /** @Given params stored under _route_params (Symfony-style) */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '_route_params' => ['controller' => 'DragonController', 'id' => '5'],
-                default         => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('_route_params', ['controller' => 'DragonController', 'id' => '5']);
 
         /** @When scanning known attributes */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolveFromKnownAttributes();
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolveFromKnownAttributes();
 
-        /** @Then the Symfony-style params should be found */
+        /** @Then the Symfony-style params are found */
         self::assertSame(['controller' => 'DragonController', 'id' => '5'], $params);
     }
 
-    public function testResolveDirectAttribute(): void
+    public function testResolveDirectAttributeWhenKeyPresentThenReturnsValue(): void
     {
         /** @Given a request with direct attributes (Laravel-style) */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                'id'    => '123',
-                default => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('id', '123');
 
         /** @When resolving a direct attribute */
         $resolver = RouteParameterResolver::from(request: $serverRequest);
 
-        /** @Then the direct value should be returned */
+        /** @Then the direct value is returned */
         self::assertSame('123', $resolver->resolveDirectAttribute(key: 'id'));
         self::assertNull($resolver->resolveDirectAttribute(key: 'nonexistent'));
     }
 
-    public function testResolveWithObjectMethodPriorityOverProperty(): void
+    public function testResolveWhenObjectHasBothMethodAndPropertyThenMethodWins(): void
     {
         /** @Given an object that has both a method and a property */
         $routeObject = new class {
@@ -196,19 +152,13 @@ final class RouteParameterResolverTest extends TestCase
             }
         };
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: '/'))
+            ->withAttribute('__route__', $routeObject);
 
         /** @When resolving parameters */
-        $resolver = RouteParameterResolver::from(request: $serverRequest);
-        $params = $resolver->resolve(attributeName: '__route__');
+        $params = RouteParameterResolver::from(request: $serverRequest)->resolve(attributeName: '__route__');
 
-        /** @Then the method result should take priority */
+        /** @Then the method result takes priority */
         self::assertSame(['source' => 'method'], $params);
     }
 }

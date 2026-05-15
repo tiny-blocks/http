@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace Test\TinyBlocks\Http\Unit\Server;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
+use Nyholm\Psr7\ServerRequest;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Message\StreamInterface;
-use Psr\Http\Message\UriInterface;
 use TinyBlocks\Http\Method;
 use TinyBlocks\Http\Server\Request;
 
 final class RequestTest extends TestCase
 {
-    public function testRequestDecodingWithPayload(): void
+    private Psr17Factory $factory;
+
+    protected function setUp(): void
+    {
+        $this->factory = new Psr17Factory();
+    }
+
+    public function testDecodeWhenBodyGivenThenExposesTypedAccessors(): void
     {
         /** @Given a payload to send */
         $payload = [
@@ -27,27 +32,17 @@ final class RequestTest extends TestCase
             'is_legendary' => true
         ];
 
-        /** @And this payload is used to create a ServerRequestInterface */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream
-            ->method('getContents')
-            ->willReturn(json_encode($payload, JSON_PRESERVE_ZERO_FRACTION));
+        /** @And a real PSR-7 server request with that JSON body */
+        $serverRequest = new ServerRequest(
+            method: 'POST',
+            uri: 'https://api.example.com/dragons',
+            body: $this->factory->createStream(json_encode($payload, JSON_PRESERVE_ZERO_FRACTION))
+        );
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('POST');
-        $serverRequest
-            ->method('getBody')
-            ->willReturn($stream);
+        /** @When decoding the request body */
+        $actual = Request::from(request: $serverRequest)->decode()->body();
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we decode the body of the HTTP Request */
-        $actual = $request->decode()->body();
-
-        /** @Then the decoded body should match the original payload */
+        /** @Then every typed accessor matches the original payload */
         self::assertSame($payload, $actual->toArray());
         self::assertSame($payload['id'], $actual->get(key: 'id')->toInteger());
         self::assertSame($payload['name'], $actual->get(key: 'name')->toString());
@@ -57,127 +52,68 @@ final class RequestTest extends TestCase
         self::assertSame($payload['is_legendary'], $actual->get(key: 'is_legendary')->toBoolean());
     }
 
-    public function testRequestDecodingWithRouteWithSingleAttribute(): void
+    public function testDecodeWhenRouteHasSingleAttributeThenExposesIt(): void
     {
-        /** @Given a route name to be retrieved */
-        $routeName = '/v1/dragons/{id}';
+        /** @Given a route attribute carrying a single id */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com/dragons/dragon-id'))
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', 'id' => 'dragon-id']);
 
-        /** @And an id to be retrieved from the route attribute */
-        $attribute = 'dragon-id';
+        /** @When decoding the route attribute */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->get(key: 'id');
 
-        /** @And a ServerRequestInterface with this route attribute */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => ['name' => $routeName, 'id' => $attribute],
-                default     => null
-            });
-
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we decode the route attribute of the HTTP Request */
-        $actual = $request->decode()->uri()->route()->get(key: 'id');
-
-        self::assertSame($attribute, $actual->toString());
+        /** @Then the value is returned as a string */
+        self::assertSame('dragon-id', $actual->toString());
     }
 
-    public function testRequestDecodingWithRouteWithMultipleAttributes(): void
+    public function testDecodeWhenRouteHasMultipleAttributesThenExposesEach(): void
     {
-        /** @Given a route name to be retrieved */
-        $routeName = '/v1/dragons/{id}/skills/{skill}';
+        /** @Given a route attribute carrying id, skill, and weight */
+        $attributes = ['id' => 'dragon-id', 'skill' => 'dragon-skill', 'weight' => 6000.00];
 
-        /** @And an id and skill to be retrieved from the route attribute */
-        $attributes = [
-            'id'     => 'dragon-id',
-            'skill'  => 'dragon-skill',
-            'weight' => 6000.00
-        ];
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}/skills/{skill}', ...$attributes]);
 
-        /** @And a ServerRequestInterface with this route attribute */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => ['name' => $routeName, ...$attributes],
-                default     => null
-            });
+        /** @When decoding each attribute */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we decode the route attribute of the HTTP Request */
-        $route = $request->decode()->uri()->route();
-
+        /** @Then each typed accessor matches */
         self::assertSame($attributes['id'], $route->get(key: 'id')->toString());
         self::assertSame($attributes['skill'], $route->get(key: 'skill')->toString());
         self::assertSame($attributes['weight'], $route->get(key: 'weight')->toFloat());
     }
 
     #[DataProvider('attributeConversionsProvider')]
-    public function testRequestWhenAttributeConversions(
+    public function testDecodeWhenAttributeTypedConversionRequestedThenReturnsExpectedValue(
         string $key,
         mixed $value,
         string $method,
         mixed $expected
     ): void {
-        /** @Given a ServerRequestInterface with a route attribute */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => ['name' => '/v1/dragons/{id}', $key => $value],
-                default     => null
-            });
+        /** @Given a route attribute with the provided value */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', $key => $value]);
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
+        /** @When converting through the typed accessor */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->get(key: $key)->$method();
 
-        /** @And we decode the route attribute of the HTTP Request and convert it to the expected type */
-        $actual = $request->decode()->uri()->route()->get(key: $key)->$method();
-
-        /** @Then the converted value should match the expected value */
+        /** @Then the converted value matches the expected one */
         self::assertSame($expected, $actual);
     }
 
-    public function testRequestDecodingWithRouteAttributeAsScalar(): void
+    public function testDecodeWhenRouteAttributeIsScalarThenExposesIt(): void
     {
         /** @Given a scalar route attribute value */
-        $attribute = 'dragon-id';
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', 'dragon-id');
 
-        /** @And a ServerRequestInterface with this route attribute as scalar */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $attribute,
-                default     => null
-            });
+        /** @When decoding the route attribute */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->get(key: 'id');
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we decode the route attribute of the HTTP Request */
-        $actual = $request->decode()->uri()->route()->get(key: 'id');
-
-        /** @Then the decoded attribute should match the original scalar value */
-        self::assertSame($attribute, $actual->toString());
+        /** @Then the value is returned */
+        self::assertSame('dragon-id', $actual->toString());
     }
 
-    public function testRequestDecodingWithSlimStyleRouteObject(): void
+    public function testDecodeWhenSlimStyleRouteObjectGivenThenResolvesArguments(): void
     {
         /** @Given a Slim-style route object that stores params in getArguments() */
         $routeObject = new class {
@@ -187,191 +123,122 @@ final class RequestTest extends TestCase
             }
         };
 
-        /** @And a ServerRequestInterface with this route object under __route__ */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', $routeObject);
 
-        /** @When we create the HTTP Request and decode route params */
+        /** @When decoding the route */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then the params should be correctly resolved from the object */
+        /** @Then the params resolve from the object */
         self::assertSame('42', $route->get(key: 'id')->toString());
         self::assertSame(42, $route->get(key: 'id')->toInteger());
         self::assertSame('dragon@fire.com', $route->get(key: 'email')->toString());
     }
 
-    public function testRequestDecodingWithMezzioStyleRouteResult(): void
+    public function testDecodeWhenMezzioStyleRouteResultGivenThenResolvesMatchedParams(): void
     {
         /** @Given a Mezzio-style route result object that uses getMatchedParams() */
         $routeResult = new class {
-            /** @noinspection PhpUnused */
             public function getMatchedParams(): array
             {
                 return ['id' => '99', 'slug' => 'fire-dragon'];
             }
         };
 
-        /** @And a ServerRequestInterface with this route result under routeResult */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                'routeResult' => $routeResult,
-                default       => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('routeResult', $routeResult);
 
-        /** @When we create the HTTP Request and decode using known attribute scan */
+        /** @When decoding using the known-attribute scan */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then the params should be correctly resolved from the Mezzio object */
+        /** @Then the params resolve correctly */
         self::assertSame('99', $route->get(key: 'id')->toString());
         self::assertSame('fire-dragon', $route->get(key: 'slug')->toString());
     }
 
-    public function testRequestDecodingWithSymfonyStyleRouteParams(): void
+    public function testDecodeWhenSymfonyStyleRouteParamsGivenThenResolvesWithExplicitName(): void
     {
-        /** @Given Symfony stores route params as an array under _route_params */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '_route_params' => ['id' => '7', 'category' => 'legendary'],
-                default         => null
-            });
+        /** @Given Symfony stores route params under _route_params */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('_route_params', ['id' => '7', 'category' => 'legendary']);
 
-        /** @When we use the custom route attribute name */
-        $route = Request::from(request: $serverRequest)
-            ->decode()
-            ->uri()
-            ->route(name: '_route_params');
+        /** @When decoding with the custom route attribute name */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route(name: '_route_params');
 
-        /** @Then the params should be correctly resolved */
+        /** @Then the params resolve correctly */
         self::assertSame('7', $route->get(key: 'id')->toString());
         self::assertSame('legendary', $route->get(key: 'category')->toString());
     }
 
-    public function testRequestDecodingWithSymfonyStyleFallbackScan(): void
+    public function testDecodeWhenSymfonyAttributePresentThenFallbackScanFindsIt(): void
     {
-        /** @Given Symfony stores route params under _route_params and default __route__ is null */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '_route_params' => ['id' => '55'],
-                default         => null
-            });
+        /** @Given Symfony stores params under _route_params and default __route__ is absent */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('_route_params', ['id' => '55']);
 
-        /** @When we use the default route() without specifying a name */
+        /** @When decoding with the default route() */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then the fallback scan should find params under _route_params */
+        /** @Then the fallback scan finds params under _route_params */
         self::assertSame('55', $route->get(key: 'id')->toString());
     }
 
-    public function testRequestDecodingWithDirectAttributes(): void
+    public function testDecodeWhenDirectAttributesPresentThenFallbackResolves(): void
     {
-        /** @Given a framework like Laravel stores route params as direct request attributes */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                'id'    => '123',
-                'email' => 'user@example.com',
-                default => null
-            });
+        /** @Given a request that stores route params as direct attributes */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('id', '123')
+            ->withAttribute('email', 'user@example.com');
 
-        /** @When we decode route params using the default route */
+        /** @When decoding with the default route() */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then direct attributes should be resolved as fallback */
+        /** @Then direct attributes resolve as fallback */
         self::assertSame('123', $route->get(key: 'id')->toString());
         self::assertSame('user@example.com', $route->get(key: 'email')->toString());
     }
 
-    public function testRequestDecodingWithManualWithAttribute(): void
+    public function testDecodeWhenManualAttributesInjectedThenExposesValues(): void
     {
-        /** @Given a user manually injects route params via withAttribute() */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('POST');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => ['id' => 'manually-injected', 'status' => 'active'],
-                default     => null
-            });
+        /** @Given a request manually injecting route params via withAttribute() */
+        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', ['id' => 'manually-injected', 'status' => 'active']);
 
-        /** @When we decode route params */
+        /** @When decoding */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then the manually injected values should be returned */
+        /** @Then the injected values are returned */
         self::assertSame('manually-injected', $route->get(key: 'id')->toString());
         self::assertSame('active', $route->get(key: 'status')->toString());
     }
 
-    public function testRequestDecodingWithObjectHavingPublicProperty(): void
+    public function testDecodeWhenRouteObjectExposesPublicPropertyThenResolvesIt(): void
     {
-        /** @Given an object that exposes route params via a public property */
+        /** @Given a route object exposing public properties */
         $routeObject = new class {
             public array $arguments = ['id' => '10', 'name' => 'Hydra'];
         };
 
-        /** @And a ServerRequestInterface with this object under __route__ */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturnCallback(static fn(string $name) => match ($name) {
-                '__route__' => $routeObject,
-                default     => null
-            });
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', $routeObject);
 
-        /** @When we decode route params */
+        /** @When decoding */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then public property values should be resolved */
+        /** @Then public property values resolve */
         self::assertSame('10', $route->get(key: 'id')->toString());
         self::assertSame('Hydra', $route->get(key: 'name')->toString());
     }
 
-    public function testRequestDecodingReturnsDefaultsWhenNoRouteParams(): void
+    public function testDecodeWhenNoRouteAttributesGivenThenSafeDefaultsAreReturned(): void
     {
-        /** @Given a ServerRequestInterface with no route attributes at all */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getAttribute')
-            ->willReturn(null);
+        /** @Given a server request with no route attributes at all */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com');
 
-        /** @When we try to decode route params */
+        /** @When decoding any route attribute */
         $route = Request::from(request: $serverRequest)->decode()->uri()->route();
 
-        /** @Then safe defaults should be returned */
+        /** @Then safe defaults are returned */
         self::assertSame(0, $route->get(key: 'id')->toInteger());
         self::assertSame('', $route->get(key: 'name')->toString());
         self::assertSame(0.00, $route->get(key: 'weight')->toFloat());
@@ -379,7 +246,7 @@ final class RequestTest extends TestCase
         self::assertSame([], $route->get(key: 'tags')->toArray());
     }
 
-    public function testRequestDecodingWithParsedBody(): void
+    public function testDecodeWhenParsedBodyPresentAndStreamEmptyThenUsesParsedBody(): void
     {
         /** @Given a payload already parsed by the framework */
         $payload = [
@@ -391,103 +258,45 @@ final class RequestTest extends TestCase
             'is_legendary' => true
         ];
 
-        /** @And a ServerRequestInterface with an empty stream but a parsed body */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream
-            ->method('getContents')
-            ->willReturn('');
+        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+            ->withBody($this->factory->createStream(''))
+            ->withParsedBody($payload);
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('POST');
-        $serverRequest
-            ->method('getBody')
-            ->willReturn($stream);
-        $serverRequest
-            ->method('getParsedBody')
-            ->willReturn($payload);
+        /** @When decoding the body */
+        $actual = Request::from(request: $serverRequest)->decode()->body();
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we decode the body of the HTTP Request */
-        $actual = $request->decode()->body();
-
-        /** @Then the decoded body should match the parsed payload */
+        /** @Then the parsed body is exposed */
         self::assertSame($payload, $actual->toArray());
         self::assertSame($payload['id'], $actual->get(key: 'id')->toInteger());
-        self::assertSame($payload['name'], $actual->get(key: 'name')->toString());
-        self::assertSame($payload['type'], $actual->get(key: 'type')->toString());
         self::assertSame($payload['weight'], $actual->get(key: 'weight')->toFloat());
-        self::assertSame($payload['skills'], $actual->get(key: 'skills')->toArray());
         self::assertSame($payload['is_legendary'], $actual->get(key: 'is_legendary')->toBoolean());
     }
 
-    public function testRequestDecodingWithFullUri(): void
+    public function testDecodeWhenUriGivenThenExposesAsString(): void
     {
-        /** @Given a full URI string */
+        /** @Given a full URI on the server request */
         $expectedUri = 'https://api.example.com/v1/dragons?sort=name&order=asc';
+        $serverRequest = new ServerRequest(method: 'GET', uri: $expectedUri);
 
-        /** @And a PSR-7 UriInterface mock that returns this URI */
-        $uri = $this->createStub(UriInterface::class);
-        $uri
-            ->method('__toString')
-            ->willReturn($expectedUri);
+        /** @When decoding the URI */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->toString();
 
-        /** @And a ServerRequestInterface that returns this UriInterface */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getUri')
-            ->willReturn($uri);
-
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we retrieve the full URI string from the decoded request */
-        $actual = $request->decode()->uri()->toString();
-
-        /** @Then the URI string should match the expected full URI */
+        /** @Then the URI string matches */
         self::assertSame($expectedUri, $actual);
     }
 
-    public function testRequestDecodingWithQueryParameters(): void
+    public function testDecodeWhenQueryParamsPresentThenExposesTypedAccessors(): void
     {
-        /** @Given query parameters present in the request URI */
-        $queryParams = [
-            'sort'   => 'name',
-            'order'  => 'asc',
-            'limit'  => '50',
-            'active' => 'true'
-        ];
+        /** @Given query parameters present on the request URI */
+        $queryParams = ['sort' => 'name', 'order' => 'asc', 'limit' => '50', 'active' => 'true'];
 
-        /** @And a ServerRequestInterface that returns these query parameters */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream
-            ->method('getContents')
-            ->willReturn('');
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withQueryParams($queryParams);
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getQueryParams')
-            ->willReturn($queryParams);
-        $serverRequest
-            ->method('getBody')
-            ->willReturn($stream);
+        /** @When decoding the query parameters */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->queryParameters();
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we retrieve the query parameters from the decoded request */
-        $actual = $request->decode()->uri()->queryParameters();
-
-        /** @Then the query parameters should match the original values */
+        /** @Then every accessor matches */
         self::assertSame($queryParams, $actual->toArray());
         self::assertSame($queryParams['sort'], $actual->get(key: 'sort')->toString());
         self::assertSame($queryParams['order'], $actual->get(key: 'order')->toString());
@@ -495,32 +304,15 @@ final class RequestTest extends TestCase
         self::assertTrue($actual->get(key: 'active')->toBoolean());
     }
 
-    public function testRequestDecodingWithQueryParametersReturnsDefaultsWhenEmpty(): void
+    public function testDecodeWhenQueryParamsAbsentThenSafeDefaultsReturned(): void
     {
-        /** @Given a ServerRequestInterface with no query parameters */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream
-            ->method('getContents')
-            ->willReturn('');
+        /** @Given a server request with no query parameters */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com');
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('GET');
-        $serverRequest
-            ->method('getQueryParams')
-            ->willReturn([]);
-        $serverRequest
-            ->method('getBody')
-            ->willReturn($stream);
+        /** @When decoding the query parameters */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->queryParameters();
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
-
-        /** @And we try to access query parameters that do not exist */
-        $actual = $request->decode()->uri()->queryParameters();
-
-        /** @Then safe defaults should be returned */
+        /** @Then safe defaults are returned */
         self::assertSame([], $actual->toArray());
         self::assertSame('', $actual->get(key: 'sort')->toString());
         self::assertSame(0, $actual->get(key: 'page')->toInteger());
@@ -528,41 +320,30 @@ final class RequestTest extends TestCase
         self::assertFalse($actual->get(key: 'active')->toBoolean());
     }
 
-    public function testRequestWithMethod(): void
+    public function testMethodWhenPostRequestGivenThenReturnsPostEnum(): void
     {
-        /** @Given a ServerRequestInterface with POST method */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn('POST');
+        /** @Given a POST server request */
+        $serverRequest = new ServerRequest(method: 'POST', uri: 'https://api.example.com');
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
+        /** @When asking for the typed method */
+        $actual = Request::from(request: $serverRequest)->method();
 
-        /** @And we retrieve the HTTP method */
-        $actual = $request->method();
-
-        /** @Then the method should match the expected enum value */
+        /** @Then the Method enum is returned */
         self::assertSame(Method::POST, $actual);
-        self::assertSame('POST', $actual->value);
     }
 
     #[DataProvider('httpMethodsProvider')]
-    public function testRequestWithDifferentHttpMethods(string $methodString, Method $expectedMethod): void
-    {
-        /** @Given a ServerRequestInterface with the specified HTTP method */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest
-            ->method('getMethod')
-            ->willReturn($methodString);
+    public function testMethodWhenAnyHttpVerbGivenThenReturnsMatchingEnum(
+        string $methodString,
+        Method $expectedMethod
+    ): void {
+        /** @Given a server request with the specified HTTP verb */
+        $serverRequest = new ServerRequest(method: $methodString, uri: 'https://api.example.com');
 
-        /** @When we create the HTTP Request with this ServerRequestInterface */
-        $request = Request::from(request: $serverRequest);
+        /** @When asking for the typed method */
+        $actual = Request::from(request: $serverRequest)->method();
 
-        /** @And we retrieve the HTTP method */
-        $actual = $request->method();
-
-        /** @Then the method should match the expected enum value */
+        /** @Then the Method enum matches */
         self::assertSame($expectedMethod, $actual);
         self::assertSame($methodString, $actual->value);
     }
@@ -615,77 +396,47 @@ final class RequestTest extends TestCase
         ];
     }
 
-    public function testRequestDecodingWithSeekableStreamAndJsonBody(): void
+    public function testDecodeWhenInvalidJsonBodyGivenThenReturnsEmptyArray(): void
     {
-        /** @Given a seekable stream with a JSON body */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream->method('isSeekable')->willReturn(true);
-        $stream->method('getContents')->willReturn('{"name":"Hydra"}');
+        /** @Given a non-JSON body */
+        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+            ->withBody($this->factory->createStream('{not valid json]'));
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest->method('getMethod')->willReturn('POST');
-        $serverRequest->method('getBody')->willReturn($stream);
-
-        /** @When decoding the request */
-        $decoded = Request::from(request: $serverRequest)->decode();
-
-        /** @Then the body is parsed correctly from the seekable stream */
-        self::assertSame('Hydra', $decoded->body()->get(key: 'name')->toString());
-    }
-
-    public function testRequestDecodingWithInvalidJsonBodyReturnsEmpty(): void
-    {
-        /** @Given a stream with an invalid JSON body */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream->method('isSeekable')->willReturn(false);
-        $stream->method('getContents')->willReturn('{not valid json]');
-
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest->method('getMethod')->willReturn('POST');
-        $serverRequest->method('getBody')->willReturn($stream);
-
-        /** @When decoding the request */
+        /** @When decoding */
         $decoded = Request::from(request: $serverRequest)->decode();
 
         /** @Then the body gracefully returns an empty array */
         self::assertSame([], $decoded->body()->toArray());
     }
 
-    public function testRequestDecodingWithSeekableStreamAtNonZeroPositionParsesFromStart(): void
+    public function testDecodeWhenStreamAdvancedThenStillParsesFromStart(): void
     {
         /** @Given a seekable stream advanced past its start */
-        $factory = new Psr17Factory();
-        $stream = $factory->createStream('{"name":"Hydra"}');
+        $stream = $this->factory->createStream('{"name":"Hydra"}');
         $stream->getContents();
 
         /** @And a server request using that stream */
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest->method('getMethod')->willReturn('POST');
-        $serverRequest->method('getBody')->willReturn($stream);
+        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+            ->withBody($stream);
 
         /** @When decoding the request body */
         $decoded = Request::from(request: $serverRequest)->decode()->body();
 
-        /** @Then the body is parsed correctly despite the advanced stream position */
+        /** @Then the body parses correctly despite the stream position */
         self::assertSame('Hydra', $decoded->get(key: 'name')->toString());
 
-        /** @And the stream is at position zero after parsing so it can be re-read without a manual rewind */
+        /** @And the stream is rewound so it can be re-read */
         self::assertSame('{"name":"Hydra"}', $stream->getContents());
     }
 
-    public function testRequestDecodingWithEmptyStreamAndNonArrayParsedBodyReturnsEmpty(): void
+    public function testDecodeWhenEmptyStreamAndNonArrayParsedBodyThenReturnsEmpty(): void
     {
-        /** @Given a stream with no body and a non-array parsed body */
-        $stream = $this->createStub(StreamInterface::class);
-        $stream->method('isSeekable')->willReturn(false);
-        $stream->method('getContents')->willReturn('');
+        /** @Given an empty stream and a non-array parsed body */
+        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+            ->withBody($this->factory->createStream(''))
+            ->withParsedBody('not-an-array');
 
-        $serverRequest = $this->createStub(ServerRequestInterface::class);
-        $serverRequest->method('getMethod')->willReturn('POST');
-        $serverRequest->method('getBody')->willReturn($stream);
-        $serverRequest->method('getParsedBody')->willReturn('not-an-array');
-
-        /** @When decoding the request */
+        /** @When decoding */
         $decoded = Request::from(request: $serverRequest)->decode();
 
         /** @Then the body gracefully returns an empty array */

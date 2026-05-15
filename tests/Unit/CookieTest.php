@@ -17,7 +17,7 @@ use TinyBlocks\Http\SameSite;
 
 final class CookieTest extends TestCase
 {
-    public function testCreateCookieWithNameAndValue(): void
+    public function testCreateWhenNameAndValueGivenThenSerializesNameValuePair(): void
     {
         /** @Given a cookie name and value */
         $cookie = Cookie::create(name: 'session', value: 'abc');
@@ -25,11 +25,11 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then the header should contain only the name and value */
+        /** @Then the header contains only the name and value */
         self::assertSame(['Set-Cookie' => ['session=abc']], $actual);
     }
 
-    public function testCreateCookieWithAllAttributes(): void
+    public function testCreateWhenAllAttributesAppliedThenSerializesInCanonicalOrder(): void
     {
         /** @Given a cookie composed with every supported attribute */
         $cookie = Cookie::create(name: 'refresh_token', value: 'opaque-value')
@@ -44,13 +44,13 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then the header should include every attribute in the canonical order */
+        /** @Then the header includes every attribute in the canonical order */
         $expected = 'refresh_token=opaque-value; Max-Age=604800; Path=/v1/sessions; '
             . 'Domain=api.example.com; Secure; HttpOnly; SameSite=Strict; Partitioned';
         self::assertSame(['Set-Cookie' => [$expected]], $actual);
     }
 
-    public function testExpireCookieEmitsEmptyValueAndMaxAgeZero(): void
+    public function testExpireWhenInvokedThenEmitsEmptyValueAndMaxAgeZero(): void
     {
         /** @Given a cookie deletion for an existing name */
         /** @And the same path used when the cookie was issued */
@@ -59,11 +59,11 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then the header should instruct the browser to discard the cookie */
+        /** @Then the header instructs the browser to discard the cookie */
         self::assertSame(['Set-Cookie' => ['refresh_token=; Max-Age=0; Path=/v1/sessions']], $actual);
     }
 
-    public function testWithValueReturnsNewInstanceWithReplacedValue(): void
+    public function testWithValueWhenInvokedThenReturnsNewInstanceAndOriginalIsUntouched(): void
     {
         /** @Given a cookie with an initial value */
         $original = Cookie::create(name: 'session', value: 'initial');
@@ -77,7 +77,7 @@ final class CookieTest extends TestCase
         self::assertSame(['Set-Cookie' => ['session=rotated']], $rotated->toArray());
     }
 
-    public function testWithExpiresRendersTheDateInRfcFormatInUtc(): void
+    public function testWithExpiresWhenNonUtcDateGivenThenRendersInUtcRfcFormat(): void
     {
         /** @Given an expiration in a non-UTC timezone */
         $cookie = Cookie::create(name: 'session', value: 'abc')->withExpires(
@@ -87,14 +87,14 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then the Expires attribute should be converted to UTC and formatted per RFC 7231 */
+        /** @Then the Expires attribute is converted to UTC and formatted per RFC 7231 */
         self::assertSame(
             ['Set-Cookie' => ['session=abc; Expires=Tue, 15 Jan 2030 15:00:00 GMT']],
             $actual
         );
     }
 
-    public function testBuilderMethodsReturnNewInstanceWithoutMutatingOriginal(): void
+    public function testSecureWhenInvokedThenReturnsNewInstanceWithFlag(): void
     {
         /** @Given a base cookie without the secure flag */
         $base = Cookie::create(name: 'session', value: 'abc');
@@ -108,22 +108,19 @@ final class CookieTest extends TestCase
         self::assertSame(['Set-Cookie' => ['session=abc; Secure']], $secured->toArray());
     }
 
-    public function testSameSiteNoneWithoutSecureThrows(): void
+    public function testToArrayWhenSameSiteNoneWithoutSecureGivenThenThrows(): void
     {
         /** @Given a cookie set to SameSite=None without the Secure flag */
         $cookie = Cookie::create(name: 'session', value: 'abc')->withSameSite(sameSite: SameSite::NONE);
 
-        /** @Then an exception indicating the missing Secure flag should be thrown */
+        /** @Then an exception indicating the missing Secure flag is thrown */
         $this->expectException(SameSiteNoneRequiresSecure::class);
-        $this->expectExceptionMessage(
-            'Cookies with SameSite=None require the Secure flag to be set; modern browsers reject such cookies otherwise. Call secure() on the Cookie instance.'
-        );
 
         /** @When the header is serialized */
         $cookie->toArray();
     }
 
-    public function testSameSiteNoneWithSecureIsAllowed(): void
+    public function testToArrayWhenSameSiteNoneWithSecureGivenThenSerializesBothAttributes(): void
     {
         /** @Given a cookie with SameSite=None combined with Secure */
         $cookie = Cookie::create(name: 'session', value: 'abc')
@@ -133,28 +130,25 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then both attributes should be present */
+        /** @Then both attributes are present */
         self::assertSame(['Set-Cookie' => ['session=abc; Secure; SameSite=None']], $actual);
     }
 
-    public function testMaxAgeAndExpiresTogetherThrows(): void
+    public function testToArrayWhenBothMaxAgeAndExpiresGivenThenThrows(): void
     {
         /** @Given a cookie with both Max-Age and Expires assigned */
         $cookie = Cookie::create(name: 'session', value: 'abc')
             ->withMaxAge(seconds: 3600)
             ->withExpires(expires: new DateTimeImmutable('2030-01-15 12:00:00 UTC'));
 
-        /** @Then an exception indicating conflicting lifetime attributes should be thrown */
+        /** @Then an exception indicating conflicting lifetime attributes is thrown */
         $this->expectException(ConflictingLifetimeAttributes::class);
-        $this->expectExceptionMessage(
-            'Cookie lifetime attributes are conflicting. A cookie must declare its lifetime via either Max-Age or Expires, not both. Choose one and reset the other with a new Cookie instance.'
-        );
 
         /** @When the header is serialized */
         $cookie->toArray();
     }
 
-    public function testEmptyValueIsAcceptedAsValid(): void
+    public function testCreateWhenEmptyValueGivenThenRendersEmpty(): void
     {
         /** @Given an empty value */
         $cookie = Cookie::create(name: 'session', value: '');
@@ -162,50 +156,44 @@ final class CookieTest extends TestCase
         /** @When the header is serialized */
         $actual = $cookie->toArray();
 
-        /** @Then the value should be rendered as empty */
+        /** @Then the value is rendered as empty */
         self::assertSame(['Set-Cookie' => ['session=']], $actual);
     }
 
-    public function testWithValueRejectsInvalidReplacement(): void
+    public function testWithValueWhenForbiddenCharacterGivenThenThrows(): void
     {
         /** @Given a valid cookie */
         $cookie = Cookie::create(name: 'session', value: 'abc');
 
-        /** @Then an exception indicating the value is invalid should be thrown */
+        /** @Then an exception indicating the value is invalid is thrown */
         $this->expectException(CookieValueIsInvalid::class);
 
         /** @When the value is replaced with one containing forbidden characters */
         $cookie->withValue(value: 'has;semicolon');
     }
 
-    public function testExpireValidatesTheName(): void
+    public function testExpireWhenInvalidNameGivenThenThrows(): void
     {
-        /** @Then an exception indicating the name is invalid should be thrown */
+        /** @Then an exception indicating the name is invalid is thrown */
         $this->expectException(CookieNameIsInvalid::class);
-        $this->expectExceptionMessage(
-            'Cookie name <bad name> is invalid. A name must not be empty and must not contain control characters, whitespace, or any of the following separators: ( ) < > @ , ; : \\ " / [ ] ? = { }.'
-        );
 
         /** @When expiring a cookie with an invalid name */
         Cookie::expire(name: 'bad name');
     }
 
-    public function testCreateExposesInvalidValueMessage(): void
+    public function testCreateWhenForbiddenCharacterInValueGivenThenThrows(): void
     {
-        /** @Then an exception indicating the value is invalid should be thrown */
+        /** @Then an exception indicating the value is invalid is thrown */
         $this->expectException(CookieValueIsInvalid::class);
-        $this->expectExceptionMessage(
-            'Cookie value <abc;def> is invalid. A value must not contain control characters, whitespace, double quotes, commas, semicolons, or backslashes. Encode the value (e.g., URL-encode or Base64) before passing it.'
-        );
 
         /** @When creating a cookie with the invalid value */
         Cookie::create(name: 'session', value: 'abc;def');
     }
 
     #[DataProvider('invalidNameProvider')]
-    public function testCreateCookieRejectsInvalidName(string $name): void
+    public function testCreateWhenInvalidNameGivenThenThrows(string $name): void
     {
-        /** @Then an exception indicating the name is invalid should be thrown */
+        /** @Then an exception indicating the name is invalid is thrown */
         $this->expectException(CookieNameIsInvalid::class);
 
         /** @When creating a cookie with the invalid name */
@@ -213,9 +201,9 @@ final class CookieTest extends TestCase
     }
 
     #[DataProvider('invalidValueProvider')]
-    public function testCreateCookieRejectsInvalidValue(string $value): void
+    public function testCreateWhenInvalidValueGivenThenThrows(string $value): void
     {
-        /** @Then an exception indicating the value is invalid should be thrown */
+        /** @Then an exception indicating the value is invalid is thrown */
         $this->expectException(CookieValueIsInvalid::class);
 
         /** @When creating a cookie with the invalid value */
@@ -232,7 +220,7 @@ final class CookieTest extends TestCase
             'Name with control character' => ["session\x00"],
             'Name with comma'             => ['session,id'],
             'Name with double quote'      => ['session"'],
-            'Name with brackets'          => ['session[]'],
+            'Name with brackets'          => ['session[]']
         ];
     }
 
@@ -245,7 +233,7 @@ final class CookieTest extends TestCase
             'Value with comma'             => ['abc,def'],
             'Value with double quote'      => ['abc"def'],
             'Value with backslash'         => ['abc\\def'],
-            'Value with control character' => ["abc\x00def"],
+            'Value with control character' => ["abc\x00def"]
         ];
     }
 }

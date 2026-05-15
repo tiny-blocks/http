@@ -13,7 +13,7 @@ use TinyBlocks\Http\Exceptions\NoMoreResponses;
 
 final class InMemoryTransportTest extends TestCase
 {
-    public function testResponsesAreReturnedInFifoOrder(): void
+    public function testSendWhenMultipleResponsesQueuedThenServesInFifoOrder(): void
     {
         /** @Given a transport seeded with two responses */
         $first = Response::with(code: Code::OK);
@@ -30,9 +30,9 @@ final class InMemoryTransportTest extends TestCase
         self::assertSame(Code::CREATED, $responseTwo->code());
     }
 
-    public function testExhaustedTransportThrowsNoMoreResponses(): void
+    public function testSendWhenQueueExhaustedThenThrowsNoMoreResponses(): void
     {
-        /** @Given a transport seeded with one response */
+        /** @Given a transport seeded with one response that is already consumed */
         $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
         $request = Request::create(url: '/dragons');
         $transport->send(request: $request);
@@ -44,7 +44,7 @@ final class InMemoryTransportTest extends TestCase
         $transport->send(request: $request);
     }
 
-    public function testEmptyTransportThrowsNoMoreResponsesImmediately(): void
+    public function testSendWhenQueueEmptyThenThrowsNoMoreResponsesImmediately(): void
     {
         /** @Given a transport seeded with zero responses */
         $transport = InMemoryTransport::with(responses: []);
@@ -56,7 +56,7 @@ final class InMemoryTransportTest extends TestCase
         $transport->send(request: Request::create(url: '/dragons'));
     }
 
-    public function testSingleResponseTransportReturnsCorrectResponse(): void
+    public function testSendWhenSingleResponseQueuedThenReturnsIt(): void
     {
         /** @Given a transport seeded with one response */
         $transport = InMemoryTransport::with(responses: [Response::with(code: Code::CREATED)]);

@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\SynthesizedResponseHasNoRaw;
+use TinyBlocks\Http\Headers;
 
 final class ResponseTest extends TestCase
 {
@@ -19,7 +20,7 @@ final class ResponseTest extends TestCase
         $this->factory = new Psr17Factory();
     }
 
-    public function testResponseWith200AndJsonBodyAllowsTypedAccess(): void
+    public function testFromWhen200JsonResponseGivenThenExposesTypedBody(): void
     {
         /** @Given a 200 response with a JSON body */
         $psrResponse = $this->factory->createResponse(200)
@@ -34,7 +35,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testResponseWith204AndNoBodyReturnsEmptyArray(): void
+    public function testFromWhen204ResponseGivenThenBodyIsEmptyArray(): void
     {
         /** @Given a 204 response with no body */
         $psrResponse = $this->factory->createResponse(204);
@@ -47,7 +48,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::NO_CONTENT, $response->code());
     }
 
-    public function testResponseWithNonJsonBodyReturnsSafeEmptyArray(): void
+    public function testFromWhenNonJsonBodyGivenThenReturnsSafeEmptyArray(): void
     {
         /** @Given a 200 response with a non-JSON body */
         $psrResponse = $this->factory->createResponse(200)
@@ -60,7 +61,7 @@ final class ResponseTest extends TestCase
         self::assertSame([], $response->body()->toArray());
     }
 
-    public function testResponseWith200IsSuccessAndNotError(): void
+    public function testFromWhen200ResponseGivenThenIsSuccessAndNotError(): void
     {
         /** @Given a 200 response */
         $psrResponse = $this->factory->createResponse(200);
@@ -73,7 +74,7 @@ final class ResponseTest extends TestCase
         self::assertFalse($response->isError());
     }
 
-    public function testResponseWith500IsErrorAndNotSuccess(): void
+    public function testFromWhen500ResponseGivenThenIsErrorAndNotSuccess(): void
     {
         /** @Given a 500 response */
         $psrResponse = $this->factory->createResponse(500);
@@ -86,7 +87,7 @@ final class ResponseTest extends TestCase
         self::assertFalse($response->isSuccess());
     }
 
-    public function testResponseHeadersAreFlattenedToStrings(): void
+    public function testHeadersWhenPsrResponseGivenThenAccessibleViaHeadersValueObject(): void
     {
         /** @Given a response with two distinct headers */
         $psrResponse = $this->factory->createResponse(200)
@@ -101,7 +102,7 @@ final class ResponseTest extends TestCase
         self::assertSame('123', $response->headers()->get('X-Request-ID'));
     }
 
-    public function testRawReturnsUnderlyingPsrResponse(): void
+    public function testRawWhenPsrResponseWrappedThenReturnsUnderlyingInstance(): void
     {
         /** @Given a PSR response */
         $psrResponse = $this->factory->createResponse(200);
@@ -113,7 +114,7 @@ final class ResponseTest extends TestCase
         self::assertSame($psrResponse, $response->raw());
     }
 
-    public function testSynthesizedResponseWithCodeAndBodyWorks(): void
+    public function testWithWhenCodeAndBodyGivenThenSynthesizesAccessibleResponse(): void
     {
         /** @Given code and body data */
         /** @When synthesizing a response via with() */
@@ -126,7 +127,7 @@ final class ResponseTest extends TestCase
         self::assertFalse($response->isError());
     }
 
-    public function testSynthesizedResponseRawThrowsSynthesizedResponseHasNoRaw(): void
+    public function testRawWhenSynthesizedResponseGivenThenThrowsSynthesizedResponseHasNoRaw(): void
     {
         /** @Given a synthesized response */
         $response = Response::with(code: Code::OK);
@@ -138,7 +139,7 @@ final class ResponseTest extends TestCase
         $response->raw();
     }
 
-    public function testSynthesizedResponseWithNullBodyReturnsEmptyArray(): void
+    public function testWithWhenNullBodyGivenThenReturnsEmptyArray(): void
     {
         /** @Given a synthesized response with null body */
         /** @When creating the response */
@@ -148,7 +149,19 @@ final class ResponseTest extends TestCase
         self::assertSame([], $response->body()->toArray());
     }
 
-    public function testResponseWithSeekableStreamCanBeConsumedAgainViaRaw(): void
+    public function testWithWhenHeadersGivenThenExposesViaHeadersAccessor(): void
+    {
+        /** @Given a Headers instance with one entry */
+        $headers = new Headers(entries: ['X-Trace' => 'abc']);
+
+        /** @When synthesizing a response with the headers */
+        $response = Response::with(code: Code::OK, headers: $headers);
+
+        /** @Then headers() returns the same value object */
+        self::assertSame('abc', $response->headers()->get('X-Trace'));
+    }
+
+    public function testFromWhenSeekableStreamGivenThenRawIsStillReadable(): void
     {
         /** @Given a 200 response with a JSON body in a seekable stream */
         $psrResponse = $this->factory->createResponse(200)
@@ -166,7 +179,7 @@ final class ResponseTest extends TestCase
         self::assertSame('{"name":"Hydra"}', $raw->getContents());
     }
 
-    public function testResponseFromAdvancedSeekableStreamParsesBodyFromStart(): void
+    public function testFromWhenAdvancedSeekableStreamGivenThenParsesBodyFromStart(): void
     {
         /** @Given a seekable stream advanced past its start */
         $stream = $this->factory->createStream('{"name":"Hydra"}');
@@ -185,7 +198,7 @@ final class ResponseTest extends TestCase
         self::assertSame('{"name":"Hydra"}', $response->raw()->getBody()->getContents());
     }
 
-    public function testResponseWithDeeplyNestedJsonBeyondDepthDegradesToEmpty(): void
+    public function testFromWhenDeeplyNestedJsonGivenThenDegradesToEmptyArray(): void
     {
         /** @Given a JSON string nested deeper than 64 levels */
         $json = str_repeat('{"a":', 65) . '1' . str_repeat('}', 65);

@@ -15,7 +15,7 @@ use TinyBlocks\Http\ResponseCacheDirectives;
 
 final class RequestTest extends TestCase
 {
-    public function testCreateWithMinimalParametersDefaultsToGet(): void
+    public function testCreateWhenMinimalParametersGivenThenDefaultsToGet(): void
     {
         /** @When creating a request with only a URL */
         $request = Request::create(url: 'https://api.example.com/dragons');
@@ -24,11 +24,11 @@ final class RequestTest extends TestCase
         self::assertSame('https://api.example.com/dragons', $request->url);
         self::assertSame(Method::GET, $request->method);
         self::assertNull($request->body);
-        self::assertSame([], $request->query);
+        self::assertNull($request->query);
         self::assertSame([], $request->headers->toArray());
     }
 
-    public function testCreateWithNullBodyCarriesNoBody(): void
+    public function testCreateWhenNullBodyGivenThenCarriesNoBody(): void
     {
         /** @When creating a request with an explicit null body */
         $request = Request::create(url: '/dragons');
@@ -37,33 +37,33 @@ final class RequestTest extends TestCase
         self::assertNull($request->body);
     }
 
-    public function testCreateMergesMultipleHeaders(): void
+    public function testCreateWhenMultipleHeadersGivenThenMergesEntries(): void
     {
         /** @Given two distinct headers */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
         $accept = ContentType::applicationJson();
 
-        /** @When creating a request with both headers positionally (multiple variadics) */
-        $request = Request::create('/dragons', null, [], Method::POST, $contentType, $accept);
+        /** @When creating a request with both headers via the variadic */
+        $request = Request::create('/dragons', null, null, Method::POST, $contentType, $accept);
 
-        /** @Then the merged headers contain entries from both */
+        /** @Then the merged headers contain Content-Type */
         self::assertTrue($request->headers->has('Content-Type'));
     }
 
-    public function testCreatePreservesLastHeaderWhenSameNameProvided(): void
+    public function testCreateWhenSameHeaderProvidedTwiceThenLastOneWins(): void
     {
         /** @Given two Content-Type headers with different values */
         $first = ContentType::applicationJson(charset: Charset::UTF_8);
         $second = ContentType::applicationJson();
 
         /** @When creating the request with both (last one wins) */
-        $request = Request::create('/dragons', null, [], Method::POST, $first, $second);
+        $request = Request::create('/dragons', null, null, Method::POST, $first, $second);
 
         /** @Then the last one wins for the Content-Type key */
         self::assertSame('application/json', $request->headers->get('Content-Type'));
     }
 
-    public function testCreatePreservesQueryArray(): void
+    public function testCreateWhenQueryGivenThenPreservesArrayInProperty(): void
     {
         /** @Given query parameters */
         $query = ['sort' => 'name', 'order' => 'asc'];
@@ -75,7 +75,7 @@ final class RequestTest extends TestCase
         self::assertSame($query, $request->query);
     }
 
-    public function testWithUrlReturnsNewInstanceWithReplacedUrl(): void
+    public function testWithUrlWhenInvokedThenReturnsNewInstanceWithReplacedUrl(): void
     {
         /** @Given a request with an original URL */
         $request = Request::create(url: '/dragons');
@@ -89,7 +89,7 @@ final class RequestTest extends TestCase
         self::assertSame('/dragons', $request->url);
     }
 
-    public function testWithQueryReturnsNewInstanceWithReplacedQuery(): void
+    public function testWithQueryWhenInvokedThenReturnsNewInstanceWithReplacedQuery(): void
     {
         /** @Given a request with an original query */
         $request = Request::create(url: '/dragons', query: ['sort' => 'name']);
@@ -103,30 +103,30 @@ final class RequestTest extends TestCase
         self::assertSame(['sort' => 'name'], $request->query);
     }
 
-    public function testCreateWithDistinctKeyHeadersProducesBothEntries(): void
+    public function testCreateWhenDistinctKeyHeadersGivenThenBothPresent(): void
     {
         /** @Given two headers with distinct keys */
         $contentType = ContentType::applicationJson();
         $cacheControl = CacheControl::fromResponseDirectives(ResponseCacheDirectives::mustRevalidate());
 
         /** @When creating a request with both headers */
-        $request = Request::create('/dragons', null, [], Method::GET, $contentType, $cacheControl);
+        $request = Request::create('/dragons', null, null, Method::GET, $contentType, $cacheControl);
 
         /** @Then both header keys are present in the merged result */
         self::assertCount(2, $request->headers->toArray());
     }
 
-    public function testWithMergedHeadersCustomHeadersWinOverDefaults(): void
+    public function testWithMergedHeadersWhenCustomConflictsWithDefaultThenCustomWins(): void
     {
         /** @Given a request with a custom Content-Type header */
         $request = Request::create(
             url: '/dragons',
             method: Method::POST,
-            headerables: ContentType::applicationJson(charset: Charset::UTF_8)
+            headers: ContentType::applicationJson(charset: Charset::UTF_8)
         );
 
         /** @When merging defaults that include the same header */
-        $defaults = ['Content-Type' => 'application/json', 'Accept' => 'application/json'];
+        $defaults = new Headers(entries: ['Content-Type' => 'application/json', 'Accept' => 'application/json']);
         $resolved = $request->withMergedHeaders(defaults: $defaults);
 
         /** @Then the custom header wins over the default */
@@ -134,12 +134,12 @@ final class RequestTest extends TestCase
         self::assertSame('application/json', $resolved->headers->get('Accept'));
     }
 
-    public function testHeadersAreCaseInsensitiveLookup(): void
+    public function testHeadersWhenMixedCaseGivenThenLookupIsCaseInsensitive(): void
     {
         /** @Given a request with a Content-Type header */
         $request = Request::create(
             url: '/dragons',
-            headerables: ContentType::applicationJson()
+            headers: ContentType::applicationJson()
         );
 
         /** @When looking up the header with different casing */
@@ -148,7 +148,7 @@ final class RequestTest extends TestCase
         self::assertSame('application/json', $request->headers->get('CONTENT-TYPE'));
     }
 
-    public function testHeadersReturnNullForMissingKey(): void
+    public function testHeadersGetWhenMissingKeyGivenThenReturnsNull(): void
     {
         /** @Given a request with no headers */
         $request = Request::create(url: '/dragons');
@@ -158,7 +158,7 @@ final class RequestTest extends TestCase
         self::assertNull($request->headers->get('X-Missing'));
     }
 
-    public function testHeadersInstanceIsReturnedOnRequest(): void
+    public function testHeadersWhenRequestCreatedThenExposesHeadersInstance(): void
     {
         /** @Given a request */
         $request = Request::create(url: '/dragons');

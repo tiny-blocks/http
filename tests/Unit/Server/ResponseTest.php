@@ -22,345 +22,179 @@ use TinyBlocks\Http\Server\Response;
 final class ResponseTest extends TestCase
 {
     #[DataProvider('responseFromProvider')]
-    public function testResponseFrom(Code $code, mixed $body, string $expectedBody): void
-    {
+    public function testFromWhenCodeAndBodyGivenThenRendersBodyWithMatchingStatus(
+        Code $code,
+        mixed $body,
+        string $expectedBody
+    ): void {
         /** @Given a specific status code and body */
-        /** @When we create the HTTP response using the generic from method */
+        /** @When creating the HTTP response via the generic from method */
         $actual = Response::from(body: $body, code: $code);
 
-        /** @Then the protocol version should be "1.1" */
+        /** @Then the protocol version is "1.1" */
         self::assertSame('1.1', $actual->getProtocolVersion());
 
-        /** @And the body of the response should match the expected output */
+        /** @And the body of the response matches the expected output */
         self::assertSame($expectedBody, $actual->getBody()->__toString());
 
-        /** @And the status code should match the provided code */
+        /** @And the status code matches the provided code */
         self::assertSame($code->value, $actual->getStatusCode());
         self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
 
-        /** @And the reason phrase should match the provided code message */
+        /** @And the reason phrase matches the code message */
         self::assertSame($code->message(), $actual->getReasonPhrase());
 
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
+        /** @And the default Content-Type is application/json; charset=utf-8 */
         self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseOk(): void
+    public function testOkWhenBodyGivenThenReturnsResponseWithStatus200(): void
     {
         /** @Given a body with data */
-        $body = [
-            'id'     => PHP_INT_MAX,
-            'name'   => 'Drakengard Firestorm',
-            'type'   => 'Dragon',
-            'weight' => 6000.00
-        ];
+        $body = ['id' => PHP_INT_MAX, 'name' => 'Drakengard Firestorm', 'type' => 'Dragon', 'weight' => 6000.00];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::ok(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
+        /** @Then the response carries the body encoded as JSON and a 200 status */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 200 */
         self::assertSame(Code::OK->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isSuccessCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "OK" */
         self::assertSame(Code::OK->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
         self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseCreated(): void
+    public function testCreatedWhenBodyGivenThenReturnsResponseWithStatus201(): void
     {
         /** @Given a body with data */
-        $body = [
-            'id'     => 1,
-            'name'   => 'New Resource',
-            'type'   => 'Item',
-            'weight' => 100.00
-        ];
+        $body = ['id' => 1, 'name' => 'New Resource', 'type' => 'Item', 'weight' => 100.00];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::created(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
+        /** @Then the response carries the body and a 201 status */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 201 */
         self::assertSame(Code::CREATED->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isSuccessCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Created" */
         self::assertSame(Code::CREATED->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseAccepted(): void
+    public function testAcceptedWhenBodyGivenThenReturnsResponseWithStatus202(): void
     {
         /** @Given a body with data */
-        $body = [
-            'id'     => 1,
-            'status' => 'Processing'
-        ];
+        $body = ['id' => 1, 'status' => 'Processing'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::accepted(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
+        /** @Then the response carries the body and a 202 status */
         self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 202 */
         self::assertSame(Code::ACCEPTED->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isSuccessCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Accepted" */
         self::assertSame(Code::ACCEPTED->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseNoContent(): void
+    public function testNoContentWhenInvokedThenReturnsEmptyBodyWithStatus204(): void
     {
-        /** @Given I have no data for the body */
-        /** @When we create the HTTP response without body */
+        /** @When the response is created without body */
         $actual = Response::noContent();
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should be empty */
+        /** @Then the body is empty and the status is 204 */
         self::assertEmpty($actual->getBody()->__toString());
-
-        /** @And the status code should be 204 */
         self::assertSame(Code::NO_CONTENT->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isSuccessCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "No Content" */
         self::assertSame(Code::NO_CONTENT->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseBadRequest(): void
+    public function testBadRequestWhenBodyGivenThenReturnsResponseWithStatus400(): void
     {
         /** @Given a body with error details */
-        $body = [
-            'error'   => 'Invalid request',
-            'message' => 'The request body is malformed.'
-        ];
+        $body = ['error' => 'Invalid request', 'message' => 'The request body is malformed.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::badRequest(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 400 */
+        /** @Then the status is 400 */
         self::assertSame(Code::BAD_REQUEST->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Bad Request" */
-        self::assertSame(Code::BAD_REQUEST->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseUnauthorized(): void
+    public function testUnauthorizedWhenBodyGivenThenReturnsResponseWithStatus401(): void
     {
         /** @Given a body with error details */
-        $body = [
-            'error'   => 'Unauthorized',
-            'message' => 'Authentication is required to access this resource.'
-        ];
+        $body = ['error' => 'Unauthorized', 'message' => 'Authentication is required.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::unauthorized(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 401 */
+        /** @Then the status is 401 */
         self::assertSame(Code::UNAUTHORIZED->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Unauthorized" */
-        self::assertSame(Code::UNAUTHORIZED->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseForbidden(): void
+    public function testForbiddenWhenBodyGivenThenReturnsResponseWithStatus403(): void
     {
         /** @Given a body with error details */
-        $body = [
-            'error'   => 'Forbidden',
-            'message' => 'You do not have permission to access this resource.'
-        ];
+        $body = ['error' => 'Forbidden', 'message' => 'You do not have permission to access this resource.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::forbidden(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 403 */
+        /** @Then the status is 403 */
         self::assertSame(Code::FORBIDDEN->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Forbidden" */
-        self::assertSame(Code::FORBIDDEN->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseNotFound(): void
+    public function testNotFoundWhenBodyGivenThenReturnsResponseWithStatus404(): void
     {
         /** @Given a body with error details */
-        $body = [
-            'error'   => 'Not found',
-            'message' => 'The requested resource could not be found.'
-        ];
+        $body = ['error' => 'Not found', 'message' => 'The requested resource could not be found.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::notFound(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 404 */
+        /** @Then the status is 404 */
         self::assertSame(Code::NOT_FOUND->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Not Found" */
-        self::assertSame(Code::NOT_FOUND->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseConflict(): void
+    public function testConflictWhenBodyGivenThenReturnsResponseWithStatus409(): void
     {
         /** @Given a body with conflict details */
-        $body = [
-            'error'   => 'Conflict',
-            'message' => 'There is a conflict with the current state of the resource.'
-        ];
+        $body = ['error' => 'Conflict', 'message' => 'There is a conflict with the current state of the resource.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::conflict(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 409 */
+        /** @Then the status is 409 */
         self::assertSame(Code::CONFLICT->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Conflict" */
-        self::assertSame(Code::CONFLICT->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseUnprocessableEntity(): void
+    public function testUnprocessableEntityWhenBodyGivenThenReturnsResponseWithStatus422(): void
     {
         /** @Given a body with validation errors */
-        $body = [
-            'error'   => 'Validation Failed',
-            'message' => 'The input data did not pass validation.'
-        ];
+        $body = ['error' => 'Validation Failed', 'message' => 'The input data did not pass validation.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::unprocessableEntity(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 422 */
+        /** @Then the status is 422 */
         self::assertSame(Code::UNPROCESSABLE_ENTITY->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Unprocessable Entity" */
-        self::assertSame(Code::UNPROCESSABLE_ENTITY->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
-    public function testResponseInternalServerError(): void
+    public function testInternalServerErrorWhenBodyGivenThenReturnsResponseWithStatus500(): void
     {
         /** @Given a body with error details */
-        $body = [
-            'code'    => 10000,
-            'message' => 'An unexpected error occurred on the server.'
-        ];
+        $body = ['code' => 10000, 'message' => 'An unexpected error occurred on the server.'];
 
-        /** @When we create the HTTP response with this body */
+        /** @When the response is created with the body */
         $actual = Response::internalServerError(body: $body);
 
-        /** @Then the protocol version should be "1.1" */
-        self::assertSame('1.1', $actual->getProtocolVersion());
-
-        /** @And the body of the response should match the JSON-encoded body */
-        self::assertSame(json_encode($body, JSON_PRESERVE_ZERO_FRACTION), $actual->getBody()->__toString());
-
-        /** @And the status code should be 500 */
+        /** @Then the status is 500 */
         self::assertSame(Code::INTERNAL_SERVER_ERROR->value, $actual->getStatusCode());
-        self::assertTrue(Code::isValidCode(code: $actual->getStatusCode()));
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
-
-        /** @And the reason phrase should be "Internal Server Error" */
-        self::assertSame(Code::INTERNAL_SERVER_ERROR->message(), $actual->getReasonPhrase());
-
-        /** @And the headers should contain Content-Type as application/json with charset=utf-8 */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public static function responseFromProvider(): array
@@ -395,33 +229,33 @@ final class ResponseTest extends TestCase
     }
 
     #[DataProvider('bodyProviderData')]
-    public function testResponseBodySerialization(mixed $body, string $expected): void
+    public function testOkWhenAnyBodyShapeGivenThenSerializesToExpectedString(mixed $body, string $expected): void
     {
         /** @Given the body contains the provided data */
         /** @When we create an HTTP response with the given body */
         $actual = Response::ok(body: $body);
 
-        /** @Then the body of the response should match the expected output */
+        /** @Then the body matches the expected output */
         self::assertSame($expected, $actual->getBody()->__toString());
     }
 
-    public function testResponseWithBody(): void
+    public function testWithBodyWhenInvokedThenReplacesBodyContent(): void
     {
-        /** @Given an HTTP response with without body */
+        /** @Given an HTTP response without body */
         $response = Response::ok(body: null);
 
-        /** @When the body of the response is initially empty */
+        /** @When the body is initially empty */
         self::assertEmpty($response->getBody()->__toString());
 
         /** @And a new body is set for the response */
         $body = 'This is a new body';
         $actual = $response->withBody(body: StreamFactory::fromBody(body: $body)->write());
 
-        /** @Then the response body should be updated to match the new content */
+        /** @Then the response body matches the new content */
         self::assertSame($body, $actual->getBody()->__toString());
     }
 
-    public function testWithStatusReturnsResponseWithUpdatedCode(): void
+    public function testWithStatusWhenInvokedThenReturnsResponseWithUpdatedCode(): void
     {
         /** @Given an HTTP response */
         $response = Response::noContent();
@@ -471,20 +305,8 @@ final class ResponseTest extends TestCase
                 'expected' => json_encode([
                     'id'       => 1,
                     'products' => [
-                        [
-                            'name'   => 'Product One',
-                            'amount' => [
-                                'value'    => 100.50,
-                                'currency' => 'USD'
-                            ]
-                        ],
-                        [
-                            'name'   => 'Product Two',
-                            'amount' => [
-                                'value'    => 200.75,
-                                'currency' => 'BRL'
-                            ]
-                        ]
+                        ['name' => 'Product One', 'amount' => ['value' => 100.50, 'currency' => 'USD']],
+                        ['name' => 'Product Two', 'amount' => ['value' => 200.75, 'currency' => 'BRL']]
                     ]
                 ], JSON_PRESERVE_ZERO_FRACTION)
             ],

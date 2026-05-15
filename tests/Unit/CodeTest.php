@@ -11,62 +11,62 @@ use TinyBlocks\Http\Code;
 final class CodeTest extends TestCase
 {
     #[DataProvider('messagesDataProvider')]
-    public function testMessage(Code $code, string $expected): void
+    public function testMessageWhenKnownCodeGivenThenReturnsRfcDescription(Code $code, string $expected): void
     {
         /** @Given a Code instance */
         /** @When retrieving the message for the Code */
         $actual = $code->message();
 
-        /** @Then the message should match the expected string */
+        /** @Then the message matches the expected string */
         self::assertSame($expected, $actual);
     }
 
     #[DataProvider('codesDataProvider')]
-    public function testIsHttpCode(int $code, bool $expected): void
+    public function testIsValidCodeWhenIntegerGivenThenReturnsExpected(int $code, bool $expected): void
     {
         /** @Given an integer representing an HTTP code */
         /** @When checking if it is a valid HTTP code */
         $actual = Code::isValidCode(code: $code);
 
-        /** @Then the result should match the expected boolean */
+        /** @Then the result matches the expected boolean */
         self::assertSame($expected, $actual);
     }
 
     #[DataProvider('errorCodesDataProvider')]
-    public function testIsErrorCode(int $code, bool $expected): void
+    public function testIsErrorCodeWhenIntegerGivenThenReturnsExpected(int $code, bool $expected): void
     {
         /** @Given an HTTP status code */
         /** @When checking if it is an error code (4xx or 5xx) */
         $actual = Code::isErrorCode(code: $code);
 
-        /** @Then the result should match the expected boolean */
+        /** @Then the result matches the expected boolean */
         self::assertSame($expected, $actual);
     }
 
     #[DataProvider('successCodesDataProvider')]
-    public function testIsSuccessCode(int $code, bool $expected): void
+    public function testIsSuccessCodeWhenIntegerGivenThenReturnsExpected(int $code, bool $expected): void
     {
         /** @Given an HTTP status code */
         /** @When checking if it is a success code (2xx) */
         $actual = Code::isSuccessCode(code: $code);
 
-        /** @Then the result should match the expected boolean */
+        /** @Then the result matches the expected boolean */
         self::assertSame($expected, $actual);
     }
 
-    public function testCodeOkIsSuccessAndNotError(): void
+    public function testIsSuccessWhenCodeOkGivenThenReturnsTrueAndIsErrorFalse(): void
     {
         /** @Given Code::OK */
-        /** @When checking instance methods */
+        /** @When checking the instance methods */
         /** @Then isSuccess is true and isError is false */
         self::assertTrue(Code::OK->isSuccess());
         self::assertFalse(Code::OK->isError());
     }
 
-    public function testCodeInternalServerErrorIsErrorAndNotSuccess(): void
+    public function testIsErrorWhenCodeInternalServerErrorGivenThenReturnsTrueAndIsSuccessFalse(): void
     {
         /** @Given Code::INTERNAL_SERVER_ERROR */
-        /** @When checking instance methods */
+        /** @When checking the instance methods */
         /** @Then isError is true and isSuccess is false */
         self::assertTrue(Code::INTERNAL_SERVER_ERROR->isError());
         self::assertFalse(Code::INTERNAL_SERVER_ERROR->isSuccess());
@@ -121,30 +121,12 @@ final class CodeTest extends TestCase
     public static function codesDataProvider(): array
     {
         return [
-            'Invalid code 0'                       => [
-                'code'     => 0,
-                'expected' => false
-            ],
-            'Invalid code -1'                      => [
-                'code'     => -1,
-                'expected' => false
-            ],
-            'Invalid code 1054'                    => [
-                'code'     => 1054,
-                'expected' => false
-            ],
-            'Valid code 200 OK'                    => [
-                'code'     => Code::OK->value,
-                'expected' => true
-            ],
-            'Valid code 100 Continue'              => [
-                'code'     => Code::CONTINUE->value,
-                'expected' => true
-            ],
-            'Valid code 500 Internal Server Error' => [
-                'code'     => Code::INTERNAL_SERVER_ERROR->value,
-                'expected' => true
-            ]
+            'Invalid code 0'                       => ['code' => 0, 'expected' => false],
+            'Invalid code -1'                      => ['code' => -1, 'expected' => false],
+            'Invalid code 1054'                    => ['code' => 1054, 'expected' => false],
+            'Valid code 200 OK'                    => ['code' => Code::OK->value, 'expected' => true],
+            'Valid code 100 Continue'              => ['code' => Code::CONTINUE->value, 'expected' => true],
+            'Valid code 500 Internal Server Error' => ['code' => Code::INTERNAL_SERVER_ERROR->value, 'expected' => true]
         ];
     }
 

@@ -7,13 +7,12 @@ namespace Test\TinyBlocks\Http\Unit;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Client\RequestExceptionInterface;
 use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
 use RuntimeException;
-use Throwable;
+use Test\TinyBlocks\Http\Fixtures\Client\CapturingClient;
+use Test\TinyBlocks\Http\Fixtures\Client\ThrowingClient;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
@@ -33,14 +32,15 @@ final class HttpTest extends TestCase
         $this->factory = new Psr17Factory();
     }
 
-    public function testSendReturnsResponseWithCorrectCode(): void
+    public function testSendWhenTransportRespondsThenReturnsResponseWithMatchingCode(): void
     {
         /** @Given a transport seeded with a 200 response */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @When sending a valid request */
@@ -50,14 +50,15 @@ final class HttpTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testBaseUrlWithTrailingSlashAndPathWithLeadingSlashProducesNoDoubleSlash(): void
+    public function testSendWhenBaseUrlEndsWithSlashAndPathLeadsWithSlashThenNoDoubleSlash(): void
     {
         /** @Given a transport seeded with a 200 response and a base URL ending in slash */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com/')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @When sending a request whose path starts with a slash */
@@ -67,14 +68,15 @@ final class HttpTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testQueryParametersAreAppendedAsRfc3986(): void
+    public function testSendWhenQueryGivenThenAppendsAsRfc3986(): void
     {
         /** @Given a transport seeded with a 200 response */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @When sending a request with query parameters */
@@ -86,14 +88,15 @@ final class HttpTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testRequestWithBodySendsJsonPayload(): void
+    public function testSendWhenBodyGivenThenSendsJsonPayload(): void
     {
         /** @Given a transport seeded with a 201 response */
-        $transport = $this->buildTransport(statusCode: 201);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 201),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @When sending a request with a JSON body */
@@ -105,7 +108,7 @@ final class HttpTest extends TestCase
         self::assertSame(Code::CREATED, $response->code());
     }
 
-    public function testNetworkExceptionMapsToHttpNetworkFailed(): void
+    public function testSendWhenClientRaisesNetworkExceptionThenThrowsHttpNetworkFailed(): void
     {
         /** @Given a PSR-18 client that throws NetworkExceptionInterface */
         $networkException = new class ('connection refused') extends RuntimeException implements
@@ -116,14 +119,12 @@ final class HttpTest extends TestCase
             }
         };
 
-        $transport = NetworkTransport::with(
-            client: $this->buildFailingClient(exception: $networkException),
-            factory: $this->factory
-        );
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: $networkException),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then HttpNetworkFailed is thrown */
@@ -133,7 +134,7 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: '/dragons'));
     }
 
-    public function testRequestExceptionMapsToHttpRequestInvalid(): void
+    public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
     {
         /** @Given a PSR-18 client that throws RequestExceptionInterface */
         $requestException = new class ('bad request') extends RuntimeException implements RequestExceptionInterface {
@@ -143,14 +144,12 @@ final class HttpTest extends TestCase
             }
         };
 
-        $transport = NetworkTransport::with(
-            client: $this->buildFailingClient(exception: $requestException),
-            factory: $this->factory
-        );
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: $requestException),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then HttpRequestInvalid is thrown */
@@ -160,20 +159,18 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: '/dragons'));
     }
 
-    public function testGenericClientExceptionMapsToHttpRequestFailed(): void
+    public function testSendWhenGenericClientExceptionRaisedThenThrowsHttpRequestFailed(): void
     {
         /** @Given a PSR-18 client that throws a generic ClientExceptionInterface */
         $clientException = new class ('generic failure') extends RuntimeException implements ClientExceptionInterface {
         };
 
-        $transport = NetworkTransport::with(
-            client: $this->buildFailingClient(exception: $clientException),
-            factory: $this->factory
-        );
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: $clientException),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then HttpRequestFailed is thrown */
@@ -183,14 +180,15 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: '/dragons'));
     }
 
-    public function testMalformedPathWithProtocolRelativeThrowsMalformedPath(): void
+    public function testSendWhenProtocolRelativePathGivenThenThrowsMalformedPath(): void
     {
         /** @Given an Http instance with a base URL */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then MalformedPath is thrown without invoking the transport */
@@ -200,14 +198,15 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: '//evil.example.com/attack'));
     }
 
-    public function testMalformedPathWithSchemeThrowsMalformedPath(): void
+    public function testSendWhenSchemePathGivenThenThrowsMalformedPath(): void
     {
         /** @Given an Http instance with a base URL */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then MalformedPath is thrown */
@@ -217,14 +216,15 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: 'javascript:alert(1)'));
     }
 
-    public function testMalformedPathWithControlCharactersThrowsMalformedPath(): void
+    public function testSendWhenControlCharsInPathGivenThenThrowsMalformedPath(): void
     {
         /** @Given an Http instance with a base URL */
-        $transport = $this->buildTransport(statusCode: 200);
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @Then MalformedPath is thrown */
@@ -234,7 +234,7 @@ final class HttpTest extends TestCase
         $http->send(request: Request::create(url: "/dragons\x00/evil"));
     }
 
-    public function testNetworkExceptionPreservesPreviousChain(): void
+    public function testSendWhenNetworkExceptionRaisedThenPreservesPreviousChain(): void
     {
         /** @Given a network exception */
         $networkException = new class ('timeout') extends RuntimeException implements NetworkExceptionInterface {
@@ -244,57 +244,22 @@ final class HttpTest extends TestCase
             }
         };
 
-        $transport = NetworkTransport::with(
-            client: $this->buildFailingClient(exception: $networkException),
-            factory: $this->factory
-        );
-
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: $networkException),
+                factory: $this->factory
+            ))
             ->build();
 
         /** @When sending the request */
         try {
             $http->send(request: Request::create(url: '/dragons'));
+            self::fail('HttpNetworkFailed was expected.');
         } catch (HttpNetworkFailed $exception) {
             /** @Then the previous exception is preserved in the chain */
             self::assertSame($networkException, $exception->getPrevious());
         }
     }
 
-    private function buildTransport(int $statusCode): NetworkTransport
-    {
-        $response = $this->factory->createResponse($statusCode);
-
-        $client = new readonly class ($response) implements ClientInterface {
-            public function __construct(private ResponseInterface $response)
-            {
-            }
-
-            public function sendRequest(RequestInterface $request): ResponseInterface
-            {
-                return $this->response;
-            }
-        };
-
-        return NetworkTransport::with(
-            client: $client,
-            factory: $this->factory
-        );
-    }
-
-    private function buildFailingClient(Throwable $exception): ClientInterface
-    {
-        return new readonly class ($exception) implements ClientInterface {
-            public function __construct(private Throwable $exception)
-            {
-            }
-
-            public function sendRequest(RequestInterface $request): ResponseInterface
-            {
-                throw $this->exception;
-            }
-        };
-    }
 }

@@ -9,7 +9,7 @@ use TinyBlocks\Http\Server\Response;
 
 final class ProtocolVersionTest extends TestCase
 {
-    public function testProtocolVersion(): void
+    public function testWithProtocolVersionWhenInvokedThenReturnsResponseWithUpdatedProtocol(): void
     {
         /** @Given an HTTP response */
         $response = Response::noContent();
@@ -20,7 +20,7 @@ final class ProtocolVersionTest extends TestCase
         /** @When the protocol version is updated to HTTP/3 */
         $actual = $response->withProtocolVersion(version: '3');
 
-        /** @Then the response should use the updated protocol version 3 */
+        /** @Then the response uses the updated protocol version 3 */
         self::assertSame('3', $actual->getProtocolVersion());
     }
 }

@@ -14,7 +14,7 @@ use TinyBlocks\Http\Method;
 
 final class HttpRequestFailedTest extends TestCase
 {
-    public function testFromBuildsExceptionWithAllFields(): void
+    public function testFromWhenAllFieldsGivenThenExposesEveryAccessor(): void
     {
         /** @Given a URL, method, and reason */
         $url = 'https://api.example.com/dragons';
@@ -24,15 +24,15 @@ final class HttpRequestFailedTest extends TestCase
         /** @When constructing the exception */
         $exception = HttpRequestFailed::from(url: $url, method: $method, reason: $reason);
 
-        /** @Then methods and message are correct */
+        /** @Then methods, reason, and message are correct */
         self::assertSame($url, $exception->url());
         self::assertSame($method, $exception->method());
         self::assertSame($reason, $exception->reason());
-        self::assertSame($reason, $exception->getMessage());
+        self::assertStringContainsString($reason, $exception->getMessage());
         self::assertNull($exception->getPrevious());
     }
 
-    public function testFromChainsPreviousThrowable(): void
+    public function testFromWhenPreviousGivenThenPreservesChain(): void
     {
         /** @Given a previous throwable */
         $previous = new RuntimeException('root cause');
@@ -49,7 +49,7 @@ final class HttpRequestFailedTest extends TestCase
         self::assertSame($previous, $exception->getPrevious());
     }
 
-    public function testFromClientExceptionBuildsExceptionFromRequest(): void
+    public function testFromClientExceptionWhenRequestGivenThenWrapsOriginal(): void
     {
         /** @Given a request and a client exception */
         $request = Request::create(url: 'https://api.example.com/dragons', method: Method::DELETE);
@@ -66,20 +66,7 @@ final class HttpRequestFailedTest extends TestCase
         self::assertInstanceOf(HttpException::class, $exception);
     }
 
-    public function testExceptionIsInstanceOfHttpException(): void
-    {
-        /** @When building an HttpRequestFailed */
-        $exception = HttpRequestFailed::from(
-            url: 'https://api.example.com',
-            method: Method::GET,
-            reason: 'Failure.'
-        );
-
-        /** @Then it implements HttpException */
-        self::assertInstanceOf(HttpException::class, $exception);
-    }
-
-    public function testExceptionCodeIsZero(): void
+    public function testGetCodeWhenExceptionBuiltThenReturnsZero(): void
     {
         /** @When building an HttpRequestFailed */
         $exception = HttpRequestFailed::from(

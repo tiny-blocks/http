@@ -13,18 +13,18 @@ use TinyBlocks\Http\Headers;
 
 final class HeadersTest extends TestCase
 {
-    public function testFromArrayCreatesHeadersWithEntries(): void
+    public function testConstructorWhenEntriesGivenThenExposesEachEntry(): void
     {
         /** @Given an array of headers */
-        /** @When creating Headers from an array */
-        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json', 'Accept' => 'application/json']);
+        /** @When creating Headers from a constructor */
+        $headers = new Headers(entries: ['Content-Type' => 'application/json', 'Accept' => 'application/json']);
 
         /** @Then the entries are accessible */
         self::assertSame('application/json', $headers->get('Content-Type'));
         self::assertSame('application/json', $headers->get('Accept'));
     }
 
-    public function testFromMergesMultipleHeaderables(): void
+    public function testFromWhenMultipleHeaderablesGivenThenMergesEntries(): void
     {
         /** @Given two headerable instances */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
@@ -38,7 +38,7 @@ final class HeadersTest extends TestCase
         self::assertTrue($headers->has('Set-Cookie'));
     }
 
-    public function testFromWithNoArgumentsReturnsEmptyHeaders(): void
+    public function testFromWhenNoArgumentsGivenThenReturnsEmptyHeaders(): void
     {
         /** @When creating Headers with no headerable arguments */
         $headers = Headers::from();
@@ -47,7 +47,7 @@ final class HeadersTest extends TestCase
         self::assertSame([], $headers->toArray());
     }
 
-    public function testFromMessageWithEmptyHeadersReturnsEmptyHeaders(): void
+    public function testFromMessageWhenEmptyHeadersGivenThenReturnsEmptyHeaders(): void
     {
         /** @Given a PSR-7 response with no headers */
         $psrResponse = (new Psr17Factory())->createResponse(200);
@@ -59,7 +59,7 @@ final class HeadersTest extends TestCase
         self::assertSame([], $headers->toArray());
     }
 
-    public function testFromMessageFoldsMultiValueHeadersWithCommaSeparator(): void
+    public function testFromMessageWhenMultiValueHeaderGivenThenFoldsWithComma(): void
     {
         /** @Given a PSR-7 response with a header that carries multiple values */
         $psrResponse = (new Psr17Factory())->createResponse(200)
@@ -73,10 +73,10 @@ final class HeadersTest extends TestCase
         self::assertSame('application/json, text/html', $headers->get('Accept'));
     }
 
-    public function testApplyToOnEmptyHeadersReturnsOriginalMessageUnchanged(): void
+    public function testApplyToWhenEmptyHeadersGivenThenReturnsMessageUnchanged(): void
     {
         /** @Given an empty Headers instance */
-        $headers = Headers::fromArray(entries: []);
+        $headers = new Headers(entries: []);
 
         /** @And a PSR-7 request */
         $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
@@ -88,10 +88,10 @@ final class HeadersTest extends TestCase
         self::assertSame($psrRequest, $applied);
     }
 
-    public function testApplyToAttachesEntriesAndLeavesOriginalUnchanged(): void
+    public function testApplyToWhenEntriesGivenThenAttachesAndLeavesOriginalUnchanged(): void
     {
         /** @Given a Headers instance with one entry */
-        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc']);
+        $headers = new Headers(entries: ['X-Trace' => 'abc']);
 
         /** @And a PSR-7 request */
         $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
@@ -106,10 +106,10 @@ final class HeadersTest extends TestCase
         self::assertSame('', $psrRequest->getHeaderLine('X-Trace'));
     }
 
-    public function testGetIsCaseInsensitive(): void
+    public function testGetWhenMixedCaseKeyGivenThenLookupIsCaseInsensitive(): void
     {
         /** @Given headers with a mixed-case key */
-        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json']);
+        $headers = new Headers(entries: ['Content-Type' => 'application/json']);
 
         /** @When looking up with different casing */
         /** @Then the lookup succeeds */
@@ -118,20 +118,20 @@ final class HeadersTest extends TestCase
         self::assertSame('application/json', $headers->get('Content-Type'));
     }
 
-    public function testGetReturnsNullForMissingKey(): void
+    public function testGetWhenMissingKeyGivenThenReturnsNull(): void
     {
         /** @Given headers with one entry */
-        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json']);
+        $headers = new Headers(entries: ['Content-Type' => 'application/json']);
 
         /** @When looking up a non-existent header */
         /** @Then null is returned */
         self::assertNull($headers->get('X-Missing'));
     }
 
-    public function testHasIsCaseInsensitive(): void
+    public function testHasWhenMixedCaseKeyGivenThenIsCaseInsensitive(): void
     {
         /** @Given headers with a mixed-case key */
-        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc']);
+        $headers = new Headers(entries: ['X-Trace' => 'abc']);
 
         /** @When checking existence with different casing */
         /** @Then has() returns true regardless of case */
@@ -140,36 +140,36 @@ final class HeadersTest extends TestCase
         self::assertTrue($headers->has('X-Trace'));
     }
 
-    public function testHasReturnsFalseForMissingKey(): void
+    public function testHasWhenMissingKeyGivenThenReturnsFalse(): void
     {
         /** @Given empty headers */
-        $headers = Headers::fromArray(entries: []);
+        $headers = new Headers(entries: []);
 
         /** @When checking for a non-existent header */
         /** @Then has() returns false */
         self::assertFalse($headers->has('Content-Type'));
     }
 
-    public function testMergedWithDefaultAppearsWhenNoConflict(): void
+    public function testMergedWithWhenOtherHasNewEntriesThenBothAppearInResult(): void
     {
         /** @Given headers with one entry */
-        $headers = Headers::fromArray(entries: ['Accept' => 'application/json']);
+        $headers = new Headers(entries: ['Accept' => 'application/json']);
 
-        /** @When merging with a default that does not conflict */
-        $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
+        /** @When merging with a Headers carrying a default that does not conflict */
+        $merged = $headers->mergedWith(other: new Headers(entries: ['Content-Type' => 'application/json']));
 
         /** @Then both entries are present */
         self::assertSame('application/json', $merged->get('Accept'));
         self::assertSame('application/json', $merged->get('Content-Type'));
     }
 
-    public function testMergedWithExistingHeaderWinsOverDefault(): void
+    public function testMergedWithWhenOtherCollidesThenExistingEntryWins(): void
     {
         /** @Given headers with a Content-Type entry */
-        $headers = Headers::fromArray(entries: ['Content-Type' => 'application/json; charset=utf-8']);
+        $headers = new Headers(entries: ['Content-Type' => 'application/json; charset=utf-8']);
 
-        /** @When merging with a default Content-Type */
-        $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
+        /** @When merging with a Headers carrying a default Content-Type */
+        $merged = $headers->mergedWith(other: new Headers(entries: ['Content-Type' => 'application/json']));
 
         /** @Then the existing header wins */
         self::assertSame('application/json; charset=utf-8', $merged->get('Content-Type'));
@@ -178,13 +178,13 @@ final class HeadersTest extends TestCase
         self::assertCount(1, $merged->toArray());
     }
 
-    public function testMergedWithIsCaseInsensitiveWhenCheckingConflicts(): void
+    public function testMergedWithWhenCasingDiffersThenStillTreatsAsCollision(): void
     {
         /** @Given headers with a lowercase key */
-        $headers = Headers::fromArray(entries: ['content-type' => 'application/json; charset=utf-8']);
+        $headers = new Headers(entries: ['content-type' => 'application/json; charset=utf-8']);
 
-        /** @When merging with a default that uses mixed casing */
-        $merged = $headers->mergedWith(defaults: ['Content-Type' => 'application/json']);
+        /** @When merging with a Headers using mixed casing */
+        $merged = $headers->mergedWith(other: new Headers(entries: ['Content-Type' => 'application/json']));
 
         /** @Then the existing header wins despite different casing */
         self::assertSame('application/json; charset=utf-8', $merged->get('content-type'));
@@ -193,10 +193,10 @@ final class HeadersTest extends TestCase
         self::assertCount(1, $merged->toArray());
     }
 
-    public function testToArrayReturnsAllEntries(): void
+    public function testToArrayWhenMultipleEntriesGivenThenReturnsAll(): void
     {
         /** @Given headers with two entries */
-        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc', 'X-Request-ID' => '123']);
+        $headers = new Headers(entries: ['X-Trace' => 'abc', 'X-Request-ID' => '123']);
 
         /** @When converting to array */
         $array = $headers->toArray();

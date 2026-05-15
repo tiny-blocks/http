@@ -7,13 +7,12 @@ namespace Test\TinyBlocks\Http\Unit\Exceptions;
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Exceptions\HttpException;
-use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\MalformedPath;
 use TinyBlocks\Http\Method;
 
 final class MalformedPathTest extends TestCase
 {
-    public function testFromRequestBuildsExceptionWithPathInUrl(): void
+    public function testFromRequestWhenMalformedPathGivenThenExposesPath(): void
     {
         /** @Given a request with a malformed path */
         $request = Request::create(url: '//evil.example.com/attack', method: Method::GET);
@@ -27,19 +26,18 @@ final class MalformedPathTest extends TestCase
         self::assertStringContainsString('//evil.example.com/attack', $exception->reason());
     }
 
-    public function testMalformedPathIsCatchableAsHttpRequestFailed(): void
+    public function testFromRequestWhenAnyMalformedPathGivenThenImplementsHttpException(): void
     {
-        /** @Given a MalformedPath exception */
+        /** @Given a MalformedPath exception built from a scheme-containing path */
         $exception = MalformedPath::fromRequest(
             request: Request::create(url: 'javascript:alert(1)')
         );
 
-        /** @Then it is catchable as HttpRequestFailed and HttpException */
-        self::assertInstanceOf(HttpRequestFailed::class, $exception);
+        /** @Then it is catchable as HttpException */
         self::assertInstanceOf(HttpException::class, $exception);
     }
 
-    public function testMalformedPathReasonDescribesThePath(): void
+    public function testFromRequestWhenSchemePathGivenThenReasonDescribesPath(): void
     {
         /** @Given a request with a scheme-containing path */
         $request = Request::create(url: 'https://attacker.com/steal');

@@ -6,9 +6,7 @@ namespace Test\TinyBlocks\Http\Unit;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
+use Test\TinyBlocks\Http\Fixtures\Client\CapturingClient;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Client\Transports\InMemoryTransport;
@@ -20,7 +18,7 @@ use TinyBlocks\Http\HttpBuilder;
 
 final class HttpBuilderTest extends TestCase
 {
-    public function testCreateReturnsEmptyBuilder(): void
+    public function testCreateWhenInvokedThenReturnsEmptyBuilder(): void
     {
         /** @When calling Http::create() */
         $builder = Http::create();
@@ -29,20 +27,15 @@ final class HttpBuilderTest extends TestCase
         self::assertInstanceOf(HttpBuilder::class, $builder);
     }
 
-    public function testWithTransportReturnNewBuilderAndOriginalIsUnchanged(): void
+    public function testWithTransportWhenInvokedThenReturnsNewBuilderAndOriginalIsUntouched(): void
     {
         /** @Given an empty builder */
         $original = Http::create();
 
-        $factory = new Psr17Factory();
+        /** @And a fresh transport */
         $transport = NetworkTransport::with(
-            client: new class implements ClientInterface {
-                public function sendRequest(RequestInterface $request): ResponseInterface
-                {
-                    return new Psr17Factory()->createResponse(200);
-                }
-            },
-            factory: $factory
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: new Psr17Factory()
         );
 
         /** @When calling withTransport */
@@ -54,7 +47,7 @@ final class HttpBuilderTest extends TestCase
         $original->build();
     }
 
-    public function testWithBaseUrlReturnsNewBuilderAndOriginalIsUnchanged(): void
+    public function testWithBaseUrlWhenInvokedThenReturnsNewBuilderAndOriginalIsUntouched(): void
     {
         /** @Given an empty builder */
         $original = Http::create();
@@ -68,7 +61,7 @@ final class HttpBuilderTest extends TestCase
         $original->build();
     }
 
-    public function testBuildWithoutTransportThrowsHttpConfigurationInvalid(): void
+    public function testBuildWhenTransportMissingThenThrowsHttpConfigurationInvalid(): void
     {
         /** @Given a builder with no transport */
         $builder = Http::create()->withBaseUrl(url: 'https://api.example.com');
@@ -81,7 +74,7 @@ final class HttpBuilderTest extends TestCase
         $builder->build();
     }
 
-    public function testBuildWithoutBaseUrlThrowsHttpConfigurationInvalid(): void
+    public function testBuildWhenBaseUrlMissingThenThrowsHttpConfigurationInvalid(): void
     {
         /** @Given a builder with no base URL */
         $builder = Http::create()->withTransport(
@@ -96,12 +89,10 @@ final class HttpBuilderTest extends TestCase
         $builder->build();
     }
 
-    public function testFullyConfiguredBuilderProducesWorkingHttp(): void
+    public function testBuildWhenFullyConfiguredThenProducesWorkingHttp(): void
     {
         /** @Given a fully configured builder */
-        $transport = InMemoryTransport::with(
-            responses: [Response::with(code: Code::OK)]
-        );
+        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
 
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
@@ -115,12 +106,10 @@ final class HttpBuilderTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testWithReturnsWorkingHttpInstance(): void
+    public function testWithWhenInvokedDirectlyThenReturnsWorkingHttp(): void
     {
         /** @Given a transport seeded with one response */
-        $transport = InMemoryTransport::with(
-            responses: [Response::with(code: Code::OK)]
-        );
+        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
 
         /** @When constructing Http directly via Http::with */
         $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);

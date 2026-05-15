@@ -10,7 +10,7 @@ use TinyBlocks\Http\UserAgent;
 
 final class UserAgentTest extends TestCase
 {
-    public function testFromWithProductOnlyRendersProductToken(): void
+    public function testFromWhenProductOnlyGivenThenRendersProductToken(): void
     {
         /** @Given a product token without a version */
         $userAgent = UserAgent::from(product: 'MyApp');
@@ -22,7 +22,7 @@ final class UserAgentTest extends TestCase
         self::assertSame(['User-Agent' => 'MyApp'], $header);
     }
 
-    public function testFromWithEmptyVersionIsEquivalentToProductOnly(): void
+    public function testFromWhenEmptyVersionGivenThenEquivalentToProductOnly(): void
     {
         /** @Given a product token with an explicitly empty version */
         $userAgent = UserAgent::from(product: 'MyApp', version: '');
@@ -34,7 +34,7 @@ final class UserAgentTest extends TestCase
         self::assertSame(['User-Agent' => 'MyApp'], $header);
     }
 
-    public function testFromWithProductAndVersionRendersProductSlashVersion(): void
+    public function testFromWhenProductAndVersionGivenThenRendersProductSlashVersion(): void
     {
         /** @Given a product token and a version */
         $userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
@@ -46,7 +46,7 @@ final class UserAgentTest extends TestCase
         self::assertSame(['User-Agent' => 'MyApp/1.2.3'], $header);
     }
 
-    public function testToArrayIsPureAndReturnsSameValueOnRepeatedCalls(): void
+    public function testToArrayWhenInvokedRepeatedlyThenReturnsSameValue(): void
     {
         /** @Given a UserAgent value object */
         $userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
@@ -59,7 +59,7 @@ final class UserAgentTest extends TestCase
         self::assertSame($first, $second);
     }
 
-    public function testFromWithEmptyProductThrowsInvalidArgumentException(): void
+    public function testFromWhenEmptyProductGivenThenThrowsInvalidArgumentException(): void
     {
         /** @Then an exception is thrown */
         $this->expectException(InvalidArgumentException::class);
