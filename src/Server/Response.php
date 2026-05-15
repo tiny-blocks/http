@@ -11,7 +11,7 @@ use TinyBlocks\Http\Internal\Server\Response\InternalResponse;
 
 final readonly class Response implements Responses
 {
-    public static function from(Code $code, mixed $body, Headerable ...$headers): ResponseInterface
+    public static function from(mixed $body, Code $code, Headerable ...$headers): ResponseInterface
     {
         return InternalResponse::createWithBody($body, $code, ...$headers);
     }

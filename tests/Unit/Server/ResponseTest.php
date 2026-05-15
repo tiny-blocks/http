@@ -26,7 +26,7 @@ final class ResponseTest extends TestCase
     {
         /** @Given a specific status code and body */
         /** @When we create the HTTP response using the generic from method */
-        $actual = Response::from(code: $code, body: $body);
+        $actual = Response::from(body: $body, code: $code);
 
         /** @Then the protocol version should be "1.1" */
         self::assertSame('1.1', $actual->getProtocolVersion());

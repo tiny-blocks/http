@@ -18,12 +18,12 @@ interface Responses
     /**
      * Creates a response with the specified status code, body, and headers.
      *
-     * @param Code $code The HTTP status code for the response.
      * @param mixed $body The body of the response.
+     * @param Code $code The HTTP status code for the response.
      * @param Headerable ...$headers Optional additional headers for the response.
      * @return ResponseInterface The generated response with the specified status code, body, and headers.
      */
-    public static function from(Code $code, mixed $body, Headerable ...$headers): ResponseInterface;
+    public static function from(mixed $body, Code $code, Headerable ...$headers): ResponseInterface;
 
     /**
      * Creates a response with a 200 OK status.

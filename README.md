@@ -65,6 +65,16 @@ Version 2.x moves the server-side `Request` and `Response` classes into the `Ser
 primitives (`Method`, `Code`, `ContentType`, `CacheControl`, `Cookie`, `Headers`, etc.) stay at the root and are
 unchanged.
 
+`Response::from(...)` and `Responses::from(...)` now take `$body` before `$code`. Update every call site:
+
+```bash
+# Before
+Response::from(code: Code::OK, body: $payload)
+
+# After
+Response::from(body: $payload, code: Code::OK)
+```
+
 Run the following find/replace commands in your project:
 
 ```bash
