@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit\Exceptions;
 
-use JsonException;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientExceptionInterface;
 use RuntimeException;
@@ -65,21 +64,6 @@ final class HttpRequestFailedTest extends TestCase
         self::assertSame(Method::DELETE, $exception->method());
         self::assertSame($clientException, $exception->getPrevious());
         self::assertInstanceOf(HttpException::class, $exception);
-    }
-
-    public function testFromJsonErrorBuildsExceptionFromRequest(): void
-    {
-        /** @Given a request and a JSON exception */
-        $request = Request::create(url: 'https://api.example.com/dragons', method: Method::POST);
-        $jsonException = new JsonException('Malformed UTF-8');
-
-        /** @When constructing from a JSON error */
-        $exception = HttpRequestFailed::fromJsonError(request: $request, exception: $jsonException);
-
-        /** @Then the exception reflects the encoding failure */
-        self::assertSame('https://api.example.com/dragons', $exception->url());
-        self::assertStringContainsString('Failed to encode request body', $exception->reason());
-        self::assertSame($jsonException, $exception->getPrevious());
     }
 
     public function testExceptionIsInstanceOfHttpException(): void

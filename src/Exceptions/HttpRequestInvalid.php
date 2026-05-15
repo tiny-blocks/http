@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http\Exceptions;
 
-use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Throwable;
 use TinyBlocks\Http\Client\Request;
@@ -23,16 +22,6 @@ final class HttpRequestInvalid extends HttpRequestFailed
             url: $request->url,
             method: $request->method,
             reason: $exception->getMessage(),
-            previous: $exception
-        );
-    }
-
-    public static function fromJsonError(Request $request, JsonException $exception): static
-    {
-        return new self(
-            url: $request->url,
-            method: $request->method,
-            reason: sprintf(self::JSON_ERROR_REASON_TEMPLATE, $exception->getMessage()),
             previous: $exception
         );
     }

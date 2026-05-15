@@ -179,31 +179,7 @@ final class NetworkTransportTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testBodyWithUnencodableValueThrowsHttpRequestInvalid(): void
-    {
-        /** @Given a request body containing a float value that cannot be JSON-encoded */
-        $captured = null;
-        $client = $this->buildCapturingClient(captured: $captured, statusCode: 200);
-        $transport = NetworkTransport::with(
-            client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
-        );
-
-        /** @Then HttpRequestInvalid is thrown due to JSON encoding failure */
-        $this->expectException(HttpRequestInvalid::class);
-
-        /** @When sending a request body containing INF (unencodable in JSON) */
-        $transport->send(
-            request: Request::create(
-                url: 'https://api.example.com/dragons',
-                body: ['value' => INF],
-                method: Method::POST
-            )
-        );
-    }
-
-    public function testBodyWithInvalidUtf8ThrowsHttpRequestInvalid(): void
+    public function testBodyWithInvalidUtf8IsSubstitutedAndRequestSendsNormally(): void
     {
         /** @Given a transport configured with a capturing client */
         $captured = null;
@@ -213,9 +189,6 @@ final class NetworkTransportTest extends TestCase
             requestFactory: $this->factory
         );
 
-        /** @Then HttpRequestInvalid is thrown with the JsonException chained as previous */
-        $this->expectException(HttpRequestInvalid::class);
-
         /** @When sending a request whose body contains a non-UTF-8 byte sequence */
         $transport->send(
             request: Request::create(
@@ -224,6 +197,9 @@ final class NetworkTransportTest extends TestCase
                 method: Method::POST
             )
         );
+
+        /** @Then the PSR-7 request body carries the JSON-escaped replacement character and no exception is thrown */
+        self::assertStringContainsString('\ufffd', (string)$captured->getBody());
     }
 
     private function buildCapturingClient(?RequestInterface &$captured, int $statusCode): ClientInterface

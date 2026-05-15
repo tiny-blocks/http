@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http\Client\Transports;
 
-use JsonException;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Client\NetworkExceptionInterface;
@@ -20,7 +19,7 @@ use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 
 final readonly class NetworkTransport implements Transport
 {
-    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES;
+    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
     private const int MAX_JSON_DEPTH = 64;
 
     private function __construct(
@@ -52,18 +51,8 @@ final readonly class NetworkTransport implements Transport
         $psrRequest = $request->headers->applyTo(message: $psrRequest);
 
         if (!is_null($request->body)) {
-            try {
-                $encoded = json_encode(
-                    $request->body,
-                    self::JSON_FLAGS,
-                    self::MAX_JSON_DEPTH
-                );
-            } catch (JsonException $exception) {
-                throw HttpRequestInvalid::fromJsonError(request: $request, exception: $exception);
-            }
-
-            $stream = $this->streamFactory->createStream(content: $encoded);
-            $psrRequest = $psrRequest->withBody($stream);
+            $encoded = json_encode($request->body, self::JSON_FLAGS, self::MAX_JSON_DEPTH);
+            $psrRequest = $psrRequest->withBody(body: $this->streamFactory->createStream(content: $encoded));
         }
 
         try {
