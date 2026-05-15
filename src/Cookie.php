@@ -7,12 +7,12 @@ namespace TinyBlocks\Http;
 use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
-use TinyBlocks\Http\Internal\Cookies\CookieName;
-use TinyBlocks\Http\Internal\Cookies\CookieValue;
-use TinyBlocks\Http\Internal\Exceptions\ConflictingLifetimeAttributes;
-use TinyBlocks\Http\Internal\Exceptions\SameSiteNoneRequiresSecure;
+use TinyBlocks\Http\Internal\Server\Cookies\CookieName;
+use TinyBlocks\Http\Internal\Server\Cookies\CookieValue;
+use TinyBlocks\Http\Internal\Server\Exceptions\ConflictingLifetimeAttributes;
+use TinyBlocks\Http\Internal\Server\Exceptions\SameSiteNoneRequiresSecure;
 
-final readonly class Cookie implements Headers
+final readonly class Cookie implements Headerable
 {
     private const string EXPIRES_FORMAT = 'D, d M Y H:i:s \G\M\T';
 
@@ -209,9 +209,9 @@ final readonly class Cookie implements Headers
     public function toArray(): array
     {
         $invariantViolation = match (true) {
-            $this->sameSite === SameSite::NONE && !$this->secure  => new SameSiteNoneRequiresSecure(),
-            !is_null($this->maxAge) && !is_null($this->expires)   => new ConflictingLifetimeAttributes(),
-            default                                               => null,
+            $this->sameSite === SameSite::NONE && !$this->secure => new SameSiteNoneRequiresSecure(),
+            !is_null($this->maxAge) && !is_null($this->expires)  => new ConflictingLifetimeAttributes(),
+            default                                              => null,
         };
 
         if (!is_null($invariantViolation)) {

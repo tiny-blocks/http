@@ -1,6 +1,6 @@
 {
     "name": "tiny-blocks/http",
-    "description": "Implements PSR-7 and PSR-15 HTTP primitives for PHP, with a fluent response builder, cookies, and cache control.\n\nThe package is designed to be used in any PHP application, and can be used as a standalone library or as part of a larger framework.",
+    "description": "Implements PSR-7, PSR-15, and PSR-18 HTTP primitives for PHP, with a fluent response builder, cookies, cache control, and a PSR-18 client façade.\n\nThe package is designed to be used in any PHP application, and can be used as a standalone library or as part of a larger framework.",
     "license": "MIT",
     "type": "library",
     "authors": [
@@ -16,13 +16,17 @@
     },
     "require": {
         "php": "^8.5",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.1",
         "psr/http-message": "^2.0",
         "tiny-blocks/mapper": "^2.0"
     },
     "require-dev": {
         "ergebnis/composer-normalize": "^2.51",
+        "guzzlehttp/guzzle": "^7.9",
         "infection/infection": "^0.32",
         "laminas/laminas-httphandlerrunner": "^2.13",
+        "nyholm/psr7": "^1.8",
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^13.1",
         "slim/psr7": "^1.8",

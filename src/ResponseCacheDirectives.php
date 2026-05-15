@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-use TinyBlocks\Http\Internal\CacheControl\CacheControlDirective;
-use TinyBlocks\Http\Internal\CacheControl\Directives;
+use TinyBlocks\Http\Internal\Server\CacheControl\CacheControlDirective;
+use TinyBlocks\Http\Internal\Server\CacheControl\Directives;
 
 /**
  * Represents a single Cache-Control directive for HTTP responses.

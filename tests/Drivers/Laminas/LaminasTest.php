@@ -15,8 +15,8 @@ use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\ContentType;
-use TinyBlocks\Http\Response;
 use TinyBlocks\Http\ResponseCacheDirectives;
+use TinyBlocks\Http\Server\Response;
 
 final class LaminasTest extends TestCase
 {

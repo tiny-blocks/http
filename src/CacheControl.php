@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-/**
- * Defines HTTP Cache-Control headers and their directives.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
- */
-final readonly class CacheControl implements Headers
+final readonly class CacheControl implements Headerable
 {
     private function __construct(private array $directives)
     {

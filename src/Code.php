@@ -89,6 +89,16 @@ enum Code: int
     case NOT_EXTENDED = 510;
     case NETWORK_AUTHENTICATION_REQUIRED = 511;
 
+    public function isError(): bool
+    {
+        return self::isErrorCode(code: $this->value);
+    }
+
+    public function isSuccess(): bool
+    {
+        return self::isSuccessCode(code: $this->value);
+    }
+
     /**
      * Returns the HTTP status message associated with the enum's code.
      *

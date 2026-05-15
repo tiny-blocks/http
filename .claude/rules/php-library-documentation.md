@@ -10,7 +10,7 @@ paths:
 
 1. Include an anchor-linked table of contents.
 2. Start with a concise one-line description of what the library does.
-3. Include a **badges** section (license, build status, coverage, latest version, PHP version).
+3. Include a **license** badge. Do not include any other badges.
 4. Provide an **Overview** section explaining the problem the library solves and its design philosophy.
 5. **Installation** section: Composer command (`composer require vendor/package`).
 6. **How to use** section: complete, runnable code examples covering the primary use cases. Each example

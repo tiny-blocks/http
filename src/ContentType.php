@@ -4,13 +4,7 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-/**
- * The Content-Type representation header is used to indicate the original media type
- * of the resource (prior to any content encoding applied for sending).
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
- */
-final readonly class ContentType implements Headers
+final readonly class ContentType implements Headerable
 {
     private function __construct(private MimeType $mimeType, private ?Charset $charset)
     {
