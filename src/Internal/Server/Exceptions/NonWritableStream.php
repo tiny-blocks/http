@@ -8,8 +8,10 @@ use RuntimeException;
 
 final class NonWritableStream extends RuntimeException
 {
+    private const string REASON = 'Stream is not writable.';
+
     public function __construct()
     {
-        parent::__construct(message: 'Stream is not writable.');
+        parent::__construct(self::REASON);
     }
 }

@@ -40,6 +40,15 @@ final readonly class Response
         );
     }
 
+    public function raw(): ResponseInterface
+    {
+        if (is_null($this->psr)) {
+            throw SynthesizedResponseHasNoRaw::create();
+        }
+
+        return $this->psr;
+    }
+
     public function code(): Code
     {
         return $this->code;
@@ -63,14 +72,5 @@ final readonly class Response
     public function isSuccess(): bool
     {
         return $this->code->isSuccess();
-    }
-
-    public function raw(): ResponseInterface
-    {
-        if (is_null($this->psr)) {
-            throw new SynthesizedResponseHasNoRaw();
-        }
-
-        return $this->psr;
     }
 }

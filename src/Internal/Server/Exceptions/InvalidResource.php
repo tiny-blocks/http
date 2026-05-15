@@ -8,8 +8,10 @@ use RuntimeException;
 
 final class InvalidResource extends RuntimeException
 {
+    private const string REASON = 'The provided value is not a valid resource.';
+
     public function __construct()
     {
-        parent::__construct(message: 'The provided value is not a valid resource.');
+        parent::__construct(self::REASON);
     }
 }

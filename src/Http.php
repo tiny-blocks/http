@@ -58,11 +58,6 @@ final readonly class Http
      * @param Request $request The outbound request to send.
      * @return Response The response returned by the transport.
      * @throws HttpException When request resolution or the transport fails.
-     *
-     * @complexity O(H + B + R) CPU, where H is the header count, B is the
-     *             encoded body size in bytes, and R is the response body size
-     *             in bytes. Network I/O is not accounted for; it depends on
-     *             the underlying PSR-18 client.
      */
     public function send(Request $request): Response
     {

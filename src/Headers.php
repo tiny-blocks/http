@@ -30,11 +30,9 @@ final readonly class Headers
 
     public static function fromMessage(MessageInterface $message): Headers
     {
-        $entries = [];
-
-        foreach ($message->getHeaders() as $name => $values) {
-            $entries[$name] = implode(', ', $values);
-        }
+        $entries = array_map(function ($values) {
+            return implode(', ', $values);
+        }, $message->getHeaders());
 
         return new Headers(entries: $entries);
     }

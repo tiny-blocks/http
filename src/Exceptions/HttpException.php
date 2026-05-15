@@ -10,17 +10,29 @@ use TinyBlocks\Http\Method;
 interface HttpException extends Throwable
 {
     /**
-     * @return string The URL of the failed request.
+     * The fully composed URL the failed request targeted.
+     *
+     * @return string The absolute URL.
+     *
+     * @complexity O(1) time and space.
      */
     public function url(): string;
 
     /**
-     * @return string The reason for the failure.
+     * The transport-level or domain-level reason for the failure.
+     *
+     * @return string The human-readable reason already formatted into the message.
+     *
+     * @complexity O(1) time and space.
      */
     public function reason(): string;
 
     /**
-     * @return Method The method of the failed request.
+     * The HTTP method used in the failed request.
+     *
+     * @return Method The verb of the failed request.
+     *
+     * @complexity O(1) time and space.
      */
     public function method(): Method;
 }

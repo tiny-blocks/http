@@ -8,14 +8,10 @@ use InvalidArgumentException;
 
 final class CookieNameIsInvalid extends InvalidArgumentException
 {
+    private const string REASON_TEMPLATE = 'Cookie name <%s> is invalid. A name must not be empty and must not contain control characters, whitespace, or any of the following separators: ( ) < > @ , ; : \\ " / [ ] ? = { }.';
+
     public function __construct(string $name)
     {
-        $template = sprintf(
-            '%s%s',
-            'Cookie name <%s> is invalid. A name must not be empty and must not contain control ',
-            'characters, whitespace, or any of the following separators: ( ) < > @ , ; : \\ " / [ ] ? = { }.'
-        );
-
-        parent::__construct(sprintf($template, $name));
+        parent::__construct(sprintf(self::REASON_TEMPLATE, $name));
     }
 }

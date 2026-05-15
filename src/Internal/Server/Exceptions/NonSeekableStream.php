@@ -8,8 +8,10 @@ use RuntimeException;
 
 final class NonSeekableStream extends RuntimeException
 {
+    private const string REASON = 'Stream is not seekable.';
+
     public function __construct()
     {
-        parent::__construct(message: 'Stream is not seekable.');
+        parent::__construct(self::REASON);
     }
 }

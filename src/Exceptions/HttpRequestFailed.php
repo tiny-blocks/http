@@ -10,25 +10,33 @@ use Throwable;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Method;
 
-class HttpRequestFailed extends RuntimeException implements HttpException
+final class HttpRequestFailed extends RuntimeException implements HttpException
 {
-    protected function __construct(
+    private const string REASON_TEMPLATE = 'PSR-18 client failed for %s %s: %s';
+
+    private function __construct(
         private readonly string $url,
         private readonly Method $method,
         private readonly string $reason,
         ?Throwable $previous = null
     ) {
-        parent::__construct($reason, 0, $previous);
+        parent::__construct(sprintf(self::REASON_TEMPLATE, $method->value, $url, $reason), 0, $previous);
     }
 
-    public static function from(string $url, Method $method, string $reason, ?Throwable $previous = null): self
-    {
-        return new self(url: $url, method: $method, reason: $reason, previous: $previous);
+    public static function from(
+        string $url,
+        Method $method,
+        string $reason,
+        ?Throwable $previous = null
+    ): HttpRequestFailed {
+        return new HttpRequestFailed(url: $url, method: $method, reason: $reason, previous: $previous);
     }
 
-    public static function fromClientException(Request $request, ClientExceptionInterface $exception): self
-    {
-        return new self(
+    public static function fromClientException(
+        Request $request,
+        ClientExceptionInterface $exception
+    ): HttpRequestFailed {
+        return self::from(
             url: $request->url,
             method: $request->method,
             reason: $exception->getMessage(),
@@ -36,9 +44,9 @@ class HttpRequestFailed extends RuntimeException implements HttpException
         );
     }
 
-    public function method(): Method
+    public function url(): string
     {
-        return $this->method;
+        return $this->url;
     }
 
     public function reason(): string
@@ -46,8 +54,8 @@ class HttpRequestFailed extends RuntimeException implements HttpException
         return $this->reason;
     }
 
-    public function url(): string
+    public function method(): Method
     {
-        return $this->url;
+        return $this->method;
     }
 }

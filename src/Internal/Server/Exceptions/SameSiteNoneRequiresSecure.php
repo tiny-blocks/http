@@ -8,14 +8,10 @@ use DomainException;
 
 final class SameSiteNoneRequiresSecure extends DomainException
 {
+    private const string REASON = 'Cookies with SameSite=None require the Secure flag to be set; modern browsers reject such cookies otherwise. Call secure() on the Cookie instance.';
+
     public function __construct()
     {
-        $message = sprintf(
-            '%s%s',
-            'Cookies with SameSite=None require the Secure flag to be set; modern browsers reject ',
-            'such cookies otherwise. Call secure() on the Cookie instance.'
-        );
-
-        parent::__construct($message);
+        parent::__construct(self::REASON);
     }
 }
