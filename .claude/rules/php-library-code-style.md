@@ -122,12 +122,21 @@ All identifiers, enum values, comments, and error codes use American English spe
 
 ## PHPDoc
 
-- PHPDoc is restricted to interfaces only, documenting obligations, `@throws`, and complexity.
-- Never add PHPDoc to concrete classes.
 - Document `@throws` for every exception the method may raise.
-- Document time and space complexity in Big O form. When a method participates in a fused pipeline (e.g., collection
-  pipelines), express cost as a two-part form: call-site cost + fused-pass contribution. Include a legend defining
-  variables (e.g., `N` for input size, `K` for number of stages).
+- Document time and space complexity in Big O form. When a method participates in
+  a fused pipeline (e.g., collection pipelines), express cost as a two-part form:
+  call-site cost + fused-pass contribution. Include a legend defining variables
+  (e.g., `N` for input size, `K` for number of stages).
+- PHPDoc is required on:
+    - Every method of an interface.
+    - Every public method of a concrete class at the public API entry point
+      (façades, builders, value objects that consumers interact with directly)
+      when the method is not already documented by an implemented interface.
+- PHPDoc is prohibited on:
+    - Private and protected methods.
+    - Public methods of concrete classes whose contract is already documented
+      on an implemented interface — the interface carries the docblock.
+    - Anything inside `src/Internal/`.
 
 ## Collection usage
 
