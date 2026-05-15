@@ -10,6 +10,10 @@ use TinyBlocks\Http\Method;
 
 final readonly class Request
 {
+    /**
+     * @param array<string, mixed>|null $body
+     * @param array<string, scalar>|null $query
+     */
     public function __construct(
         public string $url,
         public ?array $body,
@@ -19,6 +23,10 @@ final readonly class Request
     ) {
     }
 
+    /**
+     * @param array<string, mixed>|null $body
+     * @param array<string, scalar>|null $query
+     */
     public static function create(
         string $url,
         ?array $body = null,
@@ -46,6 +54,7 @@ final readonly class Request
         );
     }
 
+    /** @param array<string, scalar>|null $query */
     public function withQuery(?array $query): Request
     {
         return new Request(

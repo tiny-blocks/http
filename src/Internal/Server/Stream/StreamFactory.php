@@ -13,21 +13,23 @@ final readonly class StreamFactory
 {
     private Stream $stream;
 
-    private function __construct(private mixed $body)
+    private function __construct(private string $body)
     {
-        $this->stream = Stream::from(resource: fopen('php://memory', 'wb+'));
+        /** @var resource $resource */
+        $resource = fopen('php://memory', 'wb+');
+        $this->stream = Stream::from(resource: $resource);
     }
 
     public static function fromBody(mixed $body): StreamFactory
     {
         $dataToWrite = match (true) {
-            is_a($body, Mapper::class)          => $body->toJson(),
-            is_a($body, BackedEnum::class)      => self::toJsonFrom(body: $body->value),
-            is_a($body, UnitEnum::class)        => $body->name,
-            is_object($body)                    => self::toJsonFrom(body: get_object_vars($body)),
-            is_string($body)                    => $body,
+            $body instanceof Mapper => $body->toJson(),
+            $body instanceof BackedEnum => self::toJsonFrom(body: $body->value),
+            $body instanceof UnitEnum => $body->name,
+            is_object($body) => self::toJsonFrom(body: get_object_vars($body)),
+            is_string($body) => $body,
             is_scalar($body) || is_array($body) => self::toJsonFrom(body: $body),
-            default                             => ''
+            default => ''
         };
 
         return new StreamFactory(body: $dataToWrite);
@@ -55,7 +57,7 @@ final readonly class StreamFactory
 
     public function content(): string
     {
-        return (string)$this->body;
+        return $this->body;
     }
 
     public function isEmptyContent(): bool
@@ -73,6 +75,8 @@ final readonly class StreamFactory
 
     private static function toJsonFrom(mixed $body): string
     {
-        return json_encode($body, JSON_PRESERVE_ZERO_FRACTION);
+        $encoded = json_encode($body, JSON_PRESERVE_ZERO_FRACTION);
+
+        return $encoded === false ? '' : $encoded;
     }
 }

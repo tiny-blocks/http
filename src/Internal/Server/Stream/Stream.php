@@ -15,8 +15,13 @@ final class Stream implements StreamInterface
 {
     private const int OFFSET_ZERO = 0;
 
-    private function __construct(private readonly StreamMetaData $metaData, private mixed $resource)
+    /** @var resource|null */
+    private mixed $resource;
+
+    /** @param resource $resource */
+    private function __construct(private readonly string $mode, private readonly bool $seekable, mixed $resource)
     {
+        $this->resource = $resource;
     }
 
     public static function from(mixed $resource): Stream
@@ -25,9 +30,9 @@ final class Stream implements StreamInterface
             throw new InvalidResource();
         }
 
-        $metaData = StreamMetaData::from(data: stream_get_meta_data($resource));
+        $raw = stream_get_meta_data($resource);
 
-        return new Stream(metaData: $metaData, resource: $resource);
+        return new Stream(mode: $raw['mode'], seekable: $raw['seekable'], resource: $resource);
     }
 
     public function close(): void
@@ -67,7 +72,13 @@ final class Stream implements StreamInterface
             throw new MissingResourceStream();
         }
 
-        return ftell($this->resource);
+        $position = ftell($this->resource);
+
+        if ($position === false) {
+            throw new MissingResourceStream();
+        }
+
+        return $position;
     }
 
     public function eof(): bool
@@ -81,7 +92,7 @@ final class Stream implements StreamInterface
             throw new NonSeekableStream();
         }
 
-        if (!$this->metaData->isSeekable()) {
+        if (!$this->seekable) {
             throw new NonSeekableStream();
         }
 
@@ -103,7 +114,13 @@ final class Stream implements StreamInterface
             throw new NonReadableStream();
         }
 
-        return fread($this->resource, $length);
+        if ($length < 1) {
+            throw new NonReadableStream();
+        }
+
+        $chunk = fread($this->resource, $length);
+
+        return $chunk === false ? '' : $chunk;
     }
 
     public function write(string $string): int
@@ -112,11 +129,13 @@ final class Stream implements StreamInterface
             throw new NonWritableStream();
         }
 
-        if (!$this->modeAllowsWriting()) {
+        $written = $this->modeAllowsWriting() ? fwrite($this->resource, $string) : false;
+
+        if ($written === false) {
             throw new NonWritableStream();
         }
 
-        return fwrite($this->resource, $string);
+        return $written;
     }
 
     public function isReadable(): bool
@@ -131,7 +150,7 @@ final class Stream implements StreamInterface
 
     public function isSeekable(): bool
     {
-        return is_resource($this->resource) && $this->metaData->isSeekable();
+        return is_resource($this->resource) && $this->seekable;
     }
 
     public function getContents(): string
@@ -144,12 +163,18 @@ final class Stream implements StreamInterface
             throw new NonReadableStream();
         }
 
-        return stream_get_contents($this->resource);
+        $contents = stream_get_contents($this->resource);
+
+        return $contents === false ? '' : $contents;
     }
 
     public function getMetadata(?string $key = null): mixed
     {
-        $metaData = $this->metaData->toArray();
+        if (!is_resource($this->resource)) {
+            return is_null($key) ? [] : null;
+        }
+
+        $metaData = stream_get_meta_data($this->resource);
 
         if (is_null($key)) {
             return $metaData;
@@ -169,13 +194,11 @@ final class Stream implements StreamInterface
 
     private function modeAllowsReading(): bool
     {
-        $mode = $this->metaData->getMode();
-
-        return str_contains($mode, 'r') || str_contains($mode, '+');
+        return str_contains($this->mode, 'r') || str_contains($this->mode, '+');
     }
 
     private function modeAllowsWriting(): bool
     {
-        return strpbrk($this->metaData->getMode(), 'xwca+') !== false;
+        return strpbrk($this->mode, 'xwca+') !== false;
     }
 }

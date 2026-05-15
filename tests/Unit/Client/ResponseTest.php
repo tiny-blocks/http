@@ -132,8 +132,9 @@ final class ResponseTest extends TestCase
         /** @Given a synthesized response */
         $response = Response::with(code: Code::OK);
 
-        /** @Then SynthesizedResponseHasNoRaw is thrown */
+        /** @Then SynthesizedResponseHasNoRaw is thrown with the documented message */
         $this->expectException(SynthesizedResponseHasNoRaw::class);
+        $this->expectExceptionMessage('Response was synthesized via Response::with(...)');
 
         /** @When calling raw() */
         $response->raw();

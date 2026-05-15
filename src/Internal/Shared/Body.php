@@ -13,10 +13,12 @@ final readonly class Body
 {
     private const int MAX_JSON_DEPTH = 64;
 
+    /** @param array<string, mixed> $data */
     private function __construct(private array $data)
     {
     }
 
+    /** @param array<string, mixed> $data */
     public static function fromArray(array $data): Body
     {
         return new Body(data: $data);
@@ -72,6 +74,7 @@ final readonly class Body
         return Attribute::from(value: $value);
     }
 
+    /** @return array<string, mixed> */
     public function toArray(): array
     {
         return $this->data;

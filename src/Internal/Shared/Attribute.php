@@ -15,6 +15,7 @@ final readonly class Attribute
         return new Attribute(value: $value);
     }
 
+    /** @return array<int|string, mixed> */
     public function toArray(): array
     {
         return match (true) {

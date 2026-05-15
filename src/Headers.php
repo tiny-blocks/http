@@ -28,9 +28,11 @@ final readonly class Headers
 
     public static function fromMessage(MessageInterface $message): Headers
     {
-        $entries = array_map(function ($values) {
-            return implode(', ', $values);
-        }, $message->getHeaders());
+        $entries = array_map(
+            /** @param list<string> $values */
+            static fn(array $values): string => implode(', ', $values),
+            $message->getHeaders()
+        );
 
         return new Headers(entries: $entries);
     }
@@ -70,6 +72,11 @@ final readonly class Headers
         return $this->entries[$this->lowerIndex[$key]];
     }
 
+    /**
+     * @template T of MessageInterface
+     * @param T $message
+     * @return T
+     */
     public function applyTo(MessageInterface $message): MessageInterface
     {
         $applied = $message;

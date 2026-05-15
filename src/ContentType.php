@@ -40,11 +40,12 @@ final readonly class ContentType implements Headerable
         return new ContentType(mimeType: MimeType::APPLICATION_FORM_URLENCODED, charset: $charset);
     }
 
+    /** @return array<string, list<string>> */
     public function toArray(): array
     {
-        $value = $this->charset
-            ? sprintf('%s; %s', $this->mimeType->value, $this->charset->toString())
-            : $this->mimeType->value;
+        $value = is_null($this->charset)
+            ? $this->mimeType->value
+            : sprintf('%s; %s', $this->mimeType->value, $this->charset->toString());
 
         return ['Content-Type' => [$value]];
     }

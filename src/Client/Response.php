@@ -30,6 +30,7 @@ final readonly class Response
         );
     }
 
+    /** @param array<string, mixed>|null $body */
     public static function with(Code $code, ?array $body = null, ?Headers $headers = null): Response
     {
         return new Response(

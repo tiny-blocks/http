@@ -197,6 +197,7 @@ final class ResponseTest extends TestCase
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
     }
 
+    /** @return array<string, array{code: Code, body: mixed, expectedBody: string}> */
     public static function responseFromProvider(): array
     {
         return [
@@ -267,6 +268,7 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::OK->value, $updated->getStatusCode());
     }
 
+    /** @return array<string, array{body: mixed, expected: string}> */
     public static function bodyProviderData(): array
     {
         return [
@@ -308,7 +310,7 @@ final class ResponseTest extends TestCase
                         ['name' => 'Product One', 'amount' => ['value' => 100.50, 'currency' => 'USD']],
                         ['name' => 'Product Two', 'amount' => ['value' => 200.75, 'currency' => 'BRL']]
                     ]
-                ], JSON_PRESERVE_ZERO_FRACTION)
+                ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)
             ],
             'Boolean true value'      => [
                 'body'     => true,

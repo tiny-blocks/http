@@ -6,15 +6,20 @@ namespace TinyBlocks\Http;
 
 final readonly class CacheControl implements Headerable
 {
+    /** @param list<string> $directives */
     private function __construct(private array $directives)
     {
     }
 
     public static function fromResponseDirectives(ResponseCacheDirectives ...$directives): CacheControl
     {
-        $mapper = fn(ResponseCacheDirectives $directive) => $directive->toString();
+        $values = [];
 
-        return new CacheControl(directives: array_map($mapper, $directives));
+        foreach ($directives as $directive) {
+            $values[] = $directive->toString();
+        }
+
+        return new CacheControl(directives: $values);
     }
 
     public function toArray(): array

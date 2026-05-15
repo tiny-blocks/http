@@ -12,22 +12,34 @@ use TinyBlocks\Http\Internal\Server\Exceptions\NonReadableStream;
 use TinyBlocks\Http\Internal\Server\Exceptions\NonSeekableStream;
 use TinyBlocks\Http\Internal\Server\Exceptions\NonWritableStream;
 use TinyBlocks\Http\Internal\Server\Stream\Stream;
-use TinyBlocks\Http\Internal\Server\Stream\StreamMetaData;
 
 final class StreamTest extends TestCase
 {
+    /** @var resource */
     private mixed $resource;
-    private ?string $temporary;
+    private string $temporary;
 
     protected function setUp(): void
     {
-        $this->temporary = tempnam(sys_get_temp_dir(), 'test');
-        $this->resource = fopen($this->temporary, 'wb+');
+        $temporary = tempnam(sys_get_temp_dir(), 'test');
+
+        if ($temporary === false) {
+            self::fail('Could not create a temporary file for the test.');
+        }
+
+        $resource = fopen($temporary, 'wb+');
+
+        if ($resource === false) {
+            self::fail('Could not open the temporary file.');
+        }
+
+        $this->temporary = $temporary;
+        $this->resource = $resource;
     }
 
     protected function tearDown(): void
     {
-        if (!empty($this->temporary) && file_exists($this->temporary)) {
+        if (file_exists($this->temporary)) {
             unlink($this->temporary);
         }
     }
@@ -38,15 +50,17 @@ final class StreamTest extends TestCase
         $stream = Stream::from(resource: $this->resource);
 
         /** @When retrieving metadata */
+        /** @var array<string, mixed> $actual */
         $actual = $stream->getMetadata();
 
         /** @Then the metadata matches the underlying resource's metadata */
-        $expected = StreamMetaData::from(data: stream_get_meta_data($this->resource))->toArray();
+        /** @var array<string, mixed> $expected */
+        $expected = stream_get_meta_data($this->resource);
 
         self::assertSame($expected['uri'], $actual['uri']);
         self::assertSame($expected['mode'], $actual['mode']);
         self::assertSame($expected['seekable'], $actual['seekable']);
-        self::assertSame($expected['streamType'], $actual['streamType']);
+        self::assertSame($expected['stream_type'], $actual['stream_type']);
     }
 
     public function testCloseWhenAlreadyClosedThenIsNoOp(): void
@@ -202,6 +216,11 @@ final class StreamTest extends TestCase
     {
         /** @Given a stream whose underlying resource was closed outside the stream API */
         $resource = fopen('php://memory', 'w+');
+
+        if ($resource === false) {
+            self::fail('Could not open php://memory.');
+        }
+
         $stream = Stream::from(resource: $resource);
         fclose($resource);
 
@@ -252,6 +271,57 @@ final class StreamTest extends TestCase
         $stream->read(length: 13);
     }
 
+    public function testReadWhenLengthZeroGivenThenThrowsNonReadableStream(): void
+    {
+        /** @Given a readable stream */
+        $stream = Stream::from(resource: $this->resource);
+
+        /** @Then NonReadableStream is thrown when length is zero */
+        self::expectException(NonReadableStream::class);
+
+        /** @When attempting to read with length 0 */
+        $stream->read(length: 0);
+    }
+
+    public function testReadWhenLengthOneGivenThenReturnsSingleByte(): void
+    {
+        /** @Given a readable stream with one byte written */
+        $stream = Stream::from(resource: $this->resource);
+        $stream->write(string: 'H');
+        $stream->rewind();
+
+        /** @When reading exactly one byte */
+        $chunk = $stream->read(length: 1);
+
+        /** @Then a single-byte chunk is returned */
+        self::assertSame('H', $chunk);
+    }
+
+    public function testWriteWhenInvokedThenReturnsByteCount(): void
+    {
+        /** @Given a readable and writable stream */
+        $stream = Stream::from(resource: $this->resource);
+
+        /** @When writing a known payload */
+        $bytesWritten = $stream->write(string: 'Hello');
+
+        /** @Then the byte count matches the payload size */
+        self::assertSame(5, $bytesWritten);
+    }
+
+    public function testWriteWhenStreamClosedThenThrowsNonWritableStream(): void
+    {
+        /** @Given a closed stream */
+        $stream = Stream::from(resource: $this->resource);
+        $stream->close();
+
+        /** @Then NonWritableStream is thrown when writing after close */
+        self::expectException(NonWritableStream::class);
+
+        /** @When writing to the closed stream */
+        $stream->write(string: 'Hello');
+    }
+
     public function testFromWhenInvalidResourceGivenThenThrowsInvalidResource(): void
     {
         /** @Given an invalid resource */
@@ -292,6 +362,7 @@ final class StreamTest extends TestCase
         $stream->getContents();
     }
 
+    /** @return array<string, array{mode: string, expected: bool}> */
     public static function modesDataProvider(): array
     {
         return [

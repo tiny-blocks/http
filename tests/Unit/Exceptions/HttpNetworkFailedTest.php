@@ -32,6 +32,9 @@ final class HttpNetworkFailedTest extends TestCase
         self::assertSame($method, $exception->method());
         self::assertSame($reason, $exception->reason());
         self::assertStringContainsString($reason, $exception->getMessage());
+        self::assertStringContainsString('GET', $exception->getMessage());
+        self::assertStringContainsString($url, $exception->getMessage());
+        self::assertSame(0, $exception->getCode());
     }
 
     public function testFromWhenPreviousGivenThenPreservesChain(): void

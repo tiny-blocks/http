@@ -9,7 +9,8 @@ use TinyBlocks\Http\Method;
 
 final class SynthesizedResponseHasNoRaw extends LogicException implements HttpException
 {
-    private const string REASON = 'Response was synthesized via Response::with(...) and has no underlying PSR-7 raw response.';
+    private const string REASON = 'Response was synthesized via Response::with(...) and has no underlying PSR-7 raw '
+        . 'response.';
 
     private function __construct(
         private readonly string $url,

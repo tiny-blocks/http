@@ -36,7 +36,7 @@ final class RequestTest extends TestCase
         $serverRequest = new ServerRequest(
             method: 'POST',
             uri: 'https://api.example.com/dragons',
-            body: $this->factory->createStream(json_encode($payload, JSON_PRESERVE_ZERO_FRACTION))
+            body: $this->factory->createStream(json_encode($payload, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION))
         );
 
         /** @When decoding the request body */
@@ -117,6 +117,7 @@ final class RequestTest extends TestCase
     {
         /** @Given a Slim-style route object that stores params in getArguments() */
         $routeObject = new class {
+            /** @return array<string, string> */
             public function getArguments(): array
             {
                 return ['id' => '42', 'email' => 'dragon@fire.com'];
@@ -139,6 +140,7 @@ final class RequestTest extends TestCase
     {
         /** @Given a Mezzio-style route result object that uses getMatchedParams() */
         $routeResult = new class {
+            /** @return array<string, string> */
             public function getMatchedParams(): array
             {
                 return ['id' => '99', 'slug' => 'fire-dragon'];
@@ -216,6 +218,7 @@ final class RequestTest extends TestCase
     {
         /** @Given a route object exposing public properties */
         $routeObject = new class {
+            /** @var array<string, string> */
             public array $arguments = ['id' => '10', 'name' => 'Hydra'];
         };
 
@@ -348,6 +351,7 @@ final class RequestTest extends TestCase
         self::assertSame($methodString, $actual->value);
     }
 
+    /** @return array<string, array{0: string, 1: Method}> */
     public static function httpMethodsProvider(): array
     {
         return [
@@ -363,6 +367,7 @@ final class RequestTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{0: string, 1: mixed, 2: string, 3: mixed}> */
     public static function attributeConversionsProvider(): array
     {
         return [
@@ -434,7 +439,7 @@ final class RequestTest extends TestCase
         /** @Given an empty stream and a non-array parsed body */
         $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
             ->withBody($this->factory->createStream(''))
-            ->withParsedBody('not-an-array');
+            ->withParsedBody(null);
 
         /** @When decoding */
         $decoded = Request::from(request: $serverRequest)->decode();

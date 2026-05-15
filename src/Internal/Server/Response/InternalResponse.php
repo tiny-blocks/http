@@ -61,6 +61,7 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
+    /** @param string|list<string> $value */
     public function withHeader(string $name, $value): MessageInterface
     {
         return new InternalResponse(
@@ -81,6 +82,7 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
+    /** @param string|list<string> $value */
     public function withAddedHeader(string $name, $value): MessageInterface
     {
         return new InternalResponse(
@@ -130,7 +132,7 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function getHeaderLine(string $name): string
     {
-        return implode(', ', $this->headers->getByName(name: $name));
+        return implode(', ', $this->getHeader(name: $name));
     }
 
     public function getReasonPhrase(): string

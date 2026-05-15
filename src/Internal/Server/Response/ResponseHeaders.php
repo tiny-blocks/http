@@ -8,8 +8,9 @@ use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\Headerable;
 
-final readonly class ResponseHeaders implements Headerable
+final readonly class ResponseHeaders
 {
+    /** @param array<string, list<string>> $headers */
     private function __construct(private array $headers)
     {
     }
@@ -20,10 +21,12 @@ final readonly class ResponseHeaders implements Headerable
             return new ResponseHeaders(headers: ContentType::applicationJson(charset: Charset::UTF_8)->toArray());
         }
 
+        /** @var array<string, list<string>> $merged */
         $merged = [];
 
         foreach ($headers as $header) {
-            foreach ($header->toArray() as $name => $values) {
+            foreach ($header->toArray() as $name => $value) {
+                $values = is_array($value) ? $value : [$value];
                 $merged[$name] = isset($merged[$name]) ? array_merge($merged[$name], $values) : $values;
             }
         }
@@ -31,6 +34,7 @@ final readonly class ResponseHeaders implements Headerable
         return new ResponseHeaders(headers: $merged);
     }
 
+    /** @return list<string> */
     public function getByName(string $name): array
     {
         $key = $this->findKey(name: $name);
@@ -55,39 +59,44 @@ final readonly class ResponseHeaders implements Headerable
         return new ResponseHeaders(headers: $headers);
     }
 
-    public function withReplaced(string $name, mixed $value): ResponseHeaders
+    /** @param string|list<string> $value */
+    public function withReplaced(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
         $existingKey = $this->findKey(name: $name);
         $targetKey = $existingKey ?? $name;
-        $headers[$targetKey] = [$value];
+        $headers[$targetKey] = is_array($value) ? $value : [$value];
 
         return new ResponseHeaders(headers: $headers);
     }
 
-    public function withAdded(string $name, mixed $value): ResponseHeaders
+    /** @param string|list<string> $value */
+    public function withAdded(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
         $existingKey = $this->findKey(name: $name);
+        $appended = is_array($value) ? $value : [$value];
 
         if ($existingKey === null) {
-            $headers[$name] = [$value];
+            $headers[$name] = $appended;
 
             return new ResponseHeaders(headers: $headers);
         }
 
         $existingValues = $headers[$existingKey];
 
-        if (in_array($value, $existingValues, strict: true)) {
-            return new ResponseHeaders(headers: $headers);
+        foreach ($appended as $next) {
+            if (!in_array($next, $existingValues, strict: true)) {
+                $existingValues[] = $next;
+            }
         }
 
-        $existingValues[] = $value;
         $headers[$existingKey] = $existingValues;
 
         return new ResponseHeaders(headers: $headers);
     }
 
+    /** @return array<string, list<string>> */
     public function toArray(): array
     {
         return $this->headers;

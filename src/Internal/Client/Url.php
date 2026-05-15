@@ -13,6 +13,7 @@ final readonly class Url
     private const string SCHEME_REASON_TEMPLATE = 'Path "%s" must not contain a scheme or be protocol-relative.';
     private const string SCHEME_OR_PROTOCOL_RELATIVE_PATTERN = '#^(?://|\\\\\\\\|[a-z][a-z0-9+.-]*:)#i';
 
+    /** @param array<string, scalar>|null $query */
     public static function compose(string $path, ?array $query, string $baseUrl): string
     {
         if (preg_match(self::SCHEME_OR_PROTOCOL_RELATIVE_PATTERN, $path) === 1) {

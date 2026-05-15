@@ -9,6 +9,7 @@ use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\ResponseCacheDirectives;
 use TinyBlocks\Http\Server\Response;
+use TinyBlocks\Http\UserAgent;
 
 final class HeadersTest extends TestCase
 {
@@ -22,22 +23,22 @@ final class HeadersTest extends TestCase
 
         /** @When we add custom headers to the response */
         $actual = $response
-            ->withHeader(name: 'X-ID', value: 100)
+            ->withHeader(name: 'X-ID', value: '100')
             ->withHeader(name: 'X-NAME', value: 'Xpto');
 
         /** @Then the response contains the correct headers */
         self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [100], 'X-NAME' => ['Xpto']],
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => ['100'], 'X-NAME' => ['Xpto']],
             $actual->getHeaders()
         );
 
         /** @And when we update the 'X-ID' header with a new value */
-        $actual = $actual->withHeader(name: 'X-ID', value: 200);
+        $actual = $actual->withHeader(name: 'X-ID', value: '200');
 
         /** @Then the response contains the updated 'X-ID' header value */
-        self::assertSame('200', $actual->withAddedHeader(name: 'X-ID', value: 200)->getHeaderLine(name: 'X-ID'));
+        self::assertSame('200', $actual->withAddedHeader(name: 'X-ID', value: '200')->getHeaderLine(name: 'X-ID'));
         self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [200], 'X-NAME' => ['Xpto']],
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => ['200'], 'X-NAME' => ['Xpto']],
             $actual->getHeaders()
         );
 
@@ -46,7 +47,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the response contains only the 'X-ID' header and the default 'Content-Type' header */
         self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => [200]],
+            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => ['200']],
             $actual->getHeaders()
         );
     }
@@ -212,7 +213,8 @@ final class HeadersTest extends TestCase
         self::assertTrue($actual->hasHeader(name: 'Cache-Control'));
 
         /** @And the Cache-Control header lists every directive */
-        $expected = 'max-age=10000, no-cache, no-store, no-transform, stale-if-error, must-revalidate, proxy-revalidate';
+        $expected = 'max-age=10000, no-cache, no-store, no-transform, stale-if-error, '
+            . 'must-revalidate, proxy-revalidate';
 
         self::assertSame($expected, $actual->getHeaderLine(name: 'Cache-Control'));
         self::assertSame([$expected], $actual->getHeader(name: 'Cache-Control'));
@@ -278,6 +280,18 @@ final class HeadersTest extends TestCase
 
         /** @Then the response carries Content-Type: application/octet-stream */
         self::assertSame('application/octet-stream', $actual->getHeaderLine(name: 'Content-Type'));
+    }
+
+    public function testNoContentWhenHeaderableEmitsStringValueThenWrapsItInList(): void
+    {
+        /** @Given a Headerable whose toArray() emits a string value (not a list) */
+        $userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
+
+        /** @When a response is created with that header */
+        $actual = Response::noContent($userAgent);
+
+        /** @Then the header is preserved as a single-entry list */
+        self::assertSame(['MyApp/1.2.3'], $actual->getHeader(name: 'User-Agent'));
     }
 
     public function testNoContentWhenContentTypeIsFormUrlEncodedThenHeaderReflectsIt(): void

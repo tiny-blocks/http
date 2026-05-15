@@ -72,6 +72,7 @@ final class CodeTest extends TestCase
         self::assertFalse(Code::INTERNAL_SERVER_ERROR->isSuccess());
     }
 
+    /** @return array<string, array{code: Code, expected: string}> */
     public static function messagesDataProvider(): array
     {
         return [
@@ -118,6 +119,7 @@ final class CodeTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{code: int, expected: bool}> */
     public static function codesDataProvider(): array
     {
         return [
@@ -130,6 +132,7 @@ final class CodeTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{code: int, expected: bool}> */
     public static function errorCodesDataProvider(): array
     {
         return [
@@ -140,6 +143,7 @@ final class CodeTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{code: int, expected: bool}> */
     public static function successCodesDataProvider(): array
     {
         return [

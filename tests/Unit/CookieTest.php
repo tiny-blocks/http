@@ -115,6 +115,7 @@ final class CookieTest extends TestCase
 
         /** @Then an exception indicating the missing Secure flag is thrown */
         $this->expectException(SameSiteNoneRequiresSecure::class);
+        $this->expectExceptionMessage('SameSite=None require the Secure flag');
 
         /** @When the header is serialized */
         $cookie->toArray();
@@ -143,6 +144,7 @@ final class CookieTest extends TestCase
 
         /** @Then an exception indicating conflicting lifetime attributes is thrown */
         $this->expectException(ConflictingLifetimeAttributes::class);
+        $this->expectExceptionMessage('Cookie lifetime attributes are conflicting');
 
         /** @When the header is serialized */
         $cookie->toArray();
@@ -167,6 +169,7 @@ final class CookieTest extends TestCase
 
         /** @Then an exception indicating the value is invalid is thrown */
         $this->expectException(CookieValueIsInvalid::class);
+        $this->expectExceptionMessage('Cookie value <has;semicolon> is invalid');
 
         /** @When the value is replaced with one containing forbidden characters */
         $cookie->withValue(value: 'has;semicolon');
@@ -176,6 +179,7 @@ final class CookieTest extends TestCase
     {
         /** @Then an exception indicating the name is invalid is thrown */
         $this->expectException(CookieNameIsInvalid::class);
+        $this->expectExceptionMessage('Cookie name <bad name> is invalid');
 
         /** @When expiring a cookie with an invalid name */
         Cookie::expire(name: 'bad name');
@@ -210,6 +214,7 @@ final class CookieTest extends TestCase
         Cookie::create(name: 'session', value: $value);
     }
 
+    /** @return array<string, array{0: string}> */
     public static function invalidNameProvider(): array
     {
         return [
@@ -224,6 +229,7 @@ final class CookieTest extends TestCase
         ];
     }
 
+    /** @return array<string, array{0: string}> */
     public static function invalidValueProvider(): array
     {
         return [

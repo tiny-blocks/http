@@ -20,10 +20,11 @@ final class MalformedPathTest extends TestCase
         /** @When constructing from the request */
         $exception = MalformedPath::fromRequest(request: $request);
 
-        /** @Then the exception exposes the path via url() */
+        /** @Then the exception exposes the path via url() and propagates it to the underlying message */
         self::assertSame('//evil.example.com/attack', $exception->url());
         self::assertSame(Method::GET, $exception->method());
         self::assertStringContainsString('//evil.example.com/attack', $exception->reason());
+        self::assertStringContainsString('//evil.example.com/attack', $exception->getMessage());
     }
 
     public function testFromRequestWhenAnyMalformedPathGivenThenImplementsHttpException(): void

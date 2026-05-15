@@ -6,13 +6,11 @@ namespace Test\TinyBlocks\Http\Unit\Client\Transports;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\NetworkExceptionInterface;
-use Psr\Http\Client\RequestExceptionInterface;
-use Psr\Http\Message\RequestInterface;
-use RuntimeException;
 use Test\TinyBlocks\Http\Fixtures\Client\CapturingClient;
 use Test\TinyBlocks\Http\Fixtures\Client\ThrowingClient;
+use Test\TinyBlocks\Http\Fixtures\Psr18\ClientException;
+use Test\TinyBlocks\Http\Fixtures\Psr18\NetworkException;
+use Test\TinyBlocks\Http\Fixtures\Psr18\RequestException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
@@ -86,16 +84,8 @@ final class NetworkTransportTest extends TestCase
     public function testSendWhenClientRaisesNetworkExceptionThenThrowsHttpNetworkFailed(): void
     {
         /** @Given a PSR-18 client that throws NetworkExceptionInterface */
-        $networkException = new class ('connection refused') extends RuntimeException implements
-            NetworkExceptionInterface {
-            public function getRequest(): RequestInterface
-            {
-                return new Psr17Factory()->createRequest('GET', 'https://api.example.com');
-            }
-        };
-
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: $networkException),
+            client: ThrowingClient::throwing(exception: new NetworkException('connection refused')),
             factory: $this->factory
         );
 
@@ -109,15 +99,8 @@ final class NetworkTransportTest extends TestCase
     public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
     {
         /** @Given a PSR-18 client that throws RequestExceptionInterface */
-        $requestException = new class ('bad request') extends RuntimeException implements RequestExceptionInterface {
-            public function getRequest(): RequestInterface
-            {
-                return new Psr17Factory()->createRequest('GET', 'https://api.example.com');
-            }
-        };
-
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: $requestException),
+            client: ThrowingClient::throwing(exception: new RequestException('bad request')),
             factory: $this->factory
         );
 
@@ -131,11 +114,8 @@ final class NetworkTransportTest extends TestCase
     public function testSendWhenClientRaisesGenericClientExceptionThenThrowsHttpRequestFailed(): void
     {
         /** @Given a PSR-18 client that throws a generic ClientExceptionInterface */
-        $clientException = new class ('generic failure') extends RuntimeException implements ClientExceptionInterface {
-        };
-
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: $clientException),
+            client: ThrowingClient::throwing(exception: new ClientException('generic failure')),
             factory: $this->factory
         );
 

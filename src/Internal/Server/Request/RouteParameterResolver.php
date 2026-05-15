@@ -40,6 +40,7 @@ final readonly class RouteParameterResolver
         return new RouteParameterResolver(request: $request);
     }
 
+    /** @return array<int|string, mixed> */
     public function resolve(string $attributeName): array
     {
         $attribute = $this->request->getAttribute($attributeName);
@@ -55,6 +56,7 @@ final readonly class RouteParameterResolver
         return [];
     }
 
+    /** @return array<int|string, mixed> */
     public function resolveFromKnownAttributes(): array
     {
         foreach (self::KNOWN_ATTRIBUTE_KEYS as $key) {
@@ -73,6 +75,7 @@ final readonly class RouteParameterResolver
         return $this->request->getAttribute($key);
     }
 
+    /** @return array<int|string, mixed> */
     private function extractFromObject(object $object): array
     {
         foreach (self::OBJECT_METHODS as $method) {

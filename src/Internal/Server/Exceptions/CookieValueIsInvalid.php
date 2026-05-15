@@ -8,7 +8,9 @@ use InvalidArgumentException;
 
 final class CookieValueIsInvalid extends InvalidArgumentException
 {
-    private const string REASON_TEMPLATE = 'Cookie value <%s> is invalid. A value must not contain control characters, whitespace, double quotes, commas, semicolons, or backslashes. Encode the value (e.g., URL-encode or Base64) before passing it.';
+    private const string REASON_TEMPLATE = 'Cookie value <%s> is invalid. A value must not contain control characters, '
+        . 'whitespace, double quotes, commas, semicolons, or backslashes. Encode the value '
+        . '(e.g., URL-encode or Base64) before passing it.';
 
     public function __construct(string $value)
     {

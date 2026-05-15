@@ -12,8 +12,8 @@ interface Headerable
     /**
      * Converts the instance to an associative array of HTTP headers.
      *
-     * @return array An associative array where the key is the header name
-     *               and the value is the header value.
+     * @return array<string, string|list<string>> An associative array where the key is the header name
+     *                                            and the value is the header value (or list of values).
      */
     public function toArray(): array;
 }

@@ -21,6 +21,7 @@ final class SameSiteTest extends TestCase
         self::assertSame($expected, $actual);
     }
 
+    /** @return array<string, array{0: SameSite, 1: string}> */
     public static function sameSiteValueProvider(): array
     {
         return [

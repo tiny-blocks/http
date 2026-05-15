@@ -28,6 +28,7 @@ final class RouteParameterResolverTest extends TestCase
     {
         /** @Given a Slim-style route object */
         $routeObject = new class {
+            /** @return array<string, string> */
             public function getArguments(): array
             {
                 return ['id' => '1', 'name' => 'dragon'];
@@ -48,6 +49,7 @@ final class RouteParameterResolverTest extends TestCase
     {
         /** @Given a Mezzio-style route result object */
         $routeResult = new class {
+            /** @return array<string, string> */
             public function getMatchedParams(): array
             {
                 return ['id' => '99', 'action' => 'view'];
@@ -68,6 +70,7 @@ final class RouteParameterResolverTest extends TestCase
     {
         /** @Given a route object with a public arguments property */
         $routeObject = new class {
+            /** @var array<string, string> */
             public array $arguments = ['key' => 'value'];
         };
 
@@ -144,8 +147,10 @@ final class RouteParameterResolverTest extends TestCase
     {
         /** @Given an object that has both a method and a property */
         $routeObject = new class {
+            /** @var array<string, string> */
             public array $arguments = ['source' => 'property'];
 
+            /** @return array<string, string> */
             public function getArguments(): array
             {
                 return ['source' => 'method'];
