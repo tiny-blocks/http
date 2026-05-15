@@ -22,17 +22,11 @@ final readonly class Response
 
     public static function from(ResponseInterface $response): Response
     {
-        $entries = [];
-
-        foreach ($response->getHeaders() as $name => $values) {
-            $entries[$name] = implode(', ', $values);
-        }
-
         return new Response(
             psr: $response,
             body: Body::fromResponse(response: $response),
             code: Code::from($response->getStatusCode()),
-            headers: Headers::fromArray(entries: $entries)
+            headers: Headers::fromMessage(message: $response)
         );
     }
 

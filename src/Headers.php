@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
+use Psr\Http\Message\MessageInterface;
+
 final readonly class Headers
 {
     private array $entries;
@@ -26,6 +28,17 @@ final readonly class Headers
         return new Headers(entries: $entries);
     }
 
+    public static function fromMessage(MessageInterface $message): Headers
+    {
+        $entries = [];
+
+        foreach ($message->getHeaders() as $name => $values) {
+            $entries[$name] = implode(', ', $values);
+        }
+
+        return new Headers(entries: $entries);
+    }
+
     public static function from(Headerable ...$headerables): Headers
     {
         $entries = [];
@@ -39,6 +52,27 @@ final readonly class Headers
         return new Headers(entries: $entries);
     }
 
+    public function has(string $name): bool
+    {
+        return isset($this->lowerIndex[strtolower($name)]);
+    }
+
+    public function toArray(): array
+    {
+        return $this->entries;
+    }
+
+    public function applyTo(MessageInterface $message): MessageInterface
+    {
+        $applied = $message;
+
+        foreach ($this->entries as $name => $value) {
+            $applied = $applied->withHeader($name, $value);
+        }
+
+        return $applied;
+    }
+
     public function get(string $name): ?string
     {
         $key = strtolower($name);
@@ -48,11 +82,6 @@ final readonly class Headers
         }
 
         return $this->entries[$this->lowerIndex[$key]];
-    }
-
-    public function has(string $name): bool
-    {
-        return isset($this->lowerIndex[strtolower($name)]);
     }
 
     public function mergedWith(array $defaults): Headers
@@ -72,10 +101,5 @@ final readonly class Headers
         }
 
         return new Headers(entries: $merged);
-    }
-
-    public function toArray(): array
-    {
-        return $this->entries;
     }
 }

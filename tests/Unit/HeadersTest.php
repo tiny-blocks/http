@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit;
 
+use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
@@ -44,6 +45,65 @@ final class HeadersTest extends TestCase
 
         /** @Then the headers are empty */
         self::assertSame([], $headers->toArray());
+    }
+
+    public function testFromMessageWithEmptyHeadersReturnsEmptyHeaders(): void
+    {
+        /** @Given a PSR-7 response with no headers */
+        $psrResponse = (new Psr17Factory())->createResponse(200);
+
+        /** @When building Headers from the message */
+        $headers = Headers::fromMessage(message: $psrResponse);
+
+        /** @Then the Headers instance is empty */
+        self::assertSame([], $headers->toArray());
+    }
+
+    public function testFromMessageFoldsMultiValueHeadersWithCommaSeparator(): void
+    {
+        /** @Given a PSR-7 response with a header that carries multiple values */
+        $psrResponse = (new Psr17Factory())->createResponse(200)
+            ->withHeader('Accept', 'application/json')
+            ->withAddedHeader('Accept', 'text/html');
+
+        /** @When building Headers from the message */
+        $headers = Headers::fromMessage(message: $psrResponse);
+
+        /** @Then the multi-value header is folded with a comma separator */
+        self::assertSame('application/json, text/html', $headers->get('Accept'));
+    }
+
+    public function testApplyToOnEmptyHeadersReturnsOriginalMessageUnchanged(): void
+    {
+        /** @Given an empty Headers instance */
+        $headers = Headers::fromArray(entries: []);
+
+        /** @And a PSR-7 request */
+        $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+
+        /** @When applying the empty headers to the request */
+        $applied = $headers->applyTo(message: $psrRequest);
+
+        /** @Then the same request instance is returned without modification */
+        self::assertSame($psrRequest, $applied);
+    }
+
+    public function testApplyToAttachesEntriesAndLeavesOriginalUnchanged(): void
+    {
+        /** @Given a Headers instance with one entry */
+        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc']);
+
+        /** @And a PSR-7 request */
+        $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+
+        /** @When applying the headers to the request */
+        $applied = $headers->applyTo(message: $psrRequest);
+
+        /** @Then the resulting message carries the header */
+        self::assertSame('abc', $applied->getHeaderLine('X-Trace'));
+
+        /** @And the original request is unchanged */
+        self::assertSame('', $psrRequest->getHeaderLine('X-Trace'));
     }
 
     public function testGetIsCaseInsensitive(): void

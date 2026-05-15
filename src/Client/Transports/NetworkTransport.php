@@ -49,9 +49,7 @@ final readonly class NetworkTransport implements Transport
             uri: $request->url
         );
 
-        foreach ($request->headers->toArray() as $name => $value) {
-            $psrRequest = $psrRequest->withHeader($name, $value);
-        }
+        $psrRequest = $request->headers->applyTo(message: $psrRequest);
 
         if (!is_null($request->body)) {
             try {
