@@ -2,22 +2,21 @@
 
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-PSR-7/PSR-15 HTTP primitives for PHP with a fluent server-side response builder and a hexagonal client built on PSR-18.
-
 * [Overview](#overview)
 * [Installation](#installation)
 * [How to use](#how-to-use)
-    * [Server](#server)
+    + [Server](#server)
         * [Decoding a request](#decoding-a-request)
         * [Creating a response](#creating-a-response)
         * [Setting cookies](#setting-cookies)
         * [Status code](#status-code)
-    * [Client](#client)
+    + [Client](#client)
         * [Building Http with a PSR-18 client and PSR-17 factories](#building-http-with-a-psr-18-client-and-psr-17-factories)
         * [Making a request](#making-a-request)
         * [Reading the response](#reading-the-response)
         * [Query parameters](#query-parameters)
         * [Custom headers and content type](#custom-headers-and-content-type)
+        * [Setting the User-Agent](#setting-the-user-agent)
         * [Error handling](#error-handling)
         * [Configuring timeouts](#configuring-timeouts)
         * [Testing with InMemoryTransport](#testing-with-inmemorytransport)
@@ -26,25 +25,26 @@ PSR-7/PSR-15 HTTP primitives for PHP with a fluent server-side response builder 
 * [License](#license)
 * [Contributing](#contributing)
 
-<div id='overview'></div>
-
 ## Overview
 
 The library covers both sides of an HTTP exchange:
 
-- **Server side** (`TinyBlocks\Http\Server`) — decodes a PSR-7 `ServerRequestInterface` into typed accessors and builds outgoing `ResponseInterface` instances with cookies, cache-control, and status codes.
-- **Client side** (`TinyBlocks\Http\Client`) — composes outbound requests, sends them through a `Transport` port backed by any PSR-18 client, and exposes responses with typed body and header access.
+- **Server side** (`TinyBlocks\Http\Server`) — decodes a PSR-7 `ServerRequestInterface` into typed accessors and builds
+  outgoing `ResponseInterface` instances with cookies, cache-control, and status codes.
+- **Client side** (`TinyBlocks\Http\Client`) — composes outbound requests, sends them through a `Transport` port backed
+  by any PSR-18 client, and exposes responses with typed body and header access.
 
-Shared primitives (`Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `Cookie`, `CacheControl`) live at the root namespace.
+Shared primitives (`Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `Cookie`, `CacheControl`) live at the root
+namespace.
 
 Design choices:
 
 - PSR alignment at every boundary (PSR-7, PSR-15, PSR-17, PSR-18). No proprietary HTTP client wrapper.
-- Hexagonal architecture on the client: one `Transport` port with `NetworkTransport` (PSR-18 adapter) and `InMemoryTransport` (in-process test adapter). Decorators (retry, logging, circuit breakers) plug in by implementing `Transport`.
+- Hexagonal architecture on the client: one `Transport` port with `NetworkTransport` (PSR-18 adapter) and
+  `InMemoryTransport` (in-process test adapter). Decorators (retry, logging, circuit breakers) plug in by implementing
+  `Transport`.
 - Total immutability for every public type.
 - Typed access over raw arrays: `Code` enum, `Method` enum, `Headers` value object, typed body fields via `Attribute`.
-
-<div id='installation'></div>
 
 ## Installation
 
@@ -52,15 +52,9 @@ Design choices:
 composer require tiny-blocks/http
 ```
 
-<div id='how-to-use'></div>
-
 ## How to use
 
-<div id='server'></div>
-
 ### Server
-
-<div id='decoding-a-request'></div>
 
 #### Decoding a request
 
@@ -88,8 +82,6 @@ use TinyBlocks\Http\Server\Request;
 /** @var ServerRequestInterface $psrRequest */
 $method = Request::from(request: $psrRequest)->method();
 ```
-
-<div id='creating-a-response'></div>
 
 #### Creating a response
 
@@ -129,8 +121,6 @@ Response::ok(body: ['ok' => true], $cacheControl, ContentType::applicationJson()
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
-<div id='setting-cookies'></div>
-
 #### Setting cookies
 
 `Cookie` implements `Headerable` and composes naturally with `Response`:
@@ -166,8 +156,6 @@ $expired = Cookie::expire(name: 'session')
 Response::noContent($expired);
 ```
 
-<div id='status-code'></div>
-
 #### Status code
 
 The `Code` enum carries the full RFC HTTP status set with typed helpers:
@@ -185,11 +173,7 @@ Code::isErrorCode(code: 500);   // true
 Code::isSuccessCode(code: 200); // true
 ```
 
-<div id='client'></div>
-
 ### Client
-
-<div id='building-http-with-a-psr-18-client-and-psr-17-factories'></div>
 
 #### Building Http with a PSR-18 client and PSR-17 factories
 
@@ -205,13 +189,7 @@ $factory = new HttpFactory();
 $client = new Client(['timeout' => 30, 'connect_timeout' => 5]);
 
 $http = Http::create()
-    ->withTransport(
-        transport: NetworkTransport::with(
-            client: $client,
-            streamFactory: $factory,
-            requestFactory: $factory
-        )
-    )
+    ->withTransport(transport: NetworkTransport::with(client: $client, factory: $factory))
     ->withBaseUrl(url: 'https://api.example.com')
     ->build();
 ```
@@ -230,13 +208,10 @@ $http = Http::with(
     baseUrl: 'https://api.example.com',
     transport: NetworkTransport::with(
         client: new Client(['timeout' => 30, 'connect_timeout' => 5]),
-        streamFactory: $factory,
-        requestFactory: $factory
+        factory: $factory
     )
 );
 ```
-
-<div id='making-a-request'></div>
 
 #### Making a request
 
@@ -263,8 +238,6 @@ use TinyBlocks\Http\Client\Request;
 $response = $http->send(request: Request::create(url: '/v1/charges/abc123'));
 ```
 
-<div id='reading-the-response'></div>
-
 #### Reading the response
 
 ```php
@@ -285,8 +258,6 @@ $contentType = $response->headers()->get(name: 'content-type'); // "application/
 $hasTrace = $response->headers()->has(name: 'X-Trace-Id');      // true
 ```
 
-<div id='query-parameters'></div>
-
 #### Query parameters
 
 Pass the query as a named parameter — the library encodes it in RFC3986 form.
@@ -301,8 +272,6 @@ $response = $http->send(
     )
 );
 ```
-
-<div id='custom-headers-and-content-type'></div>
 
 #### Custom headers and content type
 
@@ -339,7 +308,53 @@ $response = $http->send(
 
 Custom headers always win over the library's JSON defaults.
 
-<div id='error-handling'></div>
+<div id='setting-the-user-agent'></div>
+
+#### Setting the User-Agent
+
+The `UserAgent` value object implements `Headerable` and renders the standard
+`User-Agent` header. Empty version is normalized to "no version" — the rendered
+header carries only the product token in that case, so configuration with an
+optional version flows in directly.
+
+```php
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\UserAgent;
+
+$userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
+
+$response = $http->send(
+    request: Request::create(url: '/v1/charges', $userAgent)
+);
+```
+
+When the version is unknown:
+
+```php
+use TinyBlocks\Http\UserAgent;
+
+$userAgent = UserAgent::from(product: 'MyApp');
+// renders as: User-Agent: MyApp
+```
+
+`UserAgent` composes naturally with any other `Headerable`:
+
+```php
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Method;
+use TinyBlocks\Http\UserAgent;
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: ['amount' => 1000],
+        method: Method::POST,
+        UserAgent::from(product: 'MyApp', version: '1.2.3'),
+        ContentType::applicationJson()
+    )
+);
+```
 
 #### Error handling
 
@@ -364,17 +379,15 @@ try {
 }
 ```
 
-| Exception | Cause |
-|---|---|
-| `HttpRequestFailed` | Generic PSR-18 `ClientExceptionInterface`. Base class for the others below. |
-| `HttpNetworkFailed` | PSR-18 `NetworkExceptionInterface` — DNS, timeout, connection refused. |
-| `HttpRequestInvalid` | PSR-18 `RequestExceptionInterface` — request malformed before transport. |
-| `MalformedPath` | Path attempts to escape the base URL (scheme, protocol-relative, control characters). |
-| `NoMoreResponses` | `InMemoryTransport` exhausted. |
-| `HttpConfigurationInvalid` | Builder called without `withBaseUrl` or `withTransport`. |
-| `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`. |
-
-<div id='configuring-timeouts'></div>
+| Exception                     | Cause                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------|
+| `HttpRequestFailed`           | Generic PSR-18 `ClientExceptionInterface`. Base class for the others below.           |
+| `HttpNetworkFailed`           | PSR-18 `NetworkExceptionInterface` — DNS, timeout, connection refused.                |
+| `HttpRequestInvalid`          | PSR-18 `RequestExceptionInterface` — request malformed before transport.              |
+| `MalformedPath`               | Path attempts to escape the base URL (scheme, protocol-relative, control characters). |
+| `NoMoreResponses`             | `InMemoryTransport` exhausted.                                                        |
+| `HttpConfigurationInvalid`    | Builder called without `withBaseUrl` or `withTransport`.                              |
+| `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`.             |
 
 #### Configuring timeouts
 
@@ -396,8 +409,6 @@ use Symfony\Component\HttpClient\Psr18Client;
 
 $client = new Psr18Client(client: HttpClient::create(['timeout' => 30]));
 ```
-
-<div id='testing-with-inmemorytransport'></div>
 
 #### Testing with InMemoryTransport
 
@@ -424,11 +435,10 @@ $http = Http::create()
 
 Calls consume responses in FIFO order. Exhaustion raises `NoMoreResponses`.
 
-<div id='extending-with-custom-transports'></div>
-
 #### Extending with custom transports
 
-Implement `Transport` to add retry, logging, circuit breaker, or any other cross-cutting concern. The decorator wraps any inner `Transport`.
+Implement `Transport` to add retry, logging, circuit breaker, or any other cross-cutting concern. The decorator wraps
+any inner `Transport`.
 
 ```php
 use TinyBlocks\Http\Client\Request;
@@ -469,11 +479,7 @@ Compose it into the façade:
 $http = Http::create()
     ->withTransport(
         transport: new RetryingTransport(
-            inner: NetworkTransport::with(
-                client: $client,
-                streamFactory: $factory,
-                requestFactory: $factory
-            ),
+            inner: NetworkTransport::with(client: $client, factory: $factory),
             maxAttempts: 3
         )
     )
@@ -481,38 +487,39 @@ $http = Http::create()
     ->build();
 ```
 
-<div id='faq'></div>
-
 ## FAQ
 
 ### 01. Why is there a `Headerable` interface and a `Headers` value object?
 
-`Headerable` is the contract implemented by classes that emit one or more header lines — `ContentType`, `Cookie`, `CacheControl`, and any custom header type. `Headers` is the value object that carries the consolidated header set of an HTTP request or response, with case-insensitive lookup and merging.
+`Headerable` is the contract implemented by classes that emit one or more header lines — `ContentType`, `Cookie`,
+`CacheControl`, and any custom header type. `Headers` is the value object that carries the consolidated header set of an
+HTTP request or response, with case-insensitive lookup and merging.
 
 ### 02. Why are timeouts not part of the public API?
 
-PSR-18 does not standardize timeouts. Exposing them in the façade would require a transport-specific contract that leaks the underlying client. Configure timeouts on the PSR-18 client before injecting it.
+PSR-18 does not standardize timeouts. Exposing them in the façade would require a transport-specific contract that leaks
+the underlying client. Configure timeouts on the PSR-18 client before injecting it.
 
 ### 03. Why does `Response::raw()` throw on a synthesized response?
 
-A response created via `Response::with(...)` has no PSR-7 backing — it exists only for in-process scenarios (tests, `InMemoryTransport`). Calling `raw()` in that mode is a programmer error and raises `SynthesizedResponseHasNoRaw`.
+A response created via `Response::with(...)` has no PSR-7 backing — it exists only for in-process scenarios (tests,
+`InMemoryTransport`). Calling `raw()` in that mode is a programmer error and raises `SynthesizedResponseHasNoRaw`.
 
 ### 04. Why is path validation enforced at the resolver?
 
-To protect the configured base URL from being hijacked by paths that contain a scheme, are protocol-relative, or carry control characters. Such inputs raise `MalformedPath` before the transport is invoked.
+To protect the configured base URL from being hijacked by paths that contain a scheme, are protocol-relative, or carry
+control characters. Such inputs raise `MalformedPath` before the transport is invoked.
 
 ### 05. What happens to status codes outside the `Code` enum?
 
-`Response::from()` requires a code present in the enum, which covers every RFC code in use. Non-RFC status codes are reachable through `Response::raw()->getStatusCode()`.
-
-<div id='license'></div>
+`Response::from()` requires a code present in the enum, which covers every RFC code in use. Non-RFC status codes are
+reachable through `Response::raw()->getStatusCode()`.
 
 ## License
 
 Http is licensed under [MIT](LICENSE).
 
-<div id='contributing'></div>
-
 ## Contributing
 
-Please follow the [contributing guidelines](https://github.com/tiny-blocks/tiny-blocks/blob/main/CONTRIBUTING.md) to contribute to the project.
+Please follow the [contributing guidelines](https://github.com/tiny-blocks/tiny-blocks/blob/main/CONTRIBUTING.md) to
+contribute to the project.
