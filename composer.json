@@ -29,6 +29,8 @@
         "nyholm/psr7": "^1.8",
         "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^13.1",
+        "psr/http-server-handler": "^1.0",
+        "psr/http-server-middleware": "^1.0",
         "slim/psr7": "^1.8",
         "slim/slim": "^4.15",
         "squizlabs/php_codesniffer": "^4.0"
@@ -54,7 +56,7 @@
     },
     "scripts": {
         "mutation-test": "php ./vendor/bin/infection --threads=max --logger-html=report/coverage/mutation-report.html --coverage=report/coverage",
-        "phpcs": "php ./vendor/bin/phpcs --standard=PSR12 --extensions=php ./src",
+        "phpcs": "php ./vendor/bin/phpcs --standard=phpcs.xml --extensions=php ./src ./tests",
         "phpstan": "php ./vendor/bin/phpstan analyse -c phpstan.neon.dist --quiet --no-progress",
         "review": [
             "@phpcs",

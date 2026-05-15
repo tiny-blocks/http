@@ -1,12 +1,6 @@
 parameters:
   paths:
     - src
+    - tests
   level: 9
   tmpDir: report/phpstan
-  ignoreErrors:
-    - '#expects#'
-    - '#should return#'
-    - '#mixed to string#'
-    - '#does not accept#'
-    - '#type specified in iterable type#'
-  reportUnmatchedIgnoredErrors: false

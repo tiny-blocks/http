@@ -15,10 +15,6 @@
         "configDir": "",
         "customPath": "./vendor/bin/phpunit"
     },
-    "mutators": {
-        "@default": true,
-        "ProtectedVisibility": false
-    },
     "minCoveredMsi": 100,
     "testFramework": "phpunit"
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<ruleset name="tiny-blocks/http">
+    <description>Code style for tiny-blocks/http.</description>
+    <rule ref="PSR12"/>
+    <file>src</file>
+    <file>tests</file>
+</ruleset>

@@ -37,15 +37,6 @@ The library covers both sides of an HTTP exchange:
 Shared primitives (`Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `Cookie`, `CacheControl`) live at the root
 namespace.
 
-Design choices:
-
-- PSR alignment at every boundary (PSR-7, PSR-15, PSR-17, PSR-18). No proprietary HTTP client wrapper.
-- Hexagonal architecture on the client: one `Transport` port with `NetworkTransport` (PSR-18 adapter) and
-  `InMemoryTransport` (in-process test adapter). Decorators (retry, logging, circuit breakers) plug in by implementing
-  `Transport`.
-- Total immutability for every public type.
-- Typed access over raw arrays: `Code` enum, `Method` enum, `Headers` value object, typed body fields via `Attribute`.
-
 ## Installation
 
 ```bash
@@ -114,11 +105,11 @@ use TinyBlocks\Http\ResponseCacheDirectives;
 use TinyBlocks\Http\Server\Response;
 
 $cacheControl = CacheControl::fromResponseDirectives(
-    maxAge: ResponseCacheDirectives::maxAge(maxAgeInWholeSeconds: 10000)
+    ResponseCacheDirectives::maxAge(maxAgeInWholeSeconds: 10000)
 );
 
-Response::ok(body: ['ok' => true], $cacheControl, ContentType::applicationJson())
-    ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
+Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
+    ->withHeader('X-Trace-Id', 'abc-123');
 ```
 
 #### Setting cookies
@@ -137,7 +128,7 @@ $session = Cookie::create(name: 'session', value: $token)
     ->withPath(path: '/v1/sessions')
     ->withMaxAge(seconds: 604800);
 
-Response::ok(body: ['ok' => true], $session);
+Response::ok(['ok' => true], $session);
 ```
 
 To expire a cookie, use `Cookie::expire(...)` with the same `Path` and `Domain` used at creation.
@@ -297,9 +288,10 @@ final readonly class IdempotencyKey implements Headerable
 
 $response = $http->send(
     request: Request::create(
-        url: '/v1/charges',
-        body: ['amount' => 1000],
-        method: Method::POST,
+        '/v1/charges',
+        ['amount' => 1000],
+        null,
+        Method::POST,
         ContentType::applicationJson(),
         new IdempotencyKey(value: $key)
     )
@@ -319,12 +311,13 @@ optional version flows in directly.
 
 ```php
 use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Method;
 use TinyBlocks\Http\UserAgent;
 
 $userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
 
 $response = $http->send(
-    request: Request::create(url: '/v1/charges', $userAgent)
+    request: Request::create('/v1/charges', null, null, Method::GET, $userAgent)
 );
 ```
 
@@ -347,9 +340,10 @@ use TinyBlocks\Http\UserAgent;
 
 $response = $http->send(
     request: Request::create(
-        url: '/v1/charges',
-        body: ['amount' => 1000],
-        method: Method::POST,
+        '/v1/charges',
+        ['amount' => 1000],
+        null,
+        Method::POST,
         UserAgent::from(product: 'MyApp', version: '1.2.3'),
         ContentType::applicationJson()
     )

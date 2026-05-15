@@ -33,8 +33,13 @@ Verify every item before producing any PHP code. If any item fails, revise befor
    fluent API (`Collection`, `Collectible`) when data is `Collectible`. Use `createLazyFrom` when elements are
    consumed once. Raw arrays are acceptable only for primitive configuration data, variadic pass-through, and
    interop at system boundaries. See "Collection usage" below for the full rule and example.
-10. No private methods exist except private constructors for factory patterns. Inline trivial logic at the call site
-    or extract it to a collaborator or value object.
+10. No private methods exist except:
+    - Private constructors for factory patterns.
+    - Methods inside `src/Internal/` (implementation detail by definition; the
+      namespace is the abstraction boundary, not the class).
+    - `setUp` / `tearDown` overrides in PHPUnit test classes.
+    Outside these cases, inline trivial logic at the call site or extract it
+    to a collaborator or value object.
 11. Members are ordered: constants first, then constructor, then static methods, then instance methods. Within each
     group, order by body size ascending (number of lines between `{` and `}`). Constants and enum cases, which have
     no body, are ordered by name length ascending.
@@ -106,6 +111,17 @@ Verify every item before producing any PHP code. If any item fails, revise befor
 - Collections are always plural: `$orders`, `$lines`.
 - Methods returning bool use prefixes: `is`, `has`, `can`, `was`, `should`.
 
+## Inheritance
+
+- Inheritance between concrete classes is prohibited. Every concrete class is `final`.
+- Polymorphism uses interfaces + composition, never extension of concrete types.
+- The only allowed `extends` is against framework or SPL base classes that the
+  language requires (e.g., extending `RuntimeException`, `LogicException`,
+  `PHPUnit\Framework\TestCase`).
+- Constructors of `final` classes are `private` when paired with named factories,
+  `public` otherwise. `protected` constructors are prohibited (no subclasses
+  exist to call them).
+
 ## Comparisons
 
 1. Null checks: use `is_null($variable)`, never `$variable === null`.
@@ -136,7 +152,8 @@ All identifiers, enum values, comments, and error codes use American English spe
     - Private and protected methods.
     - Public methods of concrete classes whose contract is already documented
       on an implemented interface — the interface carries the docblock.
-    - Anything inside `src/Internal/`.
+    - Anything inside `src/Internal/`. Internal types are implementation detail;
+      they must not carry PHPDoc — the namespace itself is the boundary.
 
 ## Collection usage
 
