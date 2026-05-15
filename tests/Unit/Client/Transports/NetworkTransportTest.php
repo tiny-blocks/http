@@ -203,18 +203,20 @@ final class NetworkTransportTest extends TestCase
         );
     }
 
-    public function testBodyWithInvalidUtf8SubstitutesAndDoesNotCrash(): void
+    public function testBodyWithInvalidUtf8ThrowsHttpRequestInvalid(): void
     {
-        /** @Given a request body containing invalid UTF-8 bytes */
+        /** @Given a transport configured with a capturing client */
         $captured = null;
-        $client = $this->buildCapturingClient(captured: $captured, statusCode: 200);
         $transport = NetworkTransport::with(
-            client: $client,
+            client: $this->buildCapturingClient(captured: $captured, statusCode: 200),
             streamFactory: $this->factory,
             requestFactory: $this->factory
         );
 
-        /** @When sending the request */
+        /** @Then HttpRequestInvalid is thrown with the JsonException chained as previous */
+        $this->expectException(HttpRequestInvalid::class);
+
+        /** @When sending a request whose body contains a non-UTF-8 byte sequence */
         $transport->send(
             request: Request::create(
                 url: 'https://api.example.com/dragons',
@@ -222,9 +224,6 @@ final class NetworkTransportTest extends TestCase
                 method: Method::POST
             )
         );
-
-        /** @Then no exception is thrown and the body is encoded safely */
-        self::assertNotEmpty((string)$captured->getBody());
     }
 
     private function buildCapturingClient(?RequestInterface &$captured, int $statusCode): ClientInterface

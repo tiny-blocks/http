@@ -20,7 +20,7 @@ use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 
 final readonly class NetworkTransport implements Transport
 {
-    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES;
     private const int MAX_JSON_DEPTH = 64;
 
     private function __construct(
