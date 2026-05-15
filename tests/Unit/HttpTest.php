@@ -112,14 +112,13 @@ final class HttpTest extends TestCase
             NetworkExceptionInterface {
             public function getRequest(): RequestInterface
             {
-                return (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+                return new Psr17Factory()->createRequest('GET', 'https://api.example.com');
             }
         };
 
         $transport = NetworkTransport::with(
             client: $this->buildFailingClient(exception: $networkException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         $http = Http::create()
@@ -140,14 +139,13 @@ final class HttpTest extends TestCase
         $requestException = new class ('bad request') extends RuntimeException implements RequestExceptionInterface {
             public function getRequest(): RequestInterface
             {
-                return (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+                return new Psr17Factory()->createRequest('GET', 'https://api.example.com');
             }
         };
 
         $transport = NetworkTransport::with(
             client: $this->buildFailingClient(exception: $requestException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         $http = Http::create()
@@ -170,8 +168,7 @@ final class HttpTest extends TestCase
 
         $transport = NetworkTransport::with(
             client: $this->buildFailingClient(exception: $clientException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         $http = Http::create()
@@ -243,14 +240,13 @@ final class HttpTest extends TestCase
         $networkException = new class ('timeout') extends RuntimeException implements NetworkExceptionInterface {
             public function getRequest(): RequestInterface
             {
-                return (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+                return new Psr17Factory()->createRequest('GET', 'https://api.example.com');
             }
         };
 
         $transport = NetworkTransport::with(
             client: $this->buildFailingClient(exception: $networkException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         $http = Http::create()
@@ -271,8 +267,8 @@ final class HttpTest extends TestCase
     {
         $response = $this->factory->createResponse($statusCode);
 
-        $client = new class ($response) implements ClientInterface {
-            public function __construct(private readonly ResponseInterface $response)
+        $client = new readonly class ($response) implements ClientInterface {
+            public function __construct(private ResponseInterface $response)
             {
             }
 
@@ -284,15 +280,14 @@ final class HttpTest extends TestCase
 
         return NetworkTransport::with(
             client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
     }
 
     private function buildFailingClient(Throwable $exception): ClientInterface
     {
-        return new class ($exception) implements ClientInterface {
-            public function __construct(private readonly Throwable $exception)
+        return new readonly class ($exception) implements ClientInterface {
+            public function __construct(private Throwable $exception)
             {
             }
 

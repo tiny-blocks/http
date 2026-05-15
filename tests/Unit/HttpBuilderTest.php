@@ -39,11 +39,10 @@ final class HttpBuilderTest extends TestCase
             client: new class implements ClientInterface {
                 public function sendRequest(RequestInterface $request): ResponseInterface
                 {
-                    return (new Psr17Factory())->createResponse(200);
+                    return new Psr17Factory()->createResponse(200);
                 }
             },
-            streamFactory: $factory,
-            requestFactory: $factory
+            factory: $factory
         );
 
         /** @When calling withTransport */

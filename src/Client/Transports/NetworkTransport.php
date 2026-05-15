@@ -24,26 +24,20 @@ final readonly class NetworkTransport implements Transport
 
     private function __construct(
         private ClientInterface $client,
-        private StreamFactoryInterface $streamFactory,
-        private RequestFactoryInterface $requestFactory
+        private RequestFactoryInterface&StreamFactoryInterface $factory
     ) {
     }
 
     public static function with(
         ClientInterface $client,
-        StreamFactoryInterface $streamFactory,
-        RequestFactoryInterface $requestFactory
+        RequestFactoryInterface&StreamFactoryInterface $factory
     ): NetworkTransport {
-        return new NetworkTransport(
-            client: $client,
-            streamFactory: $streamFactory,
-            requestFactory: $requestFactory
-        );
+        return new NetworkTransport(client: $client, factory: $factory);
     }
 
     public function send(Request $request): Response
     {
-        $psrRequest = $this->requestFactory->createRequest(
+        $psrRequest = $this->factory->createRequest(
             method: $request->method->value,
             uri: $request->url
         );
@@ -52,7 +46,7 @@ final readonly class NetworkTransport implements Transport
 
         if (!is_null($request->body)) {
             $encoded = json_encode($request->body, self::JSON_FLAGS, self::MAX_JSON_DEPTH);
-            $psrRequest = $psrRequest->withBody(body: $this->streamFactory->createStream(content: $encoded));
+            $psrRequest = $psrRequest->withBody(body: $this->factory->createStream(content: $encoded));
         }
 
         try {

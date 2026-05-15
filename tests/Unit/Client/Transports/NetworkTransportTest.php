@@ -38,8 +38,7 @@ final class NetworkTransportTest extends TestCase
         $client = $this->buildCapturingClient(captured: $captured, statusCode: 201);
         $transport = NetworkTransport::with(
             client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @When sending a request with a JSON body */
@@ -63,8 +62,7 @@ final class NetworkTransportTest extends TestCase
         $client = $this->buildCapturingClient(captured: $captured, statusCode: 200);
         $transport = NetworkTransport::with(
             client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @When sending a request without body */
@@ -81,8 +79,7 @@ final class NetworkTransportTest extends TestCase
         $client = $this->buildCapturingClient(captured: $captured, statusCode: 200);
         $transport = NetworkTransport::with(
             client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @When sending a request with a custom header */
@@ -108,8 +105,7 @@ final class NetworkTransportTest extends TestCase
 
         $transport = NetworkTransport::with(
             client: $this->buildThrowingClient(exception: $networkException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @Then HttpNetworkFailed is thrown with previous set */
@@ -131,8 +127,7 @@ final class NetworkTransportTest extends TestCase
 
         $transport = NetworkTransport::with(
             client: $this->buildThrowingClient(exception: $requestException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @Then HttpRequestInvalid is thrown */
@@ -150,8 +145,7 @@ final class NetworkTransportTest extends TestCase
 
         $transport = NetworkTransport::with(
             client: $this->buildThrowingClient(exception: $clientException),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @Then HttpRequestFailed is thrown */
@@ -168,8 +162,7 @@ final class NetworkTransportTest extends TestCase
         $client = $this->buildCapturingClient(captured: $captured, statusCode: 200);
         $transport = NetworkTransport::with(
             client: $client,
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @When sending a request */
@@ -185,8 +178,7 @@ final class NetworkTransportTest extends TestCase
         $captured = null;
         $transport = NetworkTransport::with(
             client: $this->buildCapturingClient(captured: $captured, statusCode: 200),
-            streamFactory: $this->factory,
-            requestFactory: $this->factory
+            factory: $this->factory
         );
 
         /** @When sending a request whose body contains a non-UTF-8 byte sequence */
