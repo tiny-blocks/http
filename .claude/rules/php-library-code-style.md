@@ -225,7 +225,10 @@ are `canceled` (not `cancelled`), `organization` (not `organisation`), `initiali
 
 ### When required
 
-- Every method of an interface.
+- Every method of an interface, **including interfaces declared inside `src/Internal/`**.
+  Interfaces define contracts. The contract is documentation by definition, regardless of
+  namespace. The `Internal/` boundary applies to implementations, not to the contracts that
+  internal collaborators expose to each other.
 - Every public method of a concrete class outside `src/Internal/`. Public classes are at the
   public API boundary by definition. Consumers call every public method directly, and the
   PHPDoc is the contract for each call. Trivial getters and `with*` methods are not exempt.
@@ -241,7 +244,10 @@ are `canceled` (not `cancelled`), `organization` (not `organisation`), `initiali
   interface. The interface carries the docblock.
 - Anything inside `src/Internal/`. Internal types are implementation detail and must not carry
   PHPDoc. The namespace itself is the boundary. See `php-library-architecture.md` for the
-  architectural meaning of `Internal/`.
+  architectural meaning of `Internal/`. **Exception**: interfaces and their methods. An
+  interface declared inside `src/Internal/` still defines a contract, and the contract is
+  documented per `### When required` regardless of namespace. The prohibition covers concrete
+  classes, traits, enums, and anonymous classes inside `Internal/`, never interfaces.
 - Anywhere inside `tests/`. Test methods name the scenario via the `testXxxWhenYyyGivenThenZzz`
   naming convention, and the `@Given`/`@When`/`@Then`/`@And` annotation blocks defined in
   `php-library-testing.md` describe the steps. PHPDoc documentation (summary plus
@@ -264,7 +270,10 @@ The PHPDoc prohibitions above take priority over the typed-array case. When PHPS
 
 - On a **constructor parameter** → suppress via `ignoreErrors` in `phpstan.neon.dist`. Do not
   add PHPDoc.
-- On anything inside **`src/Internal/`** → suppress via `ignoreErrors`. Do not add PHPDoc.
+- On anything inside **`src/Internal/`** (concrete classes, traits, enums) → suppress via
+  `ignoreErrors`. Do not add PHPDoc. Interfaces inside `src/Internal/` are the exception:
+  they carry PHPDoc per `### When required`, and the PHPStan errors they raise are resolved
+  through the PHPDoc, never through `ignoreErrors`.
 - On anything inside **`tests/`** → suppress via `ignoreErrors`. Do not add PHPDoc.
 - On a **public method of a public (non-Internal) class** → add full PHPDoc with summary,
   `@param` descriptions, and the typed-array information. The bare-tag form remains
@@ -329,7 +338,8 @@ public function __construct(public array $entries)
 }
 ```
 
-**Prohibited.** PHPDoc on anything inside `src/Internal/`:
+**Prohibited.** PHPDoc on a **concrete class** inside `src/Internal/` (the prohibition does
+not extend to interfaces; see "Correct" below for an Internal/ interface):
 
 ```php
 namespace TinyBlocks\Http\Internal\Client;
@@ -340,6 +350,26 @@ final readonly class Url
     public static function compose(string $path, ?array $query, string $baseUrl): string
     {
     }
+}
+```
+
+**Correct.** Interface declared **inside `src/Internal/`** still carries PHPDoc on every
+method. The Internal/ prohibition covers concrete classes; interfaces are exempt because they
+are the contract:
+
+```php
+namespace TinyBlocks\Http\Internal\Client;
+
+interface RequestResolver
+{
+    /**
+     * Resolves the given URL against the configured base URL.
+     *
+     * @param string $url The path or absolute URL to resolve.
+     * @return string The absolute URL to dispatch.
+     * @throws MalformedPath If the URL violates RFC 3986.
+     */
+    public function resolve(string $url): string;
 }
 ```
 
