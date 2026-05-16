@@ -33,15 +33,15 @@ final class SlimTest extends TestCase
         /** @Given a valid request */
         $request = new ServerRequest(method: 'GET', uri: 'https://api.example.com/');
 
-        /** @And the Content-Type and Cache-Control headers are set */
-        $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
-        $cacheControl = CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache());
-
-        /** @And an HTTP response is created with a 200 OK status and a JSON body */
-        $response = Response::ok(['createdAt' => date(DateTimeInterface::ATOM)], $contentType, $cacheControl);
+        /** @And an HTTP response is created with a 200 OK status, a JSON body, Content-Type, and Cache-Control */
+        $response = Response::ok(
+            ['createdAt' => date(DateTimeInterface::ATOM)],
+            ContentType::applicationJson(charset: Charset::UTF_8),
+            CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache())
+        );
 
         /** @When the request is processed by the handler */
-        $actual = $this->middleware->process(request: $request, handler: new Endpoint(response: $response));
+        $actual = $this->middleware->process($request, new Endpoint(response: $response));
 
         /** @Then the response is returned through the middleware unchanged */
         self::assertSame(Code::OK->value, $actual->getStatusCode());
@@ -52,13 +52,11 @@ final class SlimTest extends TestCase
     public function testEmitWhenSlimEmitterUsedThenWritesBodyToOutputBuffer(): void
     {
         /** @Given a response with Content-Type, Cache-Control, and a custom header */
-        $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
-        $cacheControl = CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache());
         $response = Response::ok(
             ['createdAt' => date(DateTimeInterface::ATOM)],
-            $contentType,
-            $cacheControl
-        )->withHeader(name: 'X-Request-ID', value: '123456');
+            ContentType::applicationJson(charset: Charset::UTF_8),
+            CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache())
+        )->withHeader('X-Request-ID', '123456');
 
         /** @When the response is emitted */
         ob_start();
@@ -69,6 +67,6 @@ final class SlimTest extends TestCase
         self::assertSame($response->getBody()->__toString(), $actual);
         self::assertSame(200, $response->getStatusCode());
         self::assertSame('OK', $response->getReasonPhrase());
-        self::assertSame('123456', $response->getHeaderLine(name: 'X-Request-ID'));
+        self::assertSame('123456', $response->getHeaderLine('X-Request-ID'));
     }
 }

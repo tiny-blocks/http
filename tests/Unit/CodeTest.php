@@ -54,25 +54,54 @@ final class CodeTest extends TestCase
         self::assertSame($expected, $actual);
     }
 
-    public function testIsSuccessWhenCodeOkGivenThenReturnsTrueAndIsErrorFalse(): void
+    public function testIsSuccessWhenCodeOkGivenThenReturnsTrue(): void
     {
         /** @Given Code::OK */
-        /** @When checking the instance methods */
-        /** @Then isSuccess is true and isError is false */
-        self::assertTrue(Code::OK->isSuccess());
-        self::assertFalse(Code::OK->isError());
+        $code = Code::OK;
+
+        /** @When invoking isSuccess */
+        $actual = $code->isSuccess();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
     }
 
-    public function testIsErrorWhenCodeInternalServerErrorGivenThenReturnsTrueAndIsSuccessFalse(): void
+    public function testIsErrorWhenCodeOkGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::OK */
+        $code = Code::OK;
+
+        /** @When invoking isError */
+        $actual = $code->isError();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
+    public function testIsErrorWhenCodeInternalServerErrorGivenThenReturnsTrue(): void
     {
         /** @Given Code::INTERNAL_SERVER_ERROR */
-        /** @When checking the instance methods */
-        /** @Then isError is true and isSuccess is false */
-        self::assertTrue(Code::INTERNAL_SERVER_ERROR->isError());
-        self::assertFalse(Code::INTERNAL_SERVER_ERROR->isSuccess());
+        $code = Code::INTERNAL_SERVER_ERROR;
+
+        /** @When invoking isError */
+        $actual = $code->isError();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
     }
 
-    /** @return array<string, array{code: Code, expected: string}> */
+    public function testIsSuccessWhenCodeInternalServerErrorGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::INTERNAL_SERVER_ERROR */
+        $code = Code::INTERNAL_SERVER_ERROR;
+
+        /** @When invoking isSuccess */
+        $actual = $code->isSuccess();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
     public static function messagesDataProvider(): array
     {
         return [
@@ -119,7 +148,6 @@ final class CodeTest extends TestCase
         ];
     }
 
-    /** @return array<string, array{code: int, expected: bool}> */
     public static function codesDataProvider(): array
     {
         return [
@@ -132,7 +160,6 @@ final class CodeTest extends TestCase
         ];
     }
 
-    /** @return array<string, array{code: int, expected: bool}> */
     public static function errorCodesDataProvider(): array
     {
         return [
@@ -143,7 +170,6 @@ final class CodeTest extends TestCase
         ];
     }
 
-    /** @return array<string, array{code: int, expected: bool}> */
     public static function successCodesDataProvider(): array
     {
         return [

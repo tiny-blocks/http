@@ -61,7 +61,7 @@ final class ResponseTest extends TestCase
         self::assertSame([], $response->body()->toArray());
     }
 
-    public function testFromWhen200ResponseGivenThenIsSuccessAndNotError(): void
+    public function testFromWhen200ResponseGivenThenIsSuccess(): void
     {
         /** @Given a 200 response */
         $psrResponse = $this->factory->createResponse(200);
@@ -69,12 +69,23 @@ final class ResponseTest extends TestCase
         /** @When wrapping the PSR response */
         $response = Response::from(response: $psrResponse);
 
-        /** @Then isSuccess is true and isError is false */
+        /** @Then isSuccess is true */
         self::assertTrue($response->isSuccess());
+    }
+
+    public function testFromWhen200ResponseGivenThenIsNotError(): void
+    {
+        /** @Given a 200 response */
+        $psrResponse = $this->factory->createResponse(200);
+
+        /** @When wrapping the PSR response */
+        $response = Response::from(response: $psrResponse);
+
+        /** @Then isError is false */
         self::assertFalse($response->isError());
     }
 
-    public function testFromWhen500ResponseGivenThenIsErrorAndNotSuccess(): void
+    public function testFromWhen500ResponseGivenThenIsError(): void
     {
         /** @Given a 500 response */
         $psrResponse = $this->factory->createResponse(500);
@@ -82,8 +93,19 @@ final class ResponseTest extends TestCase
         /** @When wrapping the PSR response */
         $response = Response::from(response: $psrResponse);
 
-        /** @Then isError is true and isSuccess is false */
+        /** @Then isError is true */
         self::assertTrue($response->isError());
+    }
+
+    public function testFromWhen500ResponseGivenThenIsNotSuccess(): void
+    {
+        /** @Given a 500 response */
+        $psrResponse = $this->factory->createResponse(500);
+
+        /** @When wrapping the PSR response */
+        $response = Response::from(response: $psrResponse);
+
+        /** @Then isSuccess is false */
         self::assertFalse($response->isSuccess());
     }
 
@@ -116,9 +138,14 @@ final class ResponseTest extends TestCase
 
     public function testWithWhenCodeAndBodyGivenThenSynthesizesAccessibleResponse(): void
     {
-        /** @Given code and body data */
+        /** @Given a status code and a body payload */
+        $code = Code::CREATED;
+
+        /** @And a body payload */
+        $body = ['id' => 1];
+
         /** @When synthesizing a response via with() */
-        $response = Response::with(code: Code::CREATED, body: ['id' => 1]);
+        $response = Response::with(code: $code, body: $body);
 
         /** @Then code and body are accessible */
         self::assertSame(Code::CREATED, $response->code());
@@ -142,9 +169,11 @@ final class ResponseTest extends TestCase
 
     public function testWithWhenNullBodyGivenThenReturnsEmptyArray(): void
     {
-        /** @Given a synthesized response with null body */
+        /** @Given a status code with no body payload */
+        $code = Code::NO_CONTENT;
+
         /** @When creating the response */
-        $response = Response::with(code: Code::NO_CONTENT);
+        $response = Response::with(code: $code);
 
         /** @Then body is empty */
         self::assertSame([], $response->body()->toArray());

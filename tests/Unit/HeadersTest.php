@@ -16,8 +16,10 @@ final class HeadersTest extends TestCase
     public function testConstructorWhenEntriesGivenThenExposesEachEntry(): void
     {
         /** @Given an array of headers */
+        $entries = ['Content-Type' => 'application/json', 'Accept' => 'application/json'];
+
         /** @When creating Headers from a constructor */
-        $headers = new Headers(entries: ['Content-Type' => 'application/json', 'Accept' => 'application/json']);
+        $headers = new Headers(entries: $entries);
 
         /** @Then the entries are accessible */
         self::assertSame('application/json', $headers->get('Content-Type'));
@@ -26,8 +28,10 @@ final class HeadersTest extends TestCase
 
     public function testFromWhenMultipleHeaderablesGivenThenMergesEntries(): void
     {
-        /** @Given two headerable instances */
+        /** @Given a Content-Type headerable */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
+
+        /** @And a Cookie headerable */
         $cookie = Cookie::create(name: 'session', value: 'abc123');
 
         /** @When creating Headers from multiple headerables */
@@ -50,7 +54,7 @@ final class HeadersTest extends TestCase
     public function testFromMessageWhenEmptyHeadersGivenThenReturnsEmptyHeaders(): void
     {
         /** @Given a PSR-7 response with no headers */
-        $psrResponse = (new Psr17Factory())->createResponse(200);
+        $psrResponse = new Psr17Factory()->createResponse(200);
 
         /** @When building Headers from the message */
         $headers = Headers::fromMessage(message: $psrResponse);
@@ -62,7 +66,7 @@ final class HeadersTest extends TestCase
     public function testFromMessageWhenMultiValueHeaderGivenThenFoldsWithComma(): void
     {
         /** @Given a PSR-7 response with a header that carries multiple values */
-        $psrResponse = (new Psr17Factory())->createResponse(200)
+        $psrResponse = new Psr17Factory()->createResponse(200)
             ->withHeader('Accept', 'application/json')
             ->withAddedHeader('Accept', 'text/html');
 
@@ -79,7 +83,7 @@ final class HeadersTest extends TestCase
         $headers = new Headers(entries: []);
 
         /** @And a PSR-7 request */
-        $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+        $psrRequest = new Psr17Factory()->createRequest('GET', 'https://api.example.com');
 
         /** @When applying the empty headers to the request */
         $applied = $headers->applyTo(message: $psrRequest);
@@ -88,21 +92,33 @@ final class HeadersTest extends TestCase
         self::assertSame($psrRequest, $applied);
     }
 
-    public function testApplyToWhenEntriesGivenThenAttachesAndLeavesOriginalUnchanged(): void
+    public function testApplyToWhenEntriesGivenThenAttachesHeaders(): void
     {
         /** @Given a Headers instance with one entry */
         $headers = new Headers(entries: ['X-Trace' => 'abc']);
 
         /** @And a PSR-7 request */
-        $psrRequest = (new Psr17Factory())->createRequest('GET', 'https://api.example.com');
+        $psrRequest = new Psr17Factory()->createRequest('GET', 'https://api.example.com');
 
         /** @When applying the headers to the request */
         $applied = $headers->applyTo(message: $psrRequest);
 
         /** @Then the resulting message carries the header */
         self::assertSame('abc', $applied->getHeaderLine('X-Trace'));
+    }
 
-        /** @And the original request is unchanged */
+    public function testApplyToWhenEntriesGivenThenLeavesOriginalUnchanged(): void
+    {
+        /** @Given a Headers instance with one entry */
+        $headers = new Headers(entries: ['X-Trace' => 'abc']);
+
+        /** @And a PSR-7 request */
+        $psrRequest = new Psr17Factory()->createRequest('GET', 'https://api.example.com');
+
+        /** @When applying the headers to the request */
+        $headers->applyTo(message: $psrRequest);
+
+        /** @Then the original request is unchanged */
         self::assertSame('', $psrRequest->getHeaderLine('X-Trace'));
     }
 

@@ -18,7 +18,7 @@ final class ProtocolVersionTest extends TestCase
         self::assertSame('1.1', $response->getProtocolVersion());
 
         /** @When the protocol version is updated to HTTP/3 */
-        $actual = $response->withProtocolVersion(version: '3');
+        $actual = $response->withProtocolVersion('3');
 
         /** @Then the response uses the updated protocol version 3 */
         self::assertSame('3', $actual->getProtocolVersion());

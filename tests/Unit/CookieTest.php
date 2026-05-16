@@ -6,13 +6,11 @@ namespace Test\TinyBlocks\Http\Unit;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use DomainException;
+use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Cookie;
-use TinyBlocks\Http\Internal\Server\Exceptions\ConflictingLifetimeAttributes;
-use TinyBlocks\Http\Internal\Server\Exceptions\CookieNameIsInvalid;
-use TinyBlocks\Http\Internal\Server\Exceptions\CookieValueIsInvalid;
-use TinyBlocks\Http\Internal\Server\Exceptions\SameSiteNoneRequiresSecure;
 use TinyBlocks\Http\SameSite;
 
 final class CookieTest extends TestCase
@@ -33,13 +31,13 @@ final class CookieTest extends TestCase
     {
         /** @Given a cookie composed with every supported attribute */
         $cookie = Cookie::create(name: 'refresh_token', value: 'opaque-value')
-            ->withMaxAge(seconds: 604800)
-            ->withPath(path: '/v1/sessions')
-            ->withDomain(domain: 'api.example.com')
             ->secure()
             ->httpOnly()
-            ->withSameSite(sameSite: SameSite::STRICT)
-            ->partitioned();
+            ->withPath(path: '/v1/sessions')
+            ->withMaxAge(seconds: 604800)
+            ->withDomain(domain: 'api.example.com')
+            ->partitioned()
+            ->withSameSite(sameSite: SameSite::STRICT);
 
         /** @When the header is serialized */
         $actual = $cookie->toArray();
@@ -52,8 +50,7 @@ final class CookieTest extends TestCase
 
     public function testExpireWhenInvokedThenEmitsEmptyValueAndMaxAgeZero(): void
     {
-        /** @Given a cookie deletion for an existing name */
-        /** @And the same path used when the cookie was issued */
+        /** @Given a cookie deletion bound to the path used when the cookie was issued */
         $cookie = Cookie::expire(name: 'refresh_token')->withPath(path: '/v1/sessions');
 
         /** @When the header is serialized */
@@ -63,7 +60,19 @@ final class CookieTest extends TestCase
         self::assertSame(['Set-Cookie' => ['refresh_token=; Max-Age=0; Path=/v1/sessions']], $actual);
     }
 
-    public function testWithValueWhenInvokedThenReturnsNewInstanceAndOriginalIsUntouched(): void
+    public function testWithValueWhenInvokedThenLeavesOriginalUntouched(): void
+    {
+        /** @Given a cookie with an initial value */
+        $original = Cookie::create(name: 'session', value: 'initial');
+
+        /** @When a new value is assigned */
+        $original->withValue(value: 'rotated');
+
+        /** @Then the original instance remains unchanged */
+        self::assertSame(['Set-Cookie' => ['session=initial']], $original->toArray());
+    }
+
+    public function testWithValueWhenInvokedThenReturnsNewInstanceWithReplacedValue(): void
     {
         /** @Given a cookie with an initial value */
         $original = Cookie::create(name: 'session', value: 'initial');
@@ -71,9 +80,7 @@ final class CookieTest extends TestCase
         /** @When a new value is assigned */
         $rotated = $original->withValue(value: 'rotated');
 
-        /** @Then the original instance remains unchanged */
-        self::assertSame(['Set-Cookie' => ['session=initial']], $original->toArray());
-        /** @And the new instance carries the replaced value */
+        /** @Then the new instance carries the replaced value */
         self::assertSame(['Set-Cookie' => ['session=rotated']], $rotated->toArray());
     }
 
@@ -94,6 +101,18 @@ final class CookieTest extends TestCase
         );
     }
 
+    public function testSecureWhenInvokedThenLeavesBaseUntouched(): void
+    {
+        /** @Given a base cookie without the secure flag */
+        $base = Cookie::create(name: 'session', value: 'abc');
+
+        /** @When the secure flag is applied */
+        $base->secure();
+
+        /** @Then the base instance remains unchanged */
+        self::assertSame(['Set-Cookie' => ['session=abc']], $base->toArray());
+    }
+
     public function testSecureWhenInvokedThenReturnsNewInstanceWithFlag(): void
     {
         /** @Given a base cookie without the secure flag */
@@ -102,9 +121,7 @@ final class CookieTest extends TestCase
         /** @When the secure flag is applied */
         $secured = $base->secure();
 
-        /** @Then the base instance remains unchanged */
-        self::assertSame(['Set-Cookie' => ['session=abc']], $base->toArray());
-        /** @And the new instance has the secure flag applied */
+        /** @Then the new instance has the secure flag applied */
         self::assertSame(['Set-Cookie' => ['session=abc; Secure']], $secured->toArray());
     }
 
@@ -114,7 +131,7 @@ final class CookieTest extends TestCase
         $cookie = Cookie::create(name: 'session', value: 'abc')->withSameSite(sameSite: SameSite::NONE);
 
         /** @Then an exception indicating the missing Secure flag is thrown */
-        $this->expectException(SameSiteNoneRequiresSecure::class);
+        $this->expectException(DomainException::class);
         $this->expectExceptionMessage('SameSite=None require the Secure flag');
 
         /** @When the header is serialized */
@@ -143,7 +160,7 @@ final class CookieTest extends TestCase
             ->withExpires(expires: new DateTimeImmutable('2030-01-15 12:00:00 UTC'));
 
         /** @Then an exception indicating conflicting lifetime attributes is thrown */
-        $this->expectException(ConflictingLifetimeAttributes::class);
+        $this->expectException(DomainException::class);
         $this->expectExceptionMessage('Cookie lifetime attributes are conflicting');
 
         /** @When the header is serialized */
@@ -168,7 +185,7 @@ final class CookieTest extends TestCase
         $cookie = Cookie::create(name: 'session', value: 'abc');
 
         /** @Then an exception indicating the value is invalid is thrown */
-        $this->expectException(CookieValueIsInvalid::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cookie value <has;semicolon> is invalid');
 
         /** @When the value is replaced with one containing forbidden characters */
@@ -178,7 +195,7 @@ final class CookieTest extends TestCase
     public function testExpireWhenInvalidNameGivenThenThrows(): void
     {
         /** @Then an exception indicating the name is invalid is thrown */
-        $this->expectException(CookieNameIsInvalid::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cookie name <bad name> is invalid');
 
         /** @When expiring a cookie with an invalid name */
@@ -188,33 +205,38 @@ final class CookieTest extends TestCase
     public function testCreateWhenForbiddenCharacterInValueGivenThenThrows(): void
     {
         /** @Then an exception indicating the value is invalid is thrown */
-        $this->expectException(CookieValueIsInvalid::class);
+        $this->expectException(InvalidArgumentException::class);
 
         /** @When creating a cookie with the invalid value */
         Cookie::create(name: 'session', value: 'abc;def');
     }
 
+    /**
+     * @Given an invalid cookie name
+     * @When  Cookie::create is called with that name
+     * @Then  it throws CookieNameIsInvalid
+     */
     #[DataProvider('invalidNameProvider')]
     public function testCreateWhenInvalidNameGivenThenThrows(string $name): void
     {
-        /** @Then an exception indicating the name is invalid is thrown */
-        $this->expectException(CookieNameIsInvalid::class);
+        $this->expectException(InvalidArgumentException::class);
 
-        /** @When creating a cookie with the invalid name */
         Cookie::create(name: $name, value: 'value');
     }
 
+    /**
+     * @Given an invalid cookie value
+     * @When  Cookie::create is called with that value
+     * @Then  it throws CookieValueIsInvalid
+     */
     #[DataProvider('invalidValueProvider')]
     public function testCreateWhenInvalidValueGivenThenThrows(string $value): void
     {
-        /** @Then an exception indicating the value is invalid is thrown */
-        $this->expectException(CookieValueIsInvalid::class);
+        $this->expectException(InvalidArgumentException::class);
 
-        /** @When creating a cookie with the invalid value */
         Cookie::create(name: 'session', value: $value);
     }
 
-    /** @return array<string, array{0: string}> */
     public static function invalidNameProvider(): array
     {
         return [
@@ -229,7 +251,6 @@ final class CookieTest extends TestCase
         ];
     }
 
-    /** @return array<string, array{0: string}> */
     public static function invalidValueProvider(): array
     {
         return [

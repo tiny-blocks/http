@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Test\TinyBlocks\Http\Fixtures\Psr18;
+namespace Test\TinyBlocks\Http\Unit;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 use RuntimeException;
 
-final class NetworkException extends RuntimeException implements NetworkExceptionInterface
+final class PsrNetworkException extends RuntimeException implements NetworkExceptionInterface
 {
     public function getRequest(): RequestInterface
     {

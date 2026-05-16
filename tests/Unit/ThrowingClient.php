@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\TinyBlocks\Http\Fixtures\Client;
+namespace Test\TinyBlocks\Http\Unit;
 
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestInterface;

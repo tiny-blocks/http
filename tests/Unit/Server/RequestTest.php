@@ -55,7 +55,7 @@ final class RequestTest extends TestCase
     public function testDecodeWhenRouteHasSingleAttributeThenExposesIt(): void
     {
         /** @Given a route attribute carrying a single id */
-        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com/dragons/dragon-id'))
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com/dragons/dragon-id')
             ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', 'id' => 'dragon-id']);
 
         /** @When decoding the route attribute */
@@ -67,10 +67,11 @@ final class RequestTest extends TestCase
 
     public function testDecodeWhenRouteHasMultipleAttributesThenExposesEach(): void
     {
-        /** @Given a route attribute carrying id, skill, and weight */
+        /** @Given a set of route attributes */
         $attributes = ['id' => 'dragon-id', 'skill' => 'dragon-skill', 'weight' => 6000.00];
 
-        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+        /** @And a server request carrying those attributes under the canonical route key */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
             ->withAttribute('__route__', ['name' => '/v1/dragons/{id}/skills/{skill}', ...$attributes]);
 
         /** @When decoding each attribute */
@@ -90,7 +91,7 @@ final class RequestTest extends TestCase
         mixed $expected
     ): void {
         /** @Given a route attribute with the provided value */
-        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
             ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', $key => $value]);
 
         /** @When converting through the typed accessor */
@@ -103,7 +104,7 @@ final class RequestTest extends TestCase
     public function testDecodeWhenRouteAttributeIsScalarThenExposesIt(): void
     {
         /** @Given a scalar route attribute value */
-        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
             ->withAttribute('__route__', 'dragon-id');
 
         /** @When decoding the route attribute */
@@ -117,14 +118,13 @@ final class RequestTest extends TestCase
     {
         /** @Given a Slim-style route object that stores params in getArguments() */
         $routeObject = new class {
-            /** @return array<string, string> */
             public function getArguments(): array
             {
                 return ['id' => '42', 'email' => 'dragon@fire.com'];
             }
         };
 
-        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
             ->withAttribute('__route__', $routeObject);
 
         /** @When decoding the route */
@@ -140,7 +140,6 @@ final class RequestTest extends TestCase
     {
         /** @Given a Mezzio-style route result object that uses getMatchedParams() */
         $routeResult = new class {
-            /** @return array<string, string> */
             public function getMatchedParams(): array
             {
                 return ['id' => '99', 'slug' => 'fire-dragon'];
@@ -218,7 +217,6 @@ final class RequestTest extends TestCase
     {
         /** @Given a route object exposing public properties */
         $routeObject = new class {
-            /** @var array<string, string> */
             public array $arguments = ['id' => '10', 'name' => 'Hydra'];
         };
 
@@ -231,6 +229,29 @@ final class RequestTest extends TestCase
         /** @Then public property values resolve */
         self::assertSame('10', $route->get(key: 'id')->toString());
         self::assertSame('Hydra', $route->get(key: 'name')->toString());
+    }
+
+    public function testDecodeWhenRouteObjectExposesNonArrayMethodAndPropertyThenFallsBackToEmpty(): void
+    {
+        /** @Given a route object whose matching method and property both return non-array values */
+        $routeObject = new class {
+            public string $arguments = 'not-an-array';
+
+            public function getArguments(): string
+            {
+                return 'not-an-array';
+            }
+        };
+
+        /** @And a server request carrying that object under the canonical route key */
+        $serverRequest = (new ServerRequest(method: 'GET', uri: 'https://api.example.com'))
+            ->withAttribute('__route__', $routeObject);
+
+        /** @When decoding any route attribute */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then safe defaults are returned because no array could be extracted */
+        self::assertSame('', $route->get(key: 'id')->toString());
     }
 
     public function testDecodeWhenNoRouteAttributesGivenThenSafeDefaultsAreReturned(): void
@@ -351,7 +372,6 @@ final class RequestTest extends TestCase
         self::assertSame($methodString, $actual->value);
     }
 
-    /** @return array<string, array{0: string, 1: Method}> */
     public static function httpMethodsProvider(): array
     {
         return [
@@ -367,7 +387,6 @@ final class RequestTest extends TestCase
         ];
     }
 
-    /** @return array<string, array{0: string, 1: mixed, 2: string, 3: mixed}> */
     public static function attributeConversionsProvider(): array
     {
         return [
@@ -421,7 +440,7 @@ final class RequestTest extends TestCase
         $stream->getContents();
 
         /** @And a server request using that stream */
-        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+        $serverRequest = new ServerRequest(method: 'POST', uri: 'https://api.example.com')
             ->withBody($stream);
 
         /** @When decoding the request body */
@@ -437,7 +456,7 @@ final class RequestTest extends TestCase
     public function testDecodeWhenEmptyStreamAndNonArrayParsedBodyThenReturnsEmpty(): void
     {
         /** @Given an empty stream and a non-array parsed body */
-        $serverRequest = (new ServerRequest(method: 'POST', uri: 'https://api.example.com'))
+        $serverRequest = new ServerRequest(method: 'POST', uri: 'https://api.example.com')
             ->withBody($this->factory->createStream(''))
             ->withParsedBody(null);
 

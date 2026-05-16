@@ -19,11 +19,11 @@ final class ResponseWithCookiesTest extends TestCase
     {
         /** @Given a fully configured cookie */
         $cookie = Cookie::create(name: 'session', value: 'abc')
-            ->httpOnly()
             ->secure()
-            ->withSameSite(sameSite: SameSite::STRICT)
+            ->httpOnly()
             ->withPath(path: '/')
-            ->withMaxAge(seconds: 604800);
+            ->withMaxAge(seconds: 604800)
+            ->withSameSite(sameSite: SameSite::STRICT);
 
         /** @When the response is built with the cookie */
         $response = Response::ok(['ok' => true], $cookie);

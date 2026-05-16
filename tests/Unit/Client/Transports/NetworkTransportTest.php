@@ -6,11 +6,11 @@ namespace Test\TinyBlocks\Http\Unit\Client\Transports;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
-use Test\TinyBlocks\Http\Fixtures\Client\CapturingClient;
-use Test\TinyBlocks\Http\Fixtures\Client\ThrowingClient;
-use Test\TinyBlocks\Http\Fixtures\Psr18\ClientException;
-use Test\TinyBlocks\Http\Fixtures\Psr18\NetworkException;
-use Test\TinyBlocks\Http\Fixtures\Psr18\RequestException;
+use Test\TinyBlocks\Http\Unit\CapturingClient;
+use Test\TinyBlocks\Http\Unit\PsrClientException;
+use Test\TinyBlocks\Http\Unit\PsrNetworkException;
+use Test\TinyBlocks\Http\Unit\PsrRequestException;
+use Test\TinyBlocks\Http\Unit\ThrowingClient;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
@@ -40,7 +40,9 @@ final class NetworkTransportTest extends TestCase
             request: Request::create(
                 url: 'https://api.example.com/dragons',
                 body: ['name' => 'Hydra'],
-                method: Method::POST
+                query: null,
+                method: Method::POST,
+                headers: Headers::from()
             )->withMergedHeaders(defaults: new Headers(entries: ['Content-Type' => 'application/json']))
         );
 
@@ -57,7 +59,13 @@ final class NetworkTransportTest extends TestCase
         $transport = NetworkTransport::with(client: $client, factory: $this->factory);
 
         /** @When sending a request without body */
-        $transport->send(request: Request::create(url: 'https://api.example.com/dragons'));
+        $transport->send(request: Request::create(
+            url: 'https://api.example.com/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
 
         /** @Then the PSR-7 request body is empty */
         self::assertNotNull($client->captured);
@@ -72,8 +80,13 @@ final class NetworkTransportTest extends TestCase
 
         /** @When sending a request with a custom header merged in */
         $transport->send(
-            request: Request::create(url: 'https://api.example.com/dragons')
-                ->withMergedHeaders(defaults: new Headers(entries: ['X-Correlation-ID' => 'abc-123']))
+            request: Request::create(
+                url: 'https://api.example.com/dragons',
+                body: null,
+                query: null,
+                method: Method::GET,
+                headers: Headers::from()
+            )->withMergedHeaders(defaults: new Headers(entries: ['X-Correlation-ID' => 'abc-123']))
         );
 
         /** @Then the PSR-7 request carries the custom header */
@@ -85,7 +98,7 @@ final class NetworkTransportTest extends TestCase
     {
         /** @Given a PSR-18 client that throws NetworkExceptionInterface */
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: new NetworkException('connection refused')),
+            client: ThrowingClient::throwing(exception: new PsrNetworkException('connection refused')),
             factory: $this->factory
         );
 
@@ -93,14 +106,20 @@ final class NetworkTransportTest extends TestCase
         $this->expectException(HttpNetworkFailed::class);
 
         /** @When sending the request */
-        $transport->send(request: Request::create(url: 'https://api.example.com/dragons'));
+        $transport->send(request: Request::create(
+            url: 'https://api.example.com/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
     }
 
     public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
     {
         /** @Given a PSR-18 client that throws RequestExceptionInterface */
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: new RequestException('bad request')),
+            client: ThrowingClient::throwing(exception: new PsrRequestException('bad request')),
             factory: $this->factory
         );
 
@@ -108,14 +127,20 @@ final class NetworkTransportTest extends TestCase
         $this->expectException(HttpRequestInvalid::class);
 
         /** @When sending the request */
-        $transport->send(request: Request::create(url: 'https://api.example.com/dragons'));
+        $transport->send(request: Request::create(
+            url: 'https://api.example.com/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
     }
 
     public function testSendWhenClientRaisesGenericClientExceptionThenThrowsHttpRequestFailed(): void
     {
         /** @Given a PSR-18 client that throws a generic ClientExceptionInterface */
         $transport = NetworkTransport::with(
-            client: ThrowingClient::throwing(exception: new ClientException('generic failure')),
+            client: ThrowingClient::throwing(exception: new PsrClientException('generic failure')),
             factory: $this->factory
         );
 
@@ -123,7 +148,65 @@ final class NetworkTransportTest extends TestCase
         $this->expectException(HttpRequestFailed::class);
 
         /** @When sending the request */
-        $transport->send(request: Request::create(url: 'https://api.example.com/dragons'));
+        $transport->send(request: Request::create(
+            url: 'https://api.example.com/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
+    }
+
+    public function testSendWhenClientRaisesRequestExceptionThenExceptionMessageDescribesInvalidRequest(): void
+    {
+        /** @Given a transport whose client throws RequestExceptionInterface */
+        $transport = NetworkTransport::with(
+            client: ThrowingClient::throwing(exception: new PsrRequestException('bad request')),
+            factory: $this->factory
+        );
+
+        try {
+            /** @When sending the request */
+            $transport->send(request: Request::create(
+                url: 'https://api.example.com/dragons',
+                body: null,
+                query: null,
+                method: Method::POST,
+                headers: Headers::from()
+            ));
+            self::fail('HttpRequestInvalid was expected.');
+        } catch (HttpRequestInvalid $exception) {
+            /** @Then the message names the method, the URL, and the client-supplied reason */
+            self::assertStringContainsString('POST', $exception->getMessage());
+            self::assertStringContainsString('https://api.example.com/dragons', $exception->getMessage());
+            self::assertStringContainsString('bad request', $exception->getMessage());
+        }
+    }
+
+    public function testSendWhenClientRaisesGenericClientExceptionThenExceptionMessageDescribesClientFailure(): void
+    {
+        /** @Given a transport whose client throws a generic ClientExceptionInterface */
+        $transport = NetworkTransport::with(
+            client: ThrowingClient::throwing(exception: new PsrClientException('generic failure')),
+            factory: $this->factory
+        );
+
+        try {
+            /** @When sending the request */
+            $transport->send(request: Request::create(
+                url: 'https://api.example.com/dragons',
+                body: null,
+                query: null,
+                method: Method::DELETE,
+                headers: Headers::from()
+            ));
+            self::fail('HttpRequestFailed was expected.');
+        } catch (HttpRequestFailed $exception) {
+            /** @Then the message names the method, the URL, and the client-supplied reason */
+            self::assertStringContainsString('DELETE', $exception->getMessage());
+            self::assertStringContainsString('https://api.example.com/dragons', $exception->getMessage());
+            self::assertStringContainsString('generic failure', $exception->getMessage());
+        }
     }
 
     public function testSendWhenSuccessfulPsrResponseGivenThenWrapsInClientResponse(): void
@@ -133,7 +216,13 @@ final class NetworkTransportTest extends TestCase
         $transport = NetworkTransport::with(client: $client, factory: $this->factory);
 
         /** @When sending a request */
-        $response = $transport->send(request: Request::create(url: 'https://api.example.com/dragons'));
+        $response = $transport->send(request: Request::create(
+            url: 'https://api.example.com/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
 
         /** @Then the response code is correct */
         self::assertSame(Code::OK, $response->code());
@@ -150,7 +239,9 @@ final class NetworkTransportTest extends TestCase
             request: Request::create(
                 url: 'https://api.example.com/dragons',
                 body: ['value' => "\xB0\xB1\xB2"],
-                method: Method::POST
+                query: null,
+                method: Method::POST,
+                headers: Headers::from()
             )
         );
 

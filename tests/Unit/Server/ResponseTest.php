@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Test\TinyBlocks\Http\Unit\Server;
 
 use DateTime;
+use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use RuntimeException;
 use Test\TinyBlocks\Http\Models\Amount;
 use Test\TinyBlocks\Http\Models\Color;
 use Test\TinyBlocks\Http\Models\Currency;
@@ -16,7 +19,6 @@ use Test\TinyBlocks\Http\Models\Product;
 use Test\TinyBlocks\Http\Models\Products;
 use Test\TinyBlocks\Http\Models\Status;
 use TinyBlocks\Http\Code;
-use TinyBlocks\Http\Internal\Server\Stream\StreamFactory;
 use TinyBlocks\Http\Server\Response;
 
 final class ResponseTest extends TestCase
@@ -197,7 +199,32 @@ final class ResponseTest extends TestCase
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
     }
 
-    /** @return array<string, array{code: Code, body: mixed, expectedBody: string}> */
+    public function testBadGatewayWhenBodyGivenThenReturnsResponseWithStatus502(): void
+    {
+        /** @Given a body with upstream failure details */
+        $body = ['error' => 'Bad Gateway', 'message' => 'The upstream server returned an invalid response.'];
+
+        /** @When the response is created with the body */
+        $actual = Response::badGateway(body: $body);
+
+        /** @Then the status is 502 */
+        self::assertSame(Code::BAD_GATEWAY->value, $actual->getStatusCode());
+        self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
+    }
+
+    public function testServiceUnavailableWhenBodyGivenThenReturnsResponseWithStatus503(): void
+    {
+        /** @Given a body with service downtime details */
+        $body = ['error' => 'Service Unavailable', 'message' => 'The service is temporarily unavailable.'];
+
+        /** @When the response is created with the body */
+        $actual = Response::serviceUnavailable(body: $body);
+
+        /** @Then the status is 503 */
+        self::assertSame(Code::SERVICE_UNAVAILABLE->value, $actual->getStatusCode());
+        self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
+    }
+
     public static function responseFromProvider(): array
     {
         return [
@@ -245,15 +272,14 @@ final class ResponseTest extends TestCase
         /** @Given an HTTP response without body */
         $response = Response::ok(body: null);
 
-        /** @When the body is initially empty */
-        self::assertEmpty($response->getBody()->__toString());
+        /** @And a fresh PSR-7 stream carrying the replacement bytes */
+        $replacement = new Psr17Factory()->createStream('This is a new body');
 
-        /** @And a new body is set for the response */
-        $body = 'This is a new body';
-        $actual = $response->withBody(body: StreamFactory::fromBody(body: $body)->write());
+        /** @When the body is replaced */
+        $actual = $response->withBody($replacement);
 
         /** @Then the response body matches the new content */
-        self::assertSame($body, $actual->getBody()->__toString());
+        self::assertSame('This is a new body', $actual->getBody()->__toString());
     }
 
     public function testWithStatusWhenInvokedThenReturnsResponseWithUpdatedCode(): void
@@ -268,7 +294,6 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::OK->value, $updated->getStatusCode());
     }
 
-    /** @return array<string, array{body: mixed, expected: string}> */
     public static function bodyProviderData(): array
     {
         return [
@@ -329,5 +354,432 @@ final class ResponseTest extends TestCase
                 'expected' => '[]'
             ]
         ];
+    }
+
+    public function testGetBodyWhenInvokedThenStreamIsReadable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When inspecting the stream */
+        $isReadable = $stream->isReadable();
+
+        /** @Then the stream is readable */
+        self::assertTrue($isReadable);
+    }
+
+    public function testGetBodyWhenInvokedThenStreamIsWritable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When inspecting the stream */
+        $isWritable = $stream->isWritable();
+
+        /** @Then the stream is writable */
+        self::assertTrue($isWritable);
+    }
+
+    public function testGetBodyWhenInvokedThenStreamIsSeekable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When inspecting the stream */
+        $isSeekable = $stream->isSeekable();
+
+        /** @Then the stream is seekable */
+        self::assertTrue($isSeekable);
+    }
+
+    public function testGetBodyWhenContentsReadThenReturnsTheWrittenJsonWithoutRequiringRewind(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When reading the stream contents directly */
+        $contents = $stream->getContents();
+
+        /** @Then the contents match the encoded body without needing a manual rewind */
+        self::assertSame('{"name":"Hydra"}', $contents);
+    }
+
+    public function testGetBodyWhenInvokedThenStreamStartsAtPositionZero(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When inspecting position before reading */
+        $tell = $stream->tell();
+
+        /** @Then the position starts at zero */
+        self::assertSame(0, $tell);
+    }
+
+    public function testGetBodyWhenInvokedThenStreamIsNotAtEofBeforeReading(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When inspecting EOF before reading */
+        $eof = $stream->eof();
+
+        /** @Then EOF is not yet reached */
+        self::assertFalse($eof);
+    }
+
+    public function testGetBodyWhenContentsReadThenStreamReachesEof(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When reading all contents to advance the cursor */
+        $stream->getContents();
+
+        /** @Then EOF is signaled */
+        self::assertTrue($stream->eof());
+    }
+
+    public function testGetBodyWhenSizeRequestedThenMatchesPayloadLength(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When asking the stream for its size */
+        $size = $stream->getSize();
+
+        /** @Then the size matches the encoded payload length */
+        self::assertSame(strlen('{"name":"Hydra"}'), $size);
+    }
+
+    public function testGetBodyWhenClosedThenReportsNullSize(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When the stream is closed */
+        $stream->close();
+
+        /** @Then the stream reports null size */
+        self::assertNull($stream->getSize());
+    }
+
+    public function testGetBodyWhenClosedThenIsNotReadable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When the stream is closed */
+        $stream->close();
+
+        /** @Then the stream is no longer readable */
+        self::assertFalse($stream->isReadable());
+    }
+
+    public function testGetBodyWhenClosedThenIsNotWritable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When the stream is closed */
+        $stream->close();
+
+        /** @Then the stream is no longer writable */
+        self::assertFalse($stream->isWritable());
+    }
+
+    public function testGetBodyWhenClosedThenIsNotSeekable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When the stream is closed */
+        $stream->close();
+
+        /** @Then the stream is no longer seekable */
+        self::assertFalse($stream->isSeekable());
+    }
+
+    public function testGetBodyWhenClosedThenEofReturnsFalse(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When the stream is closed */
+        $stream->close();
+
+        /** @Then the detached stream reports it has not reached EOF */
+        self::assertFalse($stream->eof());
+    }
+
+    public function testGetBodyWhenReadInChunksThenReturnsContentSegments(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When reading a small chunk from the beginning */
+        $chunk = $stream->read(4);
+
+        /** @Then the chunk matches the leading bytes of the encoded payload */
+        self::assertSame('{"na', $chunk);
+    }
+
+    public function testGetBodyWhenSeekedToOffsetThenTellMatchesOffset(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When seeking past the opening brace */
+        $stream->seek(1);
+
+        /** @Then the position reports the seeked offset */
+        self::assertSame(1, $stream->tell());
+    }
+
+    public function testGetBodyWhenSeekedToOffsetThenSubsequentReadsResumeFromThatOffset(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When seeking past the opening brace */
+        $stream->seek(1);
+
+        /** @Then the next read starts at the seeked offset */
+        self::assertSame('"', $stream->read(1));
+    }
+
+    public function testGetBodyWhenStreamWrittenAdditionalDataThenReturnsByteCount(): void
+    {
+        /** @Given a response stream positioned at end-of-file */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+        $stream->seek(0, SEEK_END);
+
+        /** @When appending one byte via the StreamInterface write() */
+        $written = $stream->write('+');
+
+        /** @Then the write returns the byte count */
+        self::assertSame(1, $written);
+    }
+
+    public function testGetBodyWhenStreamWrittenAdditionalDataThenContentsGrowAccordingly(): void
+    {
+        /** @Given a response stream positioned at end-of-file */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+        $stream->seek(0, SEEK_END);
+
+        /** @When appending one byte via the StreamInterface write() */
+        $stream->write('+');
+
+        /** @Then the stream size grows accordingly */
+        self::assertSame(strlen('{"name":"Hydra"}+'), $stream->getSize());
+    }
+
+    public function testGetBodyWhenMetadataRequestedWithoutKeyThenReturnsArray(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When asking for the full metadata map */
+        $metadata = $stream->getMetadata();
+
+        /** @Then the metadata is exposed as an array */
+        self::assertIsArray($metadata);
+    }
+
+    public function testGetBodyWhenMetadataRequestedForModeKeyThenExposesUnderlyingResourceMode(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When asking for the stream mode key */
+        $mode = $stream->getMetadata('mode');
+
+        /** @Then the value reflects the in-memory resource mode */
+        self::assertSame('w+b', $mode);
+    }
+
+    public function testGetBodyWhenMetadataRequestedAfterCloseThenReturnsEmptyArray(): void
+    {
+        /** @Given a closed response stream */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+        $stream->close();
+
+        /** @When asking for the full metadata map */
+        $metadata = $stream->getMetadata();
+
+        /** @Then an empty array is returned */
+        self::assertSame([], $metadata);
+    }
+
+    public function testGetBodyWhenMetadataKeyRequestedAfterCloseThenReturnsNull(): void
+    {
+        /** @Given a closed response stream */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+        $stream->close();
+
+        /** @When asking for a specific metadata key */
+        $value = $stream->getMetadata('mode');
+
+        /** @Then null is returned */
+        self::assertNull($value);
+    }
+
+    public function testGetBodyWhenDetachedThenReturnsUnderlyingResource(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When detaching the underlying resource */
+        $resource = $stream->detach();
+
+        /** @Then the returned value is a resource */
+        self::assertIsResource($resource);
+    }
+
+    public function testGetBodyWhenDetachedThenSizeIsNull(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When detaching the underlying resource */
+        $stream->detach();
+
+        /** @Then the size collapses to null */
+        self::assertNull($stream->getSize());
+    }
+
+    public function testGetBodyWhenDetachedThenIsNoLongerReadable(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @When detaching the underlying resource */
+        $stream->detach();
+
+        /** @Then the stream is no longer readable */
+        self::assertFalse($stream->isReadable());
+    }
+
+    public function testGetBodyWhenClosedTwiceThenSecondCloseIsANoOp(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is already closed */
+        $stream->close();
+
+        /** @When closing the stream a second time */
+        $stream->close();
+
+        /** @Then the stream remains detached and reports null size */
+        self::assertNull($stream->getSize());
+    }
+
+    public function testGetBodyWhenClosedThenTellRaisesMissingResourceError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is closed */
+        $stream->close();
+
+        /** @Then telling the position raises a missing-resource error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('No resource available.');
+
+        /** @When asking for the position */
+        $stream->tell();
+    }
+
+    public function testGetBodyWhenClosedThenSeekRaisesNonSeekableError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is closed */
+        $stream->close();
+
+        /** @Then seeking raises a non-seekable error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is not seekable.');
+
+        /** @When seeking on the closed stream */
+        $stream->seek(0);
+    }
+
+    public function testGetBodyWhenClosedThenReadRaisesNonReadableError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is closed */
+        $stream->close();
+
+        /** @Then reading raises a non-readable error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is not readable.');
+
+        /** @When reading from the closed stream */
+        $stream->read(1);
+    }
+
+    public function testGetBodyWhenReadLengthIsZeroThenRaisesNonReadableError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @Then reading raises a non-readable error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is not readable.');
+
+        /** @When reading with a non-positive length */
+        $stream->read(0);
+    }
+
+    public function testGetBodyWhenClosedThenWriteRaisesNonWritableError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is closed */
+        $stream->close();
+
+        /** @Then writing raises a non-writable error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is not writable.');
+
+        /** @When writing to the closed stream */
+        $stream->write('payload');
+    }
+
+    public function testResponseFacadeForbidsInstantiationThroughAPrivateConstructor(): void
+    {
+        /** @Given the reflection of the public Response façade */
+        $reflection = new ReflectionClass(Response::class);
+
+        /** @And the constructor reflected from that class */
+        $constructor = $reflection->getMethod('__construct');
+
+        /** @When invoking the empty private constructor on a bare instance */
+        $constructor->invoke($reflection->newInstanceWithoutConstructor());
+
+        /** @Then the constructor is private to prevent direct instantiation */
+        self::assertTrue($constructor->isPrivate());
+    }
+
+    public function testGetBodyWhenClosedThenGetContentsRaisesNonReadableError(): void
+    {
+        /** @Given a response with a body */
+        $stream = Response::ok(body: ['name' => 'Hydra'])->getBody();
+
+        /** @And the stream is closed */
+        $stream->close();
+
+        /** @Then reading the contents raises a non-readable error */
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Stream is not readable.');
+
+        /** @When asking for the full contents */
+        $stream->getContents();
     }
 }

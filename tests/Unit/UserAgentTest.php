@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit;
 
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use TinyBlocks\Http\Exceptions\UserAgentProductIsEmpty;
 use TinyBlocks\Http\UserAgent;
 
 final class UserAgentTest extends TestCase
@@ -59,10 +59,10 @@ final class UserAgentTest extends TestCase
         self::assertSame($first, $second);
     }
 
-    public function testFromWhenEmptyProductGivenThenThrowsInvalidArgumentException(): void
+    public function testFromWhenEmptyProductGivenThenThrowsUserAgentProductIsEmpty(): void
     {
         /** @Then an exception is thrown */
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(UserAgentProductIsEmpty::class);
         $this->expectExceptionMessage('User-Agent product must not be empty.');
 
         /** @When constructing with an empty product token */

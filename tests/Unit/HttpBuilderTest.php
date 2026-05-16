@@ -6,15 +6,16 @@ namespace Test\TinyBlocks\Http\Unit;
 
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
-use Test\TinyBlocks\Http\Fixtures\Client\CapturingClient;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Client\Transports\InMemoryTransport;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\HttpConfigurationInvalid;
+use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\HttpBuilder;
+use TinyBlocks\Http\Method;
 
 final class HttpBuilderTest extends TestCase
 {
@@ -27,7 +28,7 @@ final class HttpBuilderTest extends TestCase
         self::assertInstanceOf(HttpBuilder::class, $builder);
     }
 
-    public function testWithTransportWhenInvokedThenReturnsNewBuilderAndOriginalIsUntouched(): void
+    public function testWithTransportWhenInvokedThenReturnsNewBuilder(): void
     {
         /** @Given an empty builder */
         $original = Http::create();
@@ -41,13 +42,32 @@ final class HttpBuilderTest extends TestCase
         /** @When calling withTransport */
         $updated = $original->withTransport(transport: $transport);
 
-        /** @Then a new builder instance is returned and original build still throws */
+        /** @Then a new builder instance is returned */
         self::assertNotSame($original, $updated);
+    }
+
+    public function testWithTransportWhenInvokedThenOriginalBuilderStillThrows(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @And a fresh transport */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: new Psr17Factory()
+        );
+
+        /** @And the original builder receives a new transport */
+        $original->withTransport(transport: $transport);
+
+        /** @Then the original builder still throws on build */
         $this->expectException(HttpConfigurationInvalid::class);
+
+        /** @When calling build on the original builder */
         $original->build();
     }
 
-    public function testWithBaseUrlWhenInvokedThenReturnsNewBuilderAndOriginalIsUntouched(): void
+    public function testWithBaseUrlWhenInvokedThenReturnsNewBuilder(): void
     {
         /** @Given an empty builder */
         $original = Http::create();
@@ -55,9 +75,22 @@ final class HttpBuilderTest extends TestCase
         /** @When calling withBaseUrl */
         $updated = $original->withBaseUrl(url: 'https://api.example.com');
 
-        /** @Then a new builder instance is returned and original build still throws */
+        /** @Then a new builder instance is returned */
         self::assertNotSame($original, $updated);
+    }
+
+    public function testWithBaseUrlWhenInvokedThenOriginalBuilderStillThrows(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @And the original builder receives a new base URL */
+        $original->withBaseUrl(url: 'https://api.example.com');
+
+        /** @Then the original builder still throws on build */
         $this->expectException(HttpConfigurationInvalid::class);
+
+        /** @When calling build on the original builder */
         $original->build();
     }
 
@@ -91,16 +124,23 @@ final class HttpBuilderTest extends TestCase
 
     public function testBuildWhenFullyConfiguredThenProducesWorkingHttp(): void
     {
-        /** @Given a fully configured builder */
+        /** @Given a transport seeded with one response */
         $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
 
+        /** @And a fully configured builder */
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
             ->withTransport(transport: $transport)
             ->build();
 
         /** @When sending a request */
-        $response = $http->send(request: Request::create(url: '/dragons'));
+        $response = $http->send(request: Request::create(
+            url: '/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        ));
 
         /** @Then the response is returned correctly */
         self::assertSame(Code::OK, $response->code());
@@ -114,7 +154,16 @@ final class HttpBuilderTest extends TestCase
         /** @When constructing Http directly via Http::with */
         $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
 
+        /** @And a simple GET request */
+        $request = Request::create(
+            url: '/dragons',
+            body: null,
+            query: null,
+            method: Method::GET,
+            headers: Headers::from()
+        );
+
         /** @Then the instance can send requests and returns the correct response */
-        self::assertSame(Code::OK, $http->send(request: Request::create(url: '/dragons'))->code());
+        self::assertSame(Code::OK, $http->send(request: $request)->code());
     }
 }
