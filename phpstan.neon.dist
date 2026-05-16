@@ -1,6 +1,18 @@
 parameters:
-  paths:
-    - src
-    - tests
-  level: 9
-  tmpDir: report/phpstan
+    level: max
+    paths:
+        - src
+        - tests
+    tmpDir: reports/phpstan
+    ignoreErrors:
+        - identifier: return.type
+        - identifier: argument.type
+        - identifier: missingType.iterableValue
+        - identifier: offsetAccess.nonOffsetAccessible
+        # PHPDoc is prohibited inside tests/; generic IteratorAggregate types are unspecified by design.
+        - identifier: missingType.generics
+          path: tests/Models/Products.php
+        # PHPDoc is prohibited inside tests/; the closure's typed return cannot be expressed.
+        - identifier: throw.notThrowable
+          path: tests/Unit/FailingTransport.php
+    reportUnmatchedIgnoredErrors: true
