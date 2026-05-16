@@ -13,6 +13,6 @@ final class ConflictingLifetimeAttributes extends DomainException
 
     public function __construct()
     {
-        parent::__construct(self::REASON);
+        parent::__construct(message: ConflictingLifetimeAttributes::REASON);
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace TinyBlocks\Http\Internal\Server\Stream;
 
 use Psr\Http\Message\StreamInterface;
-use TinyBlocks\Http\Internal\Server\Exceptions\InvalidResource;
 use TinyBlocks\Http\Internal\Server\Exceptions\MissingResourceStream;
 use TinyBlocks\Http\Internal\Server\Exceptions\NonReadableStream;
 use TinyBlocks\Http\Internal\Server\Exceptions\NonSeekableStream;
@@ -15,24 +14,78 @@ final class Stream implements StreamInterface
 {
     private const int OFFSET_ZERO = 0;
 
-    /** @var resource|null */
+    private const array READABLE_MODES = [
+        'r',
+        'r+',
+        'rb',
+        'rb+',
+        'r+b',
+        'w+',
+        'wb+',
+        'w+b',
+        'a+',
+        'ab+',
+        'a+b',
+        'x+',
+        'xb+',
+        'x+b',
+        'c+',
+        'cb+',
+        'c+b',
+        'rt',
+        'r+t',
+        'w+t',
+        'a+t',
+        'x+t',
+        'c+t'
+    ];
+
+    private const array WRITABLE_MODES = [
+        'w',
+        'w+',
+        'wb',
+        'wb+',
+        'w+b',
+        'a',
+        'a+',
+        'ab',
+        'ab+',
+        'a+b',
+        'x',
+        'x+',
+        'xb',
+        'xb+',
+        'x+b',
+        'c',
+        'c+',
+        'cb',
+        'cb+',
+        'c+b',
+        'r+',
+        'r+b',
+        'rb+',
+        'wt',
+        'w+t',
+        'at',
+        'a+t',
+        'xt',
+        'x+t',
+        'ct',
+        'c+t'
+    ];
+
     private mixed $resource;
 
-    /** @param resource $resource */
-    private function __construct(private readonly string $mode, private readonly bool $seekable, mixed $resource)
+    private function __construct(private readonly bool $seekable, mixed $resource)
     {
         $this->resource = $resource;
     }
 
     public static function from(mixed $resource): Stream
     {
-        if (!is_resource($resource)) {
-            throw new InvalidResource();
-        }
-
         $raw = stream_get_meta_data($resource);
 
-        return new Stream(mode: $raw['mode'], seekable: $raw['seekable'], resource: $resource);
+        return new Stream(seekable: $raw['seekable'], resource: $resource);
     }
 
     public function close(): void
@@ -47,7 +100,7 @@ final class Stream implements StreamInterface
         fclose($resource);
     }
 
-    public function detach()
+    public function detach(): mixed
     {
         $resource = $this->resource;
         $this->resource = null;
@@ -72,13 +125,7 @@ final class Stream implements StreamInterface
             throw new MissingResourceStream();
         }
 
-        $position = ftell($this->resource);
-
-        if ($position === false) {
-            throw new MissingResourceStream();
-        }
-
-        return $position;
+        return ftell($this->resource);
     }
 
     public function eof(): bool
@@ -92,25 +139,17 @@ final class Stream implements StreamInterface
             throw new NonSeekableStream();
         }
 
-        if (!$this->seekable) {
-            throw new NonSeekableStream();
-        }
-
         fseek($this->resource, $offset, $whence);
     }
 
     public function rewind(): void
     {
-        $this->seek(offset: self::OFFSET_ZERO);
+        $this->seek(Stream::OFFSET_ZERO);
     }
 
     public function read(int $length): string
     {
         if (!is_resource($this->resource)) {
-            throw new NonReadableStream();
-        }
-
-        if (!$this->modeAllowsReading()) {
             throw new NonReadableStream();
         }
 
@@ -129,23 +168,29 @@ final class Stream implements StreamInterface
             throw new NonWritableStream();
         }
 
-        $written = $this->modeAllowsWriting() ? fwrite($this->resource, $string) : false;
-
-        if ($written === false) {
-            throw new NonWritableStream();
-        }
-
-        return $written;
+        return fwrite($this->resource, $string);
     }
 
     public function isReadable(): bool
     {
-        return is_resource($this->resource) && $this->modeAllowsReading();
+        if (!is_resource($this->resource)) {
+            return false;
+        }
+
+        $mode = stream_get_meta_data($this->resource)['mode'];
+
+        return in_array($mode, Stream::READABLE_MODES, true);
     }
 
     public function isWritable(): bool
     {
-        return is_resource($this->resource) && $this->modeAllowsWriting();
+        if (!is_resource($this->resource)) {
+            return false;
+        }
+
+        $mode = stream_get_meta_data($this->resource)['mode'];
+
+        return in_array($mode, Stream::WRITABLE_MODES, true);
     }
 
     public function isSeekable(): bool
@@ -156,10 +201,6 @@ final class Stream implements StreamInterface
     public function getContents(): string
     {
         if (!is_resource($this->resource)) {
-            throw new NonReadableStream();
-        }
-
-        if (!$this->modeAllowsReading()) {
             throw new NonReadableStream();
         }
 
@@ -190,15 +231,5 @@ final class Stream implements StreamInterface
         }
 
         return $this->getContents();
-    }
-
-    private function modeAllowsReading(): bool
-    {
-        return str_contains($this->mode, 'r') || str_contains($this->mode, '+');
-    }
-
-    private function modeAllowsWriting(): bool
-    {
-        return strpbrk($this->mode, 'xwca+') !== false;
     }
 }

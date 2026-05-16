@@ -12,12 +12,16 @@ use TinyBlocks\Http\Internal\Client\Cursor;
 
 final readonly class InMemoryTransport implements Transport
 {
-    /** @param list<Response> $responses */
     private function __construct(private Cursor $cursor, private array $responses)
     {
     }
 
-    /** @param list<Response> $responses */
+    /**
+     * Creates an InMemoryTransport seeded with a FIFO queue of responses.
+     *
+     * @param array<int, Response> $responses The pre-built responses served in order on each send.
+     * @return InMemoryTransport A transport that returns each seeded response in sequence.
+     */
     public static function with(array $responses): InMemoryTransport
     {
         return new InMemoryTransport(cursor: new Cursor(), responses: $responses);

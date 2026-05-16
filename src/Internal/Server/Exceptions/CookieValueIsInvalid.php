@@ -14,6 +14,8 @@ final class CookieValueIsInvalid extends InvalidArgumentException
 
     public function __construct(string $value)
     {
-        parent::__construct(sprintf(self::REASON_TEMPLATE, $value));
+        $template = CookieValueIsInvalid::REASON_TEMPLATE;
+
+        parent::__construct(message: sprintf($template, $value));
     }
 }

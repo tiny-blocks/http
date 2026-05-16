@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace TinyBlocks\Http\Internal\Server\Request;
 
 use Psr\Http\Message\ServerRequestInterface;
-use TinyBlocks\Http\Internal\Shared\Body;
+use TinyBlocks\Http\Body;
+use TinyBlocks\Http\Server\Decoded\DecodedRequest;
+use TinyBlocks\Http\Server\Decoded\Uri;
 
 final readonly class Decoder
 {

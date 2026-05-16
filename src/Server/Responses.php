@@ -122,4 +122,22 @@ interface Responses
      * @return ResponseInterface The generated 500 Internal Server Error response.
      */
     public static function internalServerError(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 502 Bad Gateway status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 502 Bad Gateway response.
+     */
+    public static function badGateway(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 503 Service Unavailable status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 503 Service Unavailable response.
+     */
+    public static function serviceUnavailable(mixed $body, Headerable ...$headers): ResponseInterface;
 }

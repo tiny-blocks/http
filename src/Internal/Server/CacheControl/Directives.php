@@ -16,9 +16,11 @@ enum Directives: string
 
     public function toHeaderValue(?int $value = null): string
     {
+        $template = '%s=%d';
+
         return match ($this) {
-            self::MAX_AGE => sprintf('%s=%d', $this->value, $value),
-            default       => $this->value
+            Directives::MAX_AGE => sprintf($template, $this->value, $value),
+            default             => $this->value
         };
     }
 }

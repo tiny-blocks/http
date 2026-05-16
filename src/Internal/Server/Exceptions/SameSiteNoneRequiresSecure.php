@@ -13,6 +13,6 @@ final class SameSiteNoneRequiresSecure extends DomainException
 
     public function __construct()
     {
-        parent::__construct(self::REASON);
+        parent::__construct(message: SameSiteNoneRequiresSecure::REASON);
     }
 }

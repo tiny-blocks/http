@@ -12,27 +12,27 @@ trait CacheControlDirective
 
     public static function maxAge(int $maxAgeInWholeSeconds): static
     {
-        return new self(value: Directives::MAX_AGE->toHeaderValue(value: $maxAgeInWholeSeconds));
+        return new static(value: Directives::MAX_AGE->toHeaderValue(value: $maxAgeInWholeSeconds));
     }
 
     public static function noCache(): static
     {
-        return new self(value: Directives::NO_CACHE->toHeaderValue());
+        return new static(value: Directives::NO_CACHE->toHeaderValue());
     }
 
     public static function noStore(): static
     {
-        return new self(value: Directives::NO_STORE->toHeaderValue());
+        return new static(value: Directives::NO_STORE->toHeaderValue());
     }
 
     public static function noTransform(): static
     {
-        return new self(value: Directives::NO_TRANSFORM->toHeaderValue());
+        return new static(value: Directives::NO_TRANSFORM->toHeaderValue());
     }
 
     public static function staleIfError(): static
     {
-        return new self(value: Directives::STALE_IF_ERROR->toHeaderValue());
+        return new static(value: Directives::STALE_IF_ERROR->toHeaderValue());
     }
 
     public function toString(): string

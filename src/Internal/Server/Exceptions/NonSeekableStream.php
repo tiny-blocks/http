@@ -12,6 +12,6 @@ final class NonSeekableStream extends RuntimeException
 
     public function __construct()
     {
-        parent::__construct(self::REASON);
+        parent::__construct(message: NonSeekableStream::REASON);
     }
 }

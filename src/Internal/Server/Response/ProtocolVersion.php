@@ -14,11 +14,11 @@ final readonly class ProtocolVersion
 
     public static function default(): ProtocolVersion
     {
-        return new ProtocolVersion(version: self::DEFAULT_PROTOCOL_VERSION);
+        return new ProtocolVersion(version: ProtocolVersion::DEFAULT_PROTOCOL_VERSION);
     }
 
     public static function from(string $version): ProtocolVersion
     {
-        return empty($version) ? self::default() : new ProtocolVersion(version: $version);
+        return $version === '' ? ProtocolVersion::default() : new ProtocolVersion(version: $version);
     }
 }

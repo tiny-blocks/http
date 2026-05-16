@@ -6,11 +6,16 @@ namespace TinyBlocks\Http;
 
 final readonly class CacheControl implements Headerable
 {
-    /** @param list<string> $directives */
     private function __construct(private array $directives)
     {
     }
 
+    /**
+     * Creates a CacheControl from a list of response directives.
+     *
+     * @param ResponseCacheDirectives ...$directives The directives folded into the Cache-Control header.
+     * @return CacheControl A header carrying every supplied directive in the given order.
+     */
     public static function fromResponseDirectives(ResponseCacheDirectives ...$directives): CacheControl
     {
         $values = [];

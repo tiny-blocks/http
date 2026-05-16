@@ -10,10 +10,10 @@ namespace TinyBlocks\Http;
 interface Headerable
 {
     /**
-     * Converts the instance to an associative array of HTTP headers.
+     * Returns the Headerable as an associative map of HTTP header names to values.
      *
-     * @return array<string, string|list<string>> An associative array where the key is the header name
-     *                                            and the value is the header value (or list of values).
+     * @return array<string, string|list<string>> An associative array where the key is the header
+     *                                            name and the value is the header value (or list of values).
      */
     public function toArray(): array;
 }

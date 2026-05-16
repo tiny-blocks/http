@@ -90,27 +90,56 @@ enum Code: int
     case NETWORK_AUTHENTICATION_REQUIRED = 511;
 
     /**
-     * Indicates whether the status code falls in the 4xx or 5xx range.
+     * Tells whether the given code falls in the error range (4xx or 5xx).
      *
-     * @return bool True when the code represents an error response.
-     *
-     * @complexity O(1) time and space.
+     * @param int $code The HTTP status code to check.
+     * @return bool True when the code falls in the error range, otherwise false.
      */
-    public function isError(): bool
+    public static function isErrorCode(int $code): bool
     {
-        return self::isErrorCode(code: $this->value);
+        return $code >= Code::BAD_REQUEST->value && $code <= Code::NETWORK_AUTHENTICATION_REQUIRED->value;
     }
 
     /**
-     * Indicates whether the status code falls in the 2xx range.
+     * Tells whether the given code falls in the success range (2xx).
+     *
+     * @param int $code The HTTP status code to check.
+     * @return bool True when the code falls in the success range, otherwise false.
+     */
+    public static function isSuccessCode(int $code): bool
+    {
+        return $code >= Code::OK->value && $code <= Code::IM_USED->value;
+    }
+
+    /**
+     * Tells whether the given code is a valid HTTP status code represented by the enum.
+     *
+     * @param int $code The HTTP status code to check.
+     * @return bool True when the code exists in the enum, otherwise false.
+     */
+    public static function isValidCode(int $code): bool
+    {
+        return !is_null(Code::tryFrom($code));
+    }
+
+    /**
+     * Tells whether the status code falls in the 4xx or 5xx range.
+     *
+     * @return bool True when the code represents an error response.
+     */
+    public function isError(): bool
+    {
+        return Code::isErrorCode(code: $this->value);
+    }
+
+    /**
+     * Tells whether the status code falls in the 2xx range.
      *
      * @return bool True when the code represents a successful response.
-     *
-     * @complexity O(1) time and space.
      */
     public function isSuccess(): bool
     {
-        return self::isSuccessCode(code: $this->value);
+        return Code::isSuccessCode(code: $this->value);
     }
 
     /**
@@ -122,47 +151,12 @@ enum Code: int
     public function message(): string
     {
         $subject = match ($this) {
-            self::OK          => $this->name,
-            self::IM_USED     => 'IM Used',
-            self::IM_A_TEAPOT => "I'm a teapot",
+            Code::OK          => $this->name,
+            Code::IM_USED     => 'IM Used',
+            Code::IM_A_TEAPOT => "I'm a teapot",
             default           => mb_convert_case($this->name, MB_CASE_TITLE)
         };
 
         return str_replace('_', ' ', $subject);
-    }
-
-    /**
-     * Determines if the given code is a valid HTTP status code represented by the enum.
-     *
-     * @param int $code The HTTP status code to check.
-     * @return bool True if the code exists in the enum, otherwise false.
-     */
-    public static function isValidCode(int $code): bool
-    {
-        $mapper = fn(Code $code): int => $code->value;
-
-        return in_array($code, array_map($mapper, self::cases()));
-    }
-
-    /**
-     * Determines if the given code is in the error range (4xx or 5xx).
-     *
-     * @param int $code The HTTP status code to check.
-     * @return bool True if the code is in the error range (4xx or 5xx), otherwise false.
-     */
-    public static function isErrorCode(int $code): bool
-    {
-        return $code >= self::BAD_REQUEST->value && $code <= self::NETWORK_AUTHENTICATION_REQUIRED->value;
-    }
-
-    /**
-     * Determines if the given code is in the success range (2xx).
-     *
-     * @param int $code The HTTP status code to check.
-     * @return bool True if the code is in the success range (2xx), otherwise false.
-     */
-    public static function isSuccessCode(int $code): bool
-    {
-        return $code >= self::OK->value && $code <= self::IM_USED->value;
     }
 }

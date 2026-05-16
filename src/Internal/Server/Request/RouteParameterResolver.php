@@ -8,15 +8,6 @@ use Psr\Http\Message\ServerRequestInterface;
 
 final readonly class RouteParameterResolver
 {
-    private const array KNOWN_ATTRIBUTE_KEYS = [
-        '__route__',
-        '_route_params',
-        'route',
-        'routing',
-        'routeResult',
-        'routeInfo'
-    ];
-
     private const array OBJECT_METHODS = [
         'getArguments',
         'getMatchedParams',
@@ -31,6 +22,15 @@ final readonly class RouteParameterResolver
         'parameters'
     ];
 
+    private const array KNOWN_ATTRIBUTE_KEYS = [
+        '__route__',
+        '_route_params',
+        'route',
+        'routing',
+        'routeResult',
+        'routeInfo'
+    ];
+
     private function __construct(private ServerRequestInterface $request)
     {
     }
@@ -40,8 +40,50 @@ final readonly class RouteParameterResolver
         return new RouteParameterResolver(request: $request);
     }
 
-    /** @return array<int|string, mixed> */
-    public function resolve(string $attributeName): array
+    public function resolveAttribute(string $key, string $attributeName, bool $scanKnownAttributes): mixed
+    {
+        $parameters = $this->resolve(attributeName: $attributeName);
+
+        if (array_key_exists($key, $parameters)) {
+            return $parameters[$key];
+        }
+
+        $attribute = $this->request->getAttribute($attributeName);
+
+        if (is_scalar($attribute)) {
+            return $attribute;
+        }
+
+        return $this->resolveFallback(key: $key, scanKnownAttributes: $scanKnownAttributes);
+    }
+
+    private function resolveFallback(string $key, bool $scanKnownAttributes): mixed
+    {
+        if ($scanKnownAttributes) {
+            $allKnown = $this->resolveFromKnownAttributes();
+
+            if (array_key_exists($key, $allKnown)) {
+                return $allKnown[$key];
+            }
+        }
+
+        return $this->request->getAttribute($key);
+    }
+
+    private function resolveFromKnownAttributes(): array
+    {
+        foreach (RouteParameterResolver::KNOWN_ATTRIBUTE_KEYS as $key) {
+            $parameters = $this->resolve(attributeName: $key);
+
+            if (!empty($parameters)) {
+                return $parameters;
+            }
+        }
+
+        return [];
+    }
+
+    private function resolve(string $attributeName): array
     {
         $attribute = $this->request->getAttribute($attributeName);
 
@@ -56,44 +98,24 @@ final readonly class RouteParameterResolver
         return [];
     }
 
-    /** @return array<int|string, mixed> */
-    public function resolveFromKnownAttributes(): array
-    {
-        foreach (self::KNOWN_ATTRIBUTE_KEYS as $key) {
-            $parameters = $this->resolve(attributeName: $key);
-
-            if (!empty($parameters)) {
-                return $parameters;
-            }
-        }
-
-        return [];
-    }
-
-    public function resolveDirectAttribute(string $key): mixed
-    {
-        return $this->request->getAttribute($key);
-    }
-
-    /** @return array<int|string, mixed> */
     private function extractFromObject(object $object): array
     {
-        foreach (self::OBJECT_METHODS as $method) {
+        foreach (RouteParameterResolver::OBJECT_METHODS as $method) {
             if (method_exists($object, $method)) {
-                $result = $object->{$method}();
+                $parameters = $object->{$method}();
 
-                if (is_array($result)) {
-                    return $result;
+                if (is_array($parameters)) {
+                    return $parameters;
                 }
             }
         }
 
-        foreach (self::OBJECT_PROPERTIES as $property) {
+        foreach (RouteParameterResolver::OBJECT_PROPERTIES as $property) {
             if (property_exists($object, $property)) {
-                $value = $object->{$property};
+                $parameters = $object->{$property};
 
-                if (is_array($value)) {
-                    return $value;
+                if (is_array($parameters)) {
+                    return $parameters;
                 }
             }
         }

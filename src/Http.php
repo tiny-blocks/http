@@ -33,14 +33,14 @@ final readonly class Http
     }
 
     /**
-     * Creates an Http instance directly from a base URL and a transport.
+     * Creates an Http instance directly from a base URL and transport.
      *
      * Explicit single-call alternative to the fluent builder returned by
      * create(). Both arguments are required.
      *
      * @param string $baseUrl The absolute base URL prepended to every request path.
      * @param Transport $transport The transport that delivers resolved requests.
-     * @return Http A configured Http façade.
+     * @return Http A configured Http facade.
      */
     public static function with(string $baseUrl, Transport $transport): Http
     {

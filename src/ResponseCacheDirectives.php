@@ -16,11 +16,21 @@ final readonly class ResponseCacheDirectives
 {
     use CacheControlDirective;
 
+    /**
+     * Builds a ResponseCacheDirectives with the <code>must-revalidate</code> directive.
+     *
+     * @return ResponseCacheDirectives A directive that forbids using a stale response.
+     */
     public static function mustRevalidate(): ResponseCacheDirectives
     {
         return new ResponseCacheDirectives(value: Directives::MUST_REVALIDATE->toHeaderValue());
     }
 
+    /**
+     * Builds a ResponseCacheDirectives with the <code>proxy-revalidate</code> directive.
+     *
+     * @return ResponseCacheDirectives A directive that forbids shared caches from using a stale response.
+     */
     public static function proxyRevalidate(): ResponseCacheDirectives
     {
         return new ResponseCacheDirectives(value: Directives::PROXY_REVALIDATE->toHeaderValue());

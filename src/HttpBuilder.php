@@ -36,12 +36,12 @@ final readonly class HttpBuilder
     }
 
     /**
-     * Assembles the configured Http façade.
+     * Assembles the configured Http facade.
      *
      * Both a base URL and a transport must have been supplied via withBaseUrl()
      * and withTransport() before this call.
      *
-     * @return Http A configured Http façade.
+     * @return Http A configured Http facade.
      * @throws HttpConfigurationInvalid When the base URL or the transport is missing.
      */
     public function build(): Http

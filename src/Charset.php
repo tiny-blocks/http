@@ -17,8 +17,15 @@ enum Charset: string
     case ISO_8859_1 = 'iso-8859-1';
     case WINDOWS_1252 = 'windows-1252';
 
+    /**
+     * Returns the Charset as a Content-Type charset parameter.
+     *
+     * @return string The header fragment in the form <code>charset={value}</code>.
+     */
     public function toString(): string
     {
-        return sprintf('charset=%s', $this->value);
+        $template = 'charset=%s';
+
+        return sprintf($template, $this->value);
     }
 }

@@ -27,6 +27,14 @@ final readonly class NetworkTransport implements Transport
     ) {
     }
 
+    /**
+     * Creates a NetworkTransport backed by a PSR-18 client and a PSR-17 factory.
+     *
+     * @param ClientInterface $client The PSR-18 client that performs the actual network call.
+     * @param RequestFactoryInterface&StreamFactoryInterface $factory The PSR-17 factory used to build the
+     *                                                                PSR-7 request and body stream.
+     * @return NetworkTransport A transport that dispatches each request through the given client.
+     */
     public static function with(
         ClientInterface $client,
         RequestFactoryInterface&StreamFactoryInterface $factory
@@ -36,12 +44,14 @@ final readonly class NetworkTransport implements Transport
 
     public function send(Request $request): Response
     {
-        $psrRequest = $this->factory->createRequest(method: $request->method->value, uri: $request->url);
-        $psrRequest = $request->headers->applyTo(message: $psrRequest);
+        $psrRequest = $this->factory->createRequest($request->method()->value, $request->url());
+        $psrRequest = $request->headers()->applyTo(message: $psrRequest);
 
-        if (!is_null($request->body)) {
-            $encoded = json_encode($request->body, self::JSON_FLAGS);
-            $psrRequest = $psrRequest->withBody(body: $this->factory->createStream(content: $encoded));
+        $body = $request->body();
+
+        if (!is_null($body)) {
+            $encoded = json_encode($body, NetworkTransport::JSON_FLAGS);
+            $psrRequest = $psrRequest->withBody(body: $this->factory->createStream($encoded));
         }
 
         try {

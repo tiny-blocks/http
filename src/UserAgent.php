@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-use InvalidArgumentException;
+use TinyBlocks\Http\Exceptions\UserAgentProductIsEmpty;
 
 final readonly class UserAgent implements Headerable
 {
-    private function __construct(
-        private string $product,
-        private ?string $version
-    ) {
+    private function __construct(private string $product, private ?string $version)
+    {
     }
 
     /**
@@ -24,12 +22,12 @@ final readonly class UserAgent implements Headerable
      * @param string $product The mandatory product token (e.g., "MyApp").
      * @param string $version The optional version. Empty string means "absent".
      * @return UserAgent A new immutable value object.
-     * @throws InvalidArgumentException When the product token is empty.
+     * @throws UserAgentProductIsEmpty When the product token is empty.
      */
     public static function from(string $product, string $version = ''): UserAgent
     {
         if ($product === '') {
-            throw new InvalidArgumentException('User-Agent product must not be empty.');
+            throw UserAgentProductIsEmpty::create();
         }
 
         return new UserAgent(
@@ -44,6 +42,8 @@ final readonly class UserAgent implements Headerable
             return ['User-Agent' => $this->product];
         }
 
-        return ['User-Agent' => sprintf('%s/%s', $this->product, $this->version)];
+        $template = '%s/%s';
+
+        return ['User-Agent' => sprintf($template, $this->product, $this->version)];
     }
 }

@@ -10,7 +10,6 @@ use TinyBlocks\Http\Headerable;
 
 final readonly class ResponseHeaders
 {
-    /** @param array<string, list<string>> $headers */
     private function __construct(private array $headers)
     {
     }
@@ -21,7 +20,6 @@ final readonly class ResponseHeaders
             return new ResponseHeaders(headers: ContentType::applicationJson(charset: Charset::UTF_8)->toArray());
         }
 
-        /** @var array<string, list<string>> $merged */
         $merged = [];
 
         foreach ($headers as $header) {
@@ -34,32 +32,30 @@ final readonly class ResponseHeaders
         return new ResponseHeaders(headers: $merged);
     }
 
-    /** @return list<string> */
-    public function getByName(string $name): array
-    {
-        $key = $this->findKey(name: $name);
-
-        return $key === null ? [] : $this->headers[$key];
-    }
-
     public function hasHeader(string $name): bool
     {
         return !empty($this->getByName(name: $name));
     }
 
-    public function removeByName(string $name): ResponseHeaders
+    public function toArray(): array
     {
-        $headers = $this->headers;
-        $existingKey = $this->findKey(name: $name);
-
-        if ($existingKey !== null) {
-            unset($headers[$existingKey]);
-        }
-
-        return new ResponseHeaders(headers: $headers);
+        return $this->headers;
     }
 
-    /** @param string|list<string> $value */
+    public function getByName(string $name): array
+    {
+        $key = $this->findKey(name: $name);
+
+        return is_null($key) ? [] : $this->headers[$key];
+    }
+
+    private function findKey(string $name): ?string
+    {
+        $lowered = strtolower($name);
+
+        return array_find(array_keys($this->headers), static fn(string $key): bool => strtolower($key) === $lowered);
+    }
+
     public function withReplaced(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
@@ -70,14 +66,25 @@ final readonly class ResponseHeaders
         return new ResponseHeaders(headers: $headers);
     }
 
-    /** @param string|list<string> $value */
+    public function removeByName(string $name): ResponseHeaders
+    {
+        $headers = $this->headers;
+        $existingKey = $this->findKey(name: $name);
+
+        if (!is_null($existingKey)) {
+            unset($headers[$existingKey]);
+        }
+
+        return new ResponseHeaders(headers: $headers);
+    }
+
     public function withAdded(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
         $existingKey = $this->findKey(name: $name);
         $appended = is_array($value) ? $value : [$value];
 
-        if ($existingKey === null) {
+        if (is_null($existingKey)) {
             $headers[$name] = $appended;
 
             return new ResponseHeaders(headers: $headers);
@@ -86,7 +93,7 @@ final readonly class ResponseHeaders
         $existingValues = $headers[$existingKey];
 
         foreach ($appended as $next) {
-            if (!in_array($next, $existingValues, strict: true)) {
+            if (!in_array($next, $existingValues, true)) {
                 $existingValues[] = $next;
             }
         }
@@ -94,24 +101,5 @@ final readonly class ResponseHeaders
         $headers[$existingKey] = $existingValues;
 
         return new ResponseHeaders(headers: $headers);
-    }
-
-    /** @return array<string, list<string>> */
-    public function toArray(): array
-    {
-        return $this->headers;
-    }
-
-    private function findKey(string $name): ?string
-    {
-        $lowered = strtolower($name);
-
-        foreach (array_keys($this->headers) as $key) {
-            if (strtolower($key) === $lowered) {
-                return $key;
-            }
-        }
-
-        return null;
     }
 }

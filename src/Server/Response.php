@@ -9,8 +9,12 @@ use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Headerable;
 use TinyBlocks\Http\Internal\Server\Response\InternalResponse;
 
-final readonly class Response implements Responses
+final class Response implements Responses
 {
+    private function __construct()
+    {
+    }
+
     public static function from(mixed $body, Code $code, Headerable ...$headers): ResponseInterface
     {
         return InternalResponse::createWithBody($body, $code, ...$headers);
@@ -69,5 +73,15 @@ final readonly class Response implements Responses
     public static function internalServerError(mixed $body, Headerable ...$headers): ResponseInterface
     {
         return InternalResponse::createWithBody($body, Code::INTERNAL_SERVER_ERROR, ...$headers);
+    }
+
+    public static function badGateway(mixed $body, Headerable ...$headers): ResponseInterface
+    {
+        return InternalResponse::createWithBody($body, Code::BAD_GATEWAY, ...$headers);
+    }
+
+    public static function serviceUnavailable(mixed $body, Headerable ...$headers): ResponseInterface
+    {
+        return InternalResponse::createWithBody($body, Code::SERVICE_UNAVAILABLE, ...$headers);
     }
 }

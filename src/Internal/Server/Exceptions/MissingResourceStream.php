@@ -12,6 +12,6 @@ final class MissingResourceStream extends RuntimeException
 
     public function __construct()
     {
-        parent::__construct(self::REASON);
+        parent::__construct(message: MissingResourceStream::REASON);
     }
 }

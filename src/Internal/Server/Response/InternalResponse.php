@@ -41,70 +41,6 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
-    public function withBody(StreamInterface $body): MessageInterface
-    {
-        return new InternalResponse(
-            body: $body,
-            code: $this->code,
-            headers: $this->headers,
-            protocolVersion: $this->protocolVersion
-        );
-    }
-
-    public function withStatus(int $code, string $reasonPhrase = ''): ResponseInterface
-    {
-        return new InternalResponse(
-            body: $this->body,
-            code: Code::from($code),
-            headers: $this->headers,
-            protocolVersion: $this->protocolVersion
-        );
-    }
-
-    /** @param string|list<string> $value */
-    public function withHeader(string $name, $value): MessageInterface
-    {
-        return new InternalResponse(
-            body: $this->body,
-            code: $this->code,
-            headers: $this->headers->withReplaced(name: $name, value: $value),
-            protocolVersion: $this->protocolVersion
-        );
-    }
-
-    public function withoutHeader(string $name): MessageInterface
-    {
-        return new InternalResponse(
-            body: $this->body,
-            code: $this->code,
-            headers: $this->headers->removeByName(name: $name),
-            protocolVersion: $this->protocolVersion
-        );
-    }
-
-    /** @param string|list<string> $value */
-    public function withAddedHeader(string $name, $value): MessageInterface
-    {
-        return new InternalResponse(
-            body: $this->body,
-            code: $this->code,
-            headers: $this->headers->withAdded(name: $name, value: $value),
-            protocolVersion: $this->protocolVersion
-        );
-    }
-
-    public function withProtocolVersion(string $version): MessageInterface
-    {
-        $protocolVersion = ProtocolVersion::from(version: $version);
-
-        return new InternalResponse(
-            body: $this->body,
-            code: $this->code,
-            headers: $this->headers,
-            protocolVersion: $protocolVersion
-        );
-    }
-
     public function hasHeader(string $name): bool
     {
         return $this->headers->hasHeader(name: $name);
@@ -143,5 +79,67 @@ final readonly class InternalResponse implements ResponseInterface
     public function getProtocolVersion(): string
     {
         return $this->protocolVersion->version;
+    }
+
+    public function withBody(StreamInterface $body): MessageInterface
+    {
+        return new InternalResponse(
+            body: $body,
+            code: $this->code,
+            headers: $this->headers,
+            protocolVersion: $this->protocolVersion
+        );
+    }
+
+    public function withStatus(int $code, string $reasonPhrase = ''): ResponseInterface
+    {
+        return new InternalResponse(
+            body: $this->body,
+            code: Code::from($code),
+            headers: $this->headers,
+            protocolVersion: $this->protocolVersion
+        );
+    }
+
+    public function withHeader(string $name, mixed $value): MessageInterface
+    {
+        return new InternalResponse(
+            body: $this->body,
+            code: $this->code,
+            headers: $this->headers->withReplaced(name: $name, value: $value),
+            protocolVersion: $this->protocolVersion
+        );
+    }
+
+    public function withoutHeader(string $name): MessageInterface
+    {
+        return new InternalResponse(
+            body: $this->body,
+            code: $this->code,
+            headers: $this->headers->removeByName(name: $name),
+            protocolVersion: $this->protocolVersion
+        );
+    }
+
+    public function withAddedHeader(string $name, mixed $value): MessageInterface
+    {
+        return new InternalResponse(
+            body: $this->body,
+            code: $this->code,
+            headers: $this->headers->withAdded(name: $name, value: $value),
+            protocolVersion: $this->protocolVersion
+        );
+    }
+
+    public function withProtocolVersion(string $version): MessageInterface
+    {
+        $protocolVersion = ProtocolVersion::from(version: $version);
+
+        return new InternalResponse(
+            body: $this->body,
+            code: $this->code,
+            headers: $this->headers,
+            protocolVersion: $protocolVersion
+        );
     }
 }

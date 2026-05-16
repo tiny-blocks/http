@@ -17,14 +17,14 @@ final readonly class CookieValue
     public static function from(string $value): CookieValue
     {
         if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1) {
-            throw new CookieValueIsInvalid($value);
+            throw new CookieValueIsInvalid(value: $value);
         }
 
-        if (strpbrk($value, self::FORBIDDEN_CHARACTERS) !== false) {
-            throw new CookieValueIsInvalid($value);
+        if (strpbrk($value, CookieValue::FORBIDDEN_CHARACTERS) !== false) {
+            throw new CookieValueIsInvalid(value: $value);
         }
 
-        return new CookieValue($value);
+        return new CookieValue(value: $value);
     }
 
     public function toString(): string

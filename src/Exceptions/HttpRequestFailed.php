@@ -10,7 +10,7 @@ use Throwable;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Method;
 
-final class HttpRequestFailed extends RuntimeException implements HttpException
+final class HttpRequestFailed extends RuntimeException implements TransportFailure
 {
     private const string REASON_TEMPLATE = 'PSR-18 client failed for %s %s: %s';
 
@@ -20,9 +20,20 @@ final class HttpRequestFailed extends RuntimeException implements HttpException
         private readonly string $reason,
         ?Throwable $previous = null
     ) {
-        parent::__construct(sprintf(self::REASON_TEMPLATE, $method->value, $url, $reason), 0, $previous);
+        $template = HttpRequestFailed::REASON_TEMPLATE;
+
+        parent::__construct(message: sprintf($template, $method->value, $url, $reason), previous: $previous);
     }
 
+    /**
+     * Creates an HttpRequestFailed from a URL, HTTP method, reason, and optional previous throwable.
+     *
+     * @param string $url The URL of the failed request.
+     * @param Method $method The HTTP method of the failed request.
+     * @param string $reason The transport-level reason for the failure.
+     * @param Throwable|null $previous The previous throwable preserved in the exception chain, if any.
+     * @return HttpRequestFailed The composed request-failure exception.
+     */
     public static function from(
         string $url,
         Method $method,
@@ -32,13 +43,20 @@ final class HttpRequestFailed extends RuntimeException implements HttpException
         return new HttpRequestFailed(url: $url, method: $method, reason: $reason, previous: $previous);
     }
 
+    /**
+     * Creates an HttpRequestFailed from a Request and a PSR-18 client exception.
+     *
+     * @param Request $request The outbound request that triggered the failure.
+     * @param ClientExceptionInterface $exception The PSR-18 client exception preserved as the previous throwable.
+     * @return HttpRequestFailed The composed request-failure exception wrapping the original cause.
+     */
     public static function fromClientException(
         Request $request,
         ClientExceptionInterface $exception
     ): HttpRequestFailed {
-        return self::from(
-            url: $request->url,
-            method: $request->method,
+        return HttpRequestFailed::from(
+            url: $request->url(),
+            method: $request->method(),
             reason: $exception->getMessage(),
             previous: $exception
         );
@@ -49,13 +67,13 @@ final class HttpRequestFailed extends RuntimeException implements HttpException
         return $this->url;
     }
 
-    public function reason(): string
-    {
-        return $this->reason;
-    }
-
     public function method(): Method
     {
         return $this->method;
+    }
+
+    public function reason(): string
+    {
+        return $this->reason;
     }
 }
