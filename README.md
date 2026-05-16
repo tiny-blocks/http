@@ -1,25 +1,41 @@
 # Http
 
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/tiny-blocks/http/blob/main/LICENSE)
 
 * [Overview](#overview)
 * [Installation](#installation)
 * [How to use](#how-to-use)
-    * [Request](#request)
-    * [Response](#response)
+    + [Server](#server)
+        - [Decoding a request](#decoding-a-request)
+        - [Creating a response](#creating-a-response)
+        - [Setting cookies](#setting-cookies)
+        - [Status code](#status-code)
+    + [Client](#client)
+        - [Building Http with a PSR-18 client and PSR-17 factories](#building-http-with-a-psr-18-client-and-psr-17-factories)
+        - [Making a request](#making-a-request)
+        - [Reading the response](#reading-the-response)
+        - [Query parameters](#query-parameters)
+        - [Custom headers and content type](#custom-headers-and-content-type)
+        - [Setting the User-Agent](#setting-the-user-agent)
+        - [Error handling](#error-handling)
+        - [Configuring timeouts](#configuring-timeouts)
+        - [Testing with InMemoryTransport](#testing-with-inmemorytransport)
+        - [Extending with custom transports](#extending-with-custom-transports)
+* [FAQ](#faq)
 * [License](#license)
 * [Contributing](#contributing)
 
-<div id='overview'></div> 
-
 ## Overview
 
-Implements [PSR-7](https://www.php-fig.org/psr/psr-7) and [PSR-15](https://www.php-fig.org/psr/psr-15) HTTP primitives
-for PHP, covering requests, responses, streams, cookies, headers, methods, status codes, and cache-control directives.
-Ships with a fluent response builder that maps common outcomes to the correct HTTP semantics out of the box.
-Interoperable with Slim, Laminas, and any PSR-compliant framework.
+The library covers both sides of an HTTP exchange:
 
-<div id='installation'></div>
+- **Server side** (`TinyBlocks\Http\Server`) - decodes a PSR-7 `ServerRequestInterface` into typed accessors and builds
+  outgoing `ResponseInterface` instances with cookies, cache-control, and status codes.
+- **Client side** (`TinyBlocks\Http\Client`) - composes outbound requests, sends them through a `Transport` port backed
+  by any PSR-18 client, and exposes responses with typed body and header access.
+
+Shared primitives at `TinyBlocks\Http\`: `Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `MimeType`,
+`Charset`, `Cookie`, `SameSite`, `CacheControl`, `ResponseCacheDirectives`, `UserAgent`.
 
 ## Installation
 
@@ -27,372 +43,614 @@ Interoperable with Slim, Laminas, and any PSR-compliant framework.
 composer require tiny-blocks/http
 ```
 
-<div id='how-to-use'></div>
-
 ## How to use
 
-The library exposes interfaces like `Headers` and concrete implementations like `Request`, `Response`, `ContentType`,
-and others, which facilitate construction.
-
-<div id='request'></div>
-
-### Request
+### Server
 
 #### Decoding a request
 
-The library provides a small public API to decode a PSR-7 `ServerRequestInterface` into a typed structure, allowing you
-to access route parameters and JSON body fields consistently.
-
-- **Decode a request**: Use `Request::from(...)` to wrap the PSR-7 request and call `decode()`. The decoded object
-  exposes `uri` and `body`.
-
-  ```php
-  use Psr\Http\Message\ServerRequestInterface;
-  use TinyBlocks\Http\Request;
-
-  /** @var ServerRequestInterface $psrRequest */
-  $decoded = Request::from(request: $psrRequest)->decode();
-
-  $name = $decoded->body()->get(key: 'name')->toString();
-  $payload = $decoded->body()->toArray();
-
-  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();
-  ```
-
-- **Access the HTTP method**: Use `method()` directly on the `Request` to retrieve the HTTP verb as a typed `Method`
-  enum.
-
-  ```php
-  use Psr\Http\Message\ServerRequestInterface;
-  use TinyBlocks\Http\Request;
-
-  /** @var ServerRequestInterface $psrRequest */
-  $request = Request::from(request: $psrRequest);
-
-  $method = $request->method();        # Method::POST
-  $method->value;                      # "POST"
-  ```
-
-- **Access the full URI**: Use `toString()` on the decoded `uri()` to retrieve the complete request URI as a string.
-
-  ```php
-  use TinyBlocks\Http\Request;
-
-  $decoded = Request::from(request: $psrRequest)->decode();
-
-  $fullUri = $decoded->uri()->toString(); # "https://api.example.com/v1/dragons?sort=name"
-  ```
-
-- **Access query parameters**: Use `queryParameters()` on the decoded `uri()` to retrieve typed access to query string
-  values. Each value is returned as an `Attribute`, providing the same safe conversions and defaults as body fields.
-
-  ```php
-  use TinyBlocks\Http\Request;
-
-  $decoded = Request::from(request: $psrRequest)->decode();
-
-  $queryParams = $decoded->uri()->queryParameters()->toArray();                     # ['sort' => 'name', 'limit' => '50']
-  $sort = $decoded->uri()->queryParameters()->get(key: 'sort')->toString();         # "name"
-  $limit = $decoded->uri()->queryParameters()->get(key: 'limit')->toInteger();      # 50
-  $active = $decoded->uri()->queryParameters()->get(key: 'active')->toBoolean();    # default: false
-  ```
-
-- **Typed access with defaults**: Each value is returned as an Attribute, which provides safe conversions and default
-  values when the underlying value is missing or not compatible.
-
-  ```php
-  use TinyBlocks\Http\Request;
-  
-  $request = Request::from(request: $psrRequest);
-  $decoded = $request->decode();
-  
-  $method = $request->method();                                                  # default: Method enum
-  
-  $id = $decoded->uri()->route()->get(key: 'id')->toInteger();                   # default: 0
-  $uri = $decoded->uri()->toString();                                            # default: ""
-  $sort = $decoded->uri()->queryParameters()->get(key: 'sort')->toString();      # default: ""
-  $limit = $decoded->uri()->queryParameters()->get(key: 'limit')->toInteger();   # default: 0
-  
-  $note = $decoded->body()->get(key: 'note')->toString();                        # default: ""
-  $tags = $decoded->body()->get(key: 'tags')->toArray();                         # default: []
-  $price = $decoded->body()->get(key: 'price')->toFloat();                       # default: 0.00
-  $active = $decoded->body()->get(key: 'active')->toBoolean();                   # default: false
-  ```
-
-- **Custom route attribute name**: If your framework stores route params in a different request attribute, you can
-  specify it via `route()`.
-
-  ```php
-  use TinyBlocks\Http\Request;
-  
-  $decoded = Request::from(request: $psrRequest)->decode();
-
-  $id = $decoded->uri()->route(name: '_route_params')->get(key: 'id')->toInteger();
-  ```
-
-#### How route parameters are resolved
-
-The library resolves route parameters from the PSR-7 `ServerRequestInterface` using a **multistep fallback strategy**,
-designed to work across different frameworks without importing any framework-specific code.
-
-**Resolution order** (when using the default `route()` or `route(name: '...')`):
-
-1. **Specified attribute lookup** — Reads the attribute from the request using the configured name (default:
-   `__route__`).
-    - If the value is an **array**, the key is looked up directly.
-    - If the value is an **object**, the resolver tries known accessor methods (`getArguments()`,
-      `getMatchedParams()`, `getParameters()`, `getParams()`) and then public properties (`arguments`, `params`,
-      `vars`, `parameters`).
-    - If the value is a **scalar** (e.g., a string), it is returned as-is.
-
-2. **Known attribute scan** (only when using the default `__route__` name) — Scans all commonly used attribute keys
-   across frameworks:
-    - `__route__`, `_route_params`, `route`, `routing`, `routeResult`, `routeInfo`
-
-3. **Direct attribute fallback** — As a last resort, tries `$request->getAttribute($key)` directly, which supports
-   frameworks like Laravel that store route params as individual request attributes.
-
-4. **Safe default** — If nothing is found, returns `Attribute::from(null)`, which provides safe conversions:
-   `toInteger()` → `0`, `toString()` → `""`, `toFloat()` → `0.00`, `toBoolean()` → `false`, `toArray()` → `[]`.
-
-**Supported frameworks and attribute formats:**
-
-| Framework               | Attribute Key   | Format                                        |
-|-------------------------|-----------------|-----------------------------------------------|
-| **Slim 4**              | `__route__`     | Object with `getArguments()`                  |
-| **Mezzio / Expressive** | `routeResult`   | Object with `getMatchedParams()`              |
-| **Symfony**             | `_route_params` | `array<string, mixed>`                        |
-| **Laravel**             | *(direct)*      | `getAttribute('id')` directly on the request  |
-| **FastRoute (generic)** | `routeInfo`     | Array with route parameters                   |
-| **Manual injection**    | Any custom key  | `$request->withAttribute('__route__', [...])` |
-
-#### Manually injecting route parameters
-
-If your framework or middleware does not automatically populate route attributes, you can inject them manually using
-PSR-7's `withAttribute()`:
+Wrap a PSR-7 `ServerRequestInterface` and read typed fields from the body, route parameters, and query string.
 
 ```php
-use TinyBlocks\Http\Request;
+<?php
 
-$psrRequest = $psrRequest->withAttribute('__route__', [
-    'id'    => '42',
-    'email' => 'user@example.com'
-]);
+declare(strict_types=1);
 
+use Psr\Http\Message\ServerRequestInterface;
+use TinyBlocks\Http\Server\Request;
+
+/** @var ServerRequestInterface $psrRequest */
 $decoded = Request::from(request: $psrRequest)->decode();
-$id = $decoded->uri()->route()->get(key: 'id')->toInteger(); # 42
 
-$psrRequest = $psrRequest->withAttribute('my_params', ['slug' => 'hello-world']);
-$slug = Request::from(request: $psrRequest)
-    ->decode()
-    ->uri()
-    ->route(name: 'my_params')
-    ->get(key: 'slug')
-    ->toString(); # "hello-world"
+$id = $decoded->uri()->route()->get(key: 'id')->toInteger();
+$sort = $decoded->uri()->queryParameters()->get(key: 'sort')->toString();
+$name = $decoded->body()->get(key: 'name')->toString();
+$amount = $decoded->body()->get(key: 'amount')->toFloat();
 ```
 
-<div id='response'></div>
+The HTTP method is available as a typed `Method` enum:
 
-### Response
+```php
+<?php
+
+declare(strict_types=1);
+
+use Psr\Http\Message\ServerRequestInterface;
+use TinyBlocks\Http\Server\Request;
+
+/** @var ServerRequestInterface $psrRequest */
+$method = Request::from(request: $psrRequest)->method();
+```
 
 #### Creating a response
 
-The library provides an easy and flexible way to create HTTP responses, allowing you to specify the status code,
-headers, and body. You can use the `Response` class to generate responses, and the result will always be a
-`ResponseInterface` from the PSR, ensuring compatibility with any framework that adheres
-to the [PSR-7](https://www.php-fig.org/psr/psr-7) standard.
+Each helper returns a PSR-7 `ResponseInterface` and defaults to `application/json`:
 
-- **Creating a response with a body**: To create an HTTP response, you can pass any type of data as the body.
-  Optionally, you can also specify one or more headers. If no headers are provided, the response will default to
-  `application/json` content type.
+```php
+<?php
 
-  ```php
-  use TinyBlocks\Http\Response;
-    
-  Response::ok(body: ['message' => 'Resource created successfully.']);
-  ```
+declare(strict_types=1);
 
-- **Creating a response with a body and custom headers**: You can also add custom headers to the response. For instance,
-  if you want to specify a custom content type or any other header, you can pass the headers as additional arguments.
+use TinyBlocks\Http\Server\Response;
 
-  ```php
-  use TinyBlocks\Http\Response;
-  use TinyBlocks\Http\ContentType;
-  use TinyBlocks\Http\CacheControl;
-  use TinyBlocks\Http\ResponseCacheDirectives;
-    
-  $body = 'This is a plain text response';
-  
-  $contentType = ContentType::textPlain();
-  
-  $cacheControl = CacheControl::fromResponseDirectives(
-      maxAge: ResponseCacheDirectives::maxAge(maxAgeInWholeSeconds: 10000),
-      staleIfError: ResponseCacheDirectives::staleIfError()
-  );
-  
-  Response::ok($body, $contentType, $cacheControl)
-      ->withHeader(name: 'X-ID', value: 100)
-      ->withHeader(name: 'X-NAME', value: 'Xpto');
-  ```
+Response::ok(body: ['message' => 'Resource created successfully.']);
+Response::created(body: ['id' => 42]);
+Response::noContent();
+Response::notFound(body: ['error' => 'Resource not found.']);
+```
+
+For custom status codes, use `from(...)`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Server\Response;
+
+Response::from(body: ['status' => 'accepted'], code: Code::ACCEPTED);
+```
+
+Attach additional headers via varargs of `Headerable`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\CacheControl;
+use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\ResponseCacheDirectives;
+use TinyBlocks\Http\Server\Response;
+
+$cacheControl = CacheControl::fromResponseDirectives(
+    ResponseCacheDirectives::maxAge(maxAgeInWholeSeconds: 10000)
+);
+
+Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
+    ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
+```
 
 #### Setting cookies
 
-The library models the `Set-Cookie` HTTP response header through the `Cookie` value object, covering the full
-[RFC 6265](https://datatracker.ietf.org/doc/html/rfc6265) attribute set plus modern additions such as `SameSite` and
-`Partitioned`. Instances are immutable and fluent — every builder call returns a new `Cookie`. Like `ContentType` and
-`CacheControl`, `Cookie` implements `Headers`, so it composes naturally with any `Response` factory via varargs.
+`Cookie` implements `Headerable` and composes naturally with `Response`:
 
-- **Setting a session cookie**: Build a cookie with the required security flags and attach it to a response.
+```php
+<?php
 
-  ```php
-  use TinyBlocks\Http\Cookie;
-  use TinyBlocks\Http\Response;
-  use TinyBlocks\Http\SameSite;
-  
-  $cookie = Cookie::create(name: 'refresh_token', value: $opaqueToken)
-      ->httpOnly()
-      ->secure()
-      ->withSameSite(sameSite: SameSite::STRICT)
-      ->withPath(path: '/v1/sessions')
-      ->withMaxAge(seconds: 604800);
-  
-  Response::ok(body: ['ok' => true], $cookie);
-  ```
+declare(strict_types=1);
 
-- **Setting multiple cookies**: Pass each `Cookie` as an additional header argument. The response emits one
-  `Set-Cookie` header per cookie, preserving all of them (this follows the PSR-7 multi-value header model).
+use TinyBlocks\Http\Cookie;
+use TinyBlocks\Http\SameSite;
+use TinyBlocks\Http\Server\Response;
 
-  ```php
-  use TinyBlocks\Http\Cookie;
-  use TinyBlocks\Http\Response;
-  use TinyBlocks\Http\SameSite;
-  
-  $accessCookie = Cookie::create(name: 'access_token', value: $accessToken)
-      ->httpOnly()
-      ->secure()
-      ->withPath(path: '/');
-  
-  $refreshCookie = Cookie::create(name: 'refresh_token', value: $refreshToken)
-      ->httpOnly()
-      ->secure()
-      ->withSameSite(sameSite: SameSite::STRICT)
-      ->withPath(path: '/v1/sessions')
-      ->withMaxAge(seconds: 604800);
-  
-  Response::ok(body: ['ok' => true], $accessCookie, $refreshCookie);
-  ```
+$session = Cookie::create(name: 'session', value: $token)
+    ->secure()
+    ->httpOnly()
+    ->withPath(path: '/v1/sessions')
+    ->withMaxAge(seconds: 604800)
+    ->withSameSite(sameSite: SameSite::STRICT);
 
-- **Expiring a cookie**: Use `Cookie::expire()` to instruct the browser to delete a previously set cookie. Chain the
-  same `Path` (and `Domain`, if applicable) used when the cookie was issued; otherwise the browser will not match the
-  cookie and the deletion will have no effect.
+Response::ok(['ok' => true], $session);
+```
 
-  ```php
-  use TinyBlocks\Http\Cookie;
-  use TinyBlocks\Http\Response;
-  use TinyBlocks\Http\SameSite;
-  
-  $expired = Cookie::expire(name: 'refresh_token')
-      ->httpOnly()
-      ->secure()
-      ->withSameSite(sameSite: SameSite::STRICT)
-      ->withPath(path: '/v1/sessions');
-  
-  Response::noContent($expired);
-  ```
+To expire a cookie, use `Cookie::expire(...)` with the same `Path` and `Domain` used at creation.
 
-- **Using an absolute expiration date**: When an explicit deletion moment is preferable over `Max-Age`, use
-  `withExpires()`. The date is converted to UTC and rendered in
-  the [RFC 7231](https://datatracker.ietf.org/doc/html/rfc7231)
-  date format required by the `Expires` attribute. `Max-Age` and `Expires` are mutually exclusive — setting both
-  throws `ConflictingLifetimeAttributes` when the response is serialized.
+```php
+<?php
 
-  ```php
-  use DateTimeImmutable;
-  use DateTimeZone;
-  use TinyBlocks\Http\Cookie;
-  
-  Cookie::create(name: 'preference', value: 'dark-mode')->withExpires(
-      expires: new DateTimeImmutable(datetime: '2030-01-15 12:00:00', timezone: new DateTimeZone(timezone: 'UTC'))
-  );
-  ```
+declare(strict_types=1);
 
-- **Cross-site cookies**: `SameSite::NONE` requires the `Secure` flag — modern browsers reject `SameSite=None` cookies
-  sent over insecure connections. The library enforces this invariant at serialization time and throws
-  `SameSiteNoneRequiresSecure` when the combination is incomplete.
+use TinyBlocks\Http\Cookie;
+use TinyBlocks\Http\SameSite;
+use TinyBlocks\Http\Server\Response;
 
-  ```php
-  use TinyBlocks\Http\Cookie;
-  use TinyBlocks\Http\SameSite;
-  
-  Cookie::create(name: 'embed_session', value: $token)
-      ->withSameSite(sameSite: SameSite::NONE)
-      ->secure();
-  ```
+$expired = Cookie::expire(name: 'session')
+    ->secure()
+    ->httpOnly()
+    ->withPath(path: '/v1/sessions')
+    ->withSameSite(sameSite: SameSite::STRICT);
 
-- **Validation at construction time**: Cookie names and values are validated against
-  [RFC 6265](https://datatracker.ietf.org/doc/html/rfc6265). Names cannot be empty nor contain control characters,
-  whitespace, or token separators (``( ) < > @ , ; : \ " / [ ] ? = { }``). Values cannot contain control characters,
-  whitespace, double quotes, commas, semicolons, or backslashes. Encode the value (e.g., URL-encode or Base64) before
-  passing it when it may contain arbitrary text.
+Response::noContent($expired);
+```
 
-  ```php
-  use TinyBlocks\Http\Cookie;
-  
-  Cookie::create(name: 'user_id', value: (string)$userId);           # valid
-  Cookie::create(name: 'payload', value: base64_encode($jsonBody));  # encode arbitrary values first
-  ```
+#### Status code
 
-#### Using the status code
+The `Code` enum carries the full RFC HTTP status set with typed helpers:
 
-The library exposes a concrete implementation through the `Code` enum. You can retrieve the status codes, their
-corresponding messages, and check for various status code ranges using the methods provided.
+```php
+<?php
 
-- **Get message**: Returns the [HTTP status message](https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages)
-  associated with the enum's code.
+declare(strict_types=1);
 
-  ```php
-  use TinyBlocks\Http\Code;
-  
-  Code::OK->value;                        # 200
-  Code::OK->message();                    # OK
-  Code::IM_A_TEAPOT->message();           # I'm a teapot
-  Code::INTERNAL_SERVER_ERROR->message(); # Internal Server Error
-  ```
+use TinyBlocks\Http\Code;
 
-- **Check if the code is valid**: Determines if the given code is a valid HTTP status code represented by the enum.
+Code::OK->value;                        # 200
+Code::OK->message();                    # "OK"
+Code::OK->isSuccess();                  # true
+Code::INTERNAL_SERVER_ERROR->isError(); # true
 
-  ```php
-  use TinyBlocks\Http\Code;
-  
-  Code::isValidCode(code: 200); # true
-  Code::isValidCode(code: 999); # false
-  ```
+Code::isValidCode(code: 200);   # true
+Code::isErrorCode(code: 500);   # true
+Code::isSuccessCode(code: 200); # true
+```
 
-- **Check if the code is an error**: Determines if the given code is in the error range (**4xx** or **5xx**).
+### Client
 
-  ```php
-  use TinyBlocks\Http\Code;
-  
-  Code::isErrorCode(code: 500); # true
-  Code::isErrorCode(code: 200); # false
-  ```
+#### Building Http with a PSR-18 client and PSR-17 factories
 
-- **Check if the code is a success**: Determines if the given code is in the success range (**2xx**).
+Assemble the facade with any PSR-18 client and PSR-17 factories.
 
-  ```php
-  use TinyBlocks\Http\Code;
-  
-  Code::isSuccessCode(code: 500); # false
-  Code::isSuccessCode(code: 200); # true
-  ```
+```php
+<?php
 
-<div id='license'></div>
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Http;
+
+$factory = new HttpFactory();
+$client = new Client(config: ['timeout' => 30, 'connect_timeout' => 5]);
+
+$http = Http::create()
+    ->withBaseUrl(url: 'https://api.example.com')
+    ->withTransport(transport: NetworkTransport::with(client: $client, factory: $factory))
+    ->build();
+```
+
+For a single-call construction without the fluent builder:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Http;
+
+$factory = new HttpFactory();
+
+$http = Http::with(
+    baseUrl: 'https://api.example.com',
+    transport: NetworkTransport::with(
+        client: new Client(config: ['timeout' => 30, 'connect_timeout' => 5]),
+        factory: $factory
+    )
+);
+```
+
+#### Making a request
+
+Every parameter on `Request::create(...)` is explicit. Pass `null` for `body` and `query` when absent. Pass
+`Method::GET` (or another method) for `method`. Build `headers` from one or more `Headerable` instances via
+`Headers::from(...)`, or call `Headers::from()` with no arguments when no headers apply.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: ['amount' => 1000, 'currency' => 'usd'],
+        query: null,
+        method: Method::POST,
+        headers: Headers::from(ContentType::applicationJson())
+    )
+);
+```
+
+A simple `GET` still passes every parameter, with `Headers::from()` for the empty header set:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges/abc123',
+        body: null,
+        query: null,
+        method: Method::GET,
+        headers: Headers::from()
+    )
+);
+```
+
+#### Reading the response
+
+```php
+<?php
+
+declare(strict_types=1);
+
+if ($response->isSuccess()) {
+    $id = $response->body()->get(key: 'id')->toString();
+    $amount = $response->body()->get(key: 'amount')->toInteger();
+}
+
+$response->raw();       # Psr\Http\Message\ResponseInterface
+$response->code();      # Code enum
+$response->headers();   # TinyBlocks\Http\Headers value object
+```
+
+`Headers` exposes case-insensitive lookup:
+
+```php
+$contentType = $response->headers()->get(name: 'content-type'); # "application/json"
+$hasTrace = $response->headers()->has(name: 'X-Trace-Id');      # true
+```
+
+#### Query parameters
+
+Pass the query as a named parameter - the library encodes it in RFC3986 form.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: null,
+        query: ['status' => 'succeeded', 'limit' => 50],
+        method: Method::GET,
+        headers: Headers::from()
+    )
+);
+```
+
+#### Custom headers and content type
+
+Compose any combination of `Headerable` via `Headers::from(...)`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Headerable;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+
+final readonly class IdempotencyKey implements Headerable
+{
+    public function __construct(private string $value)
+    {
+    }
+
+    public function toArray(): array
+    {
+        return ['Idempotency-Key' => $this->value];
+    }
+}
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: ['amount' => 1000],
+        query: null,
+        method: Method::POST,
+        headers: Headers::from(
+            ContentType::applicationJson(),
+            new IdempotencyKey(value: $key)
+        )
+    )
+);
+```
+
+Custom headers always win over the library's JSON defaults.
+
+#### Setting the User-Agent
+
+The `UserAgent` value object implements `Headerable` and renders the standard
+`User-Agent` header. Empty version is normalized to "no version" - the rendered
+header carries only the product token in that case, so configuration with an
+optional version flows in directly.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+use TinyBlocks\Http\UserAgent;
+
+$userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: null,
+        query: null,
+        method: Method::GET,
+        headers: Headers::from($userAgent)
+    )
+);
+```
+
+When the version is unknown:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\UserAgent;
+
+$userAgent = UserAgent::from(product: 'MyApp');
+# renders as: User-Agent: MyApp
+```
+
+`UserAgent` composes naturally with any other `Headerable`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Method;
+use TinyBlocks\Http\UserAgent;
+
+$response = $http->send(
+    request: Request::create(
+        url: '/v1/charges',
+        body: ['amount' => 1000],
+        query: null,
+        method: Method::POST,
+        headers: Headers::from(
+            UserAgent::from(product: 'MyApp', version: '1.2.3'),
+            ContentType::applicationJson()
+        )
+    )
+);
+```
+
+#### Error handling
+
+Every failure raises an `HttpException`. `TransportFailure` (which extends `HttpException`) carries `url()`,
+`method()`, and `reason()`, and is implemented by every exception raised by the transport layer. The remaining
+`HttpException` implementations carry only the marker contract. Inspect their concrete class for the invariant
+they violated. Catch the specific class when you need to react to a particular failure mode. Order of catch
+branches matters because PHP matches the first applicable branch.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Exceptions\HttpException;
+use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
+use TinyBlocks\Http\Exceptions\TransportFailure;
+
+try {
+    $http->send(request: $request);
+} catch (HttpRequestInvalid $exception) {
+    # PSR-18 RequestExceptionInterface: request malformed before transport.
+    echo $exception->url();
+    echo $exception->method()->name;
+    echo $exception->reason();
+} catch (TransportFailure $exception) {
+    # Other transport failures (network errors, generic PSR-18 client failures).
+    echo $exception->url();
+    echo $exception->method()->name;
+    echo $exception->reason();
+} catch (HttpException $exception) {
+    # Library-level failures (configuration, malformed path, exhausted in-memory transport).
+    echo $exception::class;
+}
+```
+
+| Exception                     | Cause                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------|
+| `HttpRequestFailed`           | Generic PSR-18 `ClientExceptionInterface`.                                            |
+| `HttpNetworkFailed`           | PSR-18 `NetworkExceptionInterface` - DNS, timeout, connection refused.                |
+| `HttpRequestInvalid`          | PSR-18 `RequestExceptionInterface` - request malformed before transport.              |
+| `MalformedPath`               | Path attempts to escape the base URL (scheme, protocol-relative, control characters). |
+| `NoMoreResponses`             | `InMemoryTransport` exhausted (programmer error).                                     |
+| `HttpConfigurationInvalid`    | Builder called without required dependencies.                                         |
+| `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`.             |
+
+#### Configuring timeouts
+
+PSR-18 does not standardize timeouts. Configure them on the underlying client before injection.
+
+**Guzzle:**
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+
+$client = new Client(config: ['timeout' => 30, 'connect_timeout' => 5]);
+```
+
+**Symfony HttpClient:**
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\Psr18Client;
+
+$client = new Psr18Client(client: HttpClient::create(defaultOptions: ['timeout' => 30]));
+```
+
+#### Testing with InMemoryTransport
+
+Pre-program responses with `Response::with(...)` and feed them to `InMemoryTransport`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Response;
+use TinyBlocks\Http\Client\Transports\InMemoryTransport;
+use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Http;
+
+$transport = InMemoryTransport::with(
+    responses: [
+        Response::with(code: Code::CREATED, body: ['id' => 'ch_abc123']),
+        Response::with(code: Code::OK, body: ['status' => 'paid'])
+    ]
+);
+
+$http = Http::create()
+    ->withBaseUrl(url: 'https://api.example.com')
+    ->withTransport(transport: $transport)
+    ->build();
+```
+
+Calls consume responses in FIFO order. Exhaustion raises `NoMoreResponses`.
+
+#### Extending with custom transports
+
+Implement `Transport` to add retry, logging, circuit breaker, or any other cross-cutting concern. The decorator wraps
+any inner `Transport`.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Client\Response;
+use TinyBlocks\Http\Client\Transport;
+use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
+
+final readonly class RetryingTransport implements Transport
+{
+    public function __construct(
+        private Transport $inner,
+        private int $maxAttempts
+    ) {
+    }
+
+    public function send(Request $request): Response
+    {
+        $attempt = 0;
+
+        while (true) {
+            try {
+                return $this->inner->send(request: $request);
+            } catch (HttpNetworkFailed $exception) {
+                $attempt++;
+
+                if ($attempt >= $this->maxAttempts) {
+                    throw $exception;
+                }
+            }
+        }
+    }
+}
+```
+
+Compose it into the facade:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Http;
+
+$http = Http::create()
+    ->withBaseUrl(url: 'https://api.example.com')
+    ->withTransport(
+        transport: new RetryingTransport(
+            inner: NetworkTransport::with(client: $client, factory: $factory),
+            maxAttempts: 3
+        )
+    )
+    ->build();
+```
+
+## FAQ
+
+### 01. Why is there a `Headerable` interface and a `Headers` value object?
+
+`Headerable` is the contract implemented by classes that emit one or more header lines such as `ContentType`, `Cookie`,
+`CacheControl`, and any custom header type. `Headers` is the value object that carries the consolidated header set of an
+HTTP request or response, with case-insensitive lookup and merging.
+
+### 02. Why are timeouts not part of the public API?
+
+PSR-18 does not standardize timeouts. Exposing them in the facade would require a transport-specific contract that leaks
+the underlying client. Configure timeouts on the PSR-18 client before injecting it.
+
+### 03. Why does `Response::raw()` throw on a synthesized response?
+
+A response created via `Response::with(...)` has no PSR-7 backing - it exists only for in-process scenarios (tests,
+`InMemoryTransport`). Calling `raw()` in that mode is a programmer error and raises `SynthesizedResponseHasNoRaw`.
+
+### 04. Why is path validation enforced at the resolver?
+
+To protect the configured base URL from being hijacked by paths that contain a scheme, are protocol-relative, or carry
+control characters. Such inputs raise `MalformedPath` before the transport is invoked.
+
+### 05. What happens to status codes outside the `Code` enum?
+
+`Response::from()` requires a code present in the enum, which covers every RFC code in use. Non-RFC status codes are
+reachable through `Response::raw()->getStatusCode()`.
 
 ## License
 
 Http is licensed under [MIT](LICENSE).
-
-<div id='contributing'></div>
 
 ## Contributing
 

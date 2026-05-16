@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-/**
- * Defines HTTP Cache-Control headers and their directives.
- *
- * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
- */
-final readonly class CacheControl implements Headers
+final readonly class CacheControl implements Headerable
 {
     private function __construct(private array $directives)
     {
     }
 
+    /**
+     * Creates a CacheControl from a list of response directives.
+     *
+     * @param ResponseCacheDirectives ...$directives The directives folded into the Cache-Control header.
+     * @return CacheControl A header carrying every supplied directive in the given order.
+     */
     public static function fromResponseDirectives(ResponseCacheDirectives ...$directives): CacheControl
     {
-        $mapper = fn(ResponseCacheDirectives $directive) => $directive->toString();
+        $values = [];
 
-        return new CacheControl(directives: array_map($mapper, $directives));
+        foreach ($directives as $directive) {
+            $values[] = $directive->toString();
+        }
+
+        return new CacheControl(directives: $values);
     }
 
     public function toArray(): array

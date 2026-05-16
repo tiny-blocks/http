@@ -13,6 +13,6 @@ final readonly class Middleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        return $handler->handle(request: $request);
+        return $handler->handle($request);
     }
 }

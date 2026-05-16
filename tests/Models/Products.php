@@ -18,7 +18,7 @@ final class Products implements IterableMapper, IteratorAggregate
 
     public function __construct(iterable $elements = [])
     {
-        $this->elements = is_array($elements) ? $elements : iterator_to_array($elements);
+        $this->elements = is_array($elements) ? array_values($elements) : iterator_to_array($elements, false);
     }
 
     public function getIterator(): Traversable
