@@ -98,7 +98,8 @@ final class ResponseWithCookiesTest extends TestCase
 
         /** @Then the Set-Cookie header instructs the browser to discard the cookie */
         self::assertSame(
-            ['refresh_token=; Max-Age=0; Path=/v1/sessions; Secure; HttpOnly; SameSite=Strict'],
+            ['refresh_token=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; '
+             . 'Path=/v1/sessions; Secure; HttpOnly; SameSite=Strict'],
             $response->getHeader('Set-Cookie')
         );
     }
