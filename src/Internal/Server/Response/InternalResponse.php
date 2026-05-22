@@ -17,7 +17,8 @@ final readonly class InternalResponse implements ResponseInterface
         private StreamInterface $body,
         private Code $code,
         private ResponseHeaders $headers,
-        private ProtocolVersion $protocolVersion
+        private ProtocolVersion $protocolVersion,
+        private ?string $customReasonPhrase
     ) {
     }
 
@@ -27,7 +28,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: StreamFactory::fromBody(body: $body)->write(),
             code: $code,
             headers: ResponseHeaders::fromOrDefault(...$headers),
-            protocolVersion: ProtocolVersion::default()
+            protocolVersion: ProtocolVersion::default(),
+            customReasonPhrase: null
         );
     }
 
@@ -37,7 +39,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: StreamFactory::fromEmptyBody()->write(),
             code: $code,
             headers: ResponseHeaders::fromOrDefault(...$headers),
-            protocolVersion: ProtocolVersion::default()
+            protocolVersion: ProtocolVersion::default(),
+            customReasonPhrase: null
         );
     }
 
@@ -73,7 +76,7 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function getReasonPhrase(): string
     {
-        return $this->code->message();
+        return $this->customReasonPhrase ?? $this->code->message();
     }
 
     public function getProtocolVersion(): string
@@ -87,7 +90,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $body,
             code: $this->code,
             headers: $this->headers,
-            protocolVersion: $this->protocolVersion
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
         );
     }
 
@@ -97,7 +101,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $this->body,
             code: Code::from($code),
             headers: $this->headers,
-            protocolVersion: $this->protocolVersion
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $reasonPhrase !== '' ? $reasonPhrase : null
         );
     }
 
@@ -107,7 +112,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $this->body,
             code: $this->code,
             headers: $this->headers->withReplaced(name: $name, value: $value),
-            protocolVersion: $this->protocolVersion
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
         );
     }
 
@@ -117,7 +123,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $this->body,
             code: $this->code,
             headers: $this->headers->removeByName(name: $name),
-            protocolVersion: $this->protocolVersion
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
         );
     }
 
@@ -127,7 +134,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $this->body,
             code: $this->code,
             headers: $this->headers->withAdded(name: $name, value: $value),
-            protocolVersion: $this->protocolVersion
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
         );
     }
 
@@ -139,7 +147,8 @@ final readonly class InternalResponse implements ResponseInterface
             body: $this->body,
             code: $this->code,
             headers: $this->headers,
-            protocolVersion: $protocolVersion
+            protocolVersion: $protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
         );
     }
 }

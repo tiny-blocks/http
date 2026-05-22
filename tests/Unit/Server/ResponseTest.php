@@ -263,6 +263,42 @@ final class ResponseTest extends TestCase
         self::assertSame(Code::OK->value, $updated->getStatusCode());
     }
 
+    public function testWithStatusWhenCustomReasonPhraseGivenThenReasonPhraseIsHonored(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::ok(body: null);
+
+        /** @When calling withStatus with a custom reason phrase */
+        $updated = $response->withStatus(Code::OK->value, 'All Good');
+
+        /** @Then the custom reason phrase is returned */
+        self::assertSame('All Good', $updated->getReasonPhrase());
+    }
+
+    public function testWithStatusWhenEmptyReasonPhraseGivenThenEnumDerivedPhraseIsUsed(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::ok(body: null);
+
+        /** @When calling withStatus with an empty reason phrase */
+        $updated = $response->withStatus(Code::OK->value);
+
+        /** @Then the enum-derived phrase is returned */
+        self::assertSame(Code::OK->message(), $updated->getReasonPhrase());
+    }
+
+    public function testWithStatusWhenCustomPhraseSetThenSubsequentWithHeaderPreservesIt(): void
+    {
+        /** @Given an HTTP response with a custom reason phrase */
+        $response = Response::ok(body: null)->withStatus(Code::OK->value, 'All Good');
+
+        /** @When adding a header to that response */
+        $updated = $response->withHeader('X-Trace-Id', 'abc');
+
+        /** @Then the custom reason phrase is still returned */
+        self::assertSame('All Good', $updated->getReasonPhrase());
+    }
+
     public function testGetBodyWhenInvokedThenStreamIsReadable(): void
     {
         /** @Given a response with a body */
