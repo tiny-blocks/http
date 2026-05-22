@@ -15,4 +15,13 @@ parameters:
         # PHPDoc is prohibited inside tests/; the closure's typed return cannot be expressed.
         - identifier: throw.notThrowable
           path: tests/Unit/FailingTransport.php
+        # PHPDoc is prohibited inside tests/; Closure return type in DataProvider factories is not statically inferrable.
+        - identifier: method.nonObject
+          path: tests/Unit/Client/RequestTest.php
+        # PHPStan knows all Code enum values are >= 100, making the lower-bound comparison always true.
+        - identifier: greaterOrEqual.alwaysTrue
+          path: src/Code.php
+        # PHPStan knows all Code enum values are <= 511, making the upper-bound comparison always true.
+        - identifier: smallerOrEqual.alwaysTrue
+          path: src/Code.php
     reportUnmatchedIgnoredErrors: true
