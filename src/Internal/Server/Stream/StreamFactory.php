@@ -20,16 +20,19 @@ final readonly class StreamFactory
         $this->stream = Stream::from(resource: $resource);
     }
 
-    public static function fromEmptyBody(): StreamFactory
+    public static function fromBody(mixed $body): StreamFactory
     {
-        return new StreamFactory(body: '');
-    }
+        $dataToWrite = match (true) {
+            $body instanceof Mapper             => $body->toJson(),
+            $body instanceof BackedEnum         => StreamFactory::toJsonFrom(body: $body->value),
+            $body instanceof UnitEnum           => $body->name,
+            is_object($body)                    => throw BodyTypeIsUnsupported::for(class: $body::class),
+            is_string($body)                    => $body,
+            is_scalar($body) || is_array($body) => StreamFactory::toJsonFrom(body: $body),
+            default                             => ''
+        };
 
-    private static function toJsonFrom(mixed $body): string
-    {
-        $encoded = json_encode($body, JSON_PRESERVE_ZERO_FRACTION);
-
-        return $encoded === false ? '' : $encoded;
+        return new StreamFactory(body: $dataToWrite);
     }
 
     public static function fromStream(StreamInterface $stream): StreamFactory
@@ -47,19 +50,24 @@ final readonly class StreamFactory
         return new StreamFactory(body: $body);
     }
 
-    public static function fromBody(mixed $body): StreamFactory
+    private static function toJsonFrom(mixed $body): string
     {
-        $dataToWrite = match (true) {
-            $body instanceof Mapper             => $body->toJson(),
-            $body instanceof BackedEnum         => StreamFactory::toJsonFrom(body: $body->value),
-            $body instanceof UnitEnum           => $body->name,
-            is_object($body)                    => throw BodyTypeIsUnsupported::for(class: $body::class),
-            is_string($body)                    => $body,
-            is_scalar($body) || is_array($body) => StreamFactory::toJsonFrom(body: $body),
-            default                             => ''
-        };
+        $encoded = json_encode($body, JSON_PRESERVE_ZERO_FRACTION);
 
-        return new StreamFactory(body: $dataToWrite);
+        return $encoded === false ? '' : $encoded;
+    }
+
+    public static function fromEmptyBody(): StreamFactory
+    {
+        return new StreamFactory(body: '');
+    }
+
+    public function write(): StreamInterface
+    {
+        $this->stream->write($this->body);
+        $this->stream->rewind();
+
+        return $this->stream;
     }
 
     public function content(): string
@@ -70,13 +78,5 @@ final readonly class StreamFactory
     public function isEmptyContent(): bool
     {
         return $this->body === '';
-    }
-
-    public function write(): StreamInterface
-    {
-        $this->stream->write($this->body);
-        $this->stream->rewind();
-
-        return $this->stream;
     }
 }

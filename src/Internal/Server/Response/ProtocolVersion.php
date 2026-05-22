@@ -12,13 +12,13 @@ final readonly class ProtocolVersion
     {
     }
 
-    public static function default(): ProtocolVersion
-    {
-        return new ProtocolVersion(version: ProtocolVersion::DEFAULT_PROTOCOL_VERSION);
-    }
-
     public static function from(string $version): ProtocolVersion
     {
         return $version === '' ? ProtocolVersion::default() : new ProtocolVersion(version: $version);
+    }
+
+    public static function default(): ProtocolVersion
+    {
+        return new ProtocolVersion(version: ProtocolVersion::DEFAULT_PROTOCOL_VERSION);
     }
 }

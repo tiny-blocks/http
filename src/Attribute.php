@@ -67,19 +67,6 @@ final readonly class Attribute
     }
 
     /**
-     * Returns the Attribute as an integer.
-     *
-     * @return int The wrapped value coerced to an integer, or <code>0</code> when it is not scalar.
-     */
-    public function toInteger(): int
-    {
-        return match (true) {
-            is_scalar($this->value) => (int)$this->value,
-            default                 => 0
-        };
-    }
-
-    /**
      * Returns the Attribute as a boolean.
      *
      * @return bool The wrapped value coerced to a boolean, or <code>false</code> when it is not scalar.
@@ -89,6 +76,19 @@ final readonly class Attribute
         return match (true) {
             is_scalar($this->value) => (bool)$this->value,
             default                 => false
+        };
+    }
+
+    /**
+     * Returns the Attribute as an integer.
+     *
+     * @return int The wrapped value coerced to an integer, or <code>0</code> when it is not scalar.
+     */
+    public function toInteger(): int
+    {
+        return match (true) {
+            is_scalar($this->value) => (int)$this->value,
+            default                 => 0
         };
     }
 }

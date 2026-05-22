@@ -33,19 +33,6 @@ final readonly class Http
     }
 
     /**
-     * Returns a fluent builder used to assemble an Http instance.
-     *
-     * Both a transport and a base URL must be supplied through the builder
-     * before calling build(); otherwise HttpConfigurationInvalid is raised.
-     *
-     * @return HttpBuilder A new, empty builder.
-     */
-    public static function create(): HttpBuilder
-    {
-        return new HttpBuilder(baseUrl: null, transport: null);
-    }
-
-    /**
      * Creates an Http instance directly from a base URL and transport.
      *
      * Explicit single-call alternative to the fluent builder returned by
@@ -59,6 +46,19 @@ final readonly class Http
     public static function with(string $baseUrl, Transport $transport): Http
     {
         return new Http(baseUrl: $baseUrl, transport: $transport);
+    }
+
+    /**
+     * Returns a fluent builder used to assemble an Http instance.
+     *
+     * Both a transport and a base URL must be supplied through the builder
+     * before calling build(); otherwise HttpConfigurationInvalid is raised.
+     *
+     * @return HttpBuilder A new, empty builder.
+     */
+    public static function create(): HttpBuilder
+    {
+        return new HttpBuilder(baseUrl: null, transport: null);
     }
 
     /**

@@ -21,13 +21,13 @@ final class Products implements IterableMapper, IteratorAggregate
         $this->elements = is_array($elements) ? array_values($elements) : iterator_to_array($elements, false);
     }
 
-    public function getIterator(): Traversable
-    {
-        return new ArrayIterator($this->elements);
-    }
-
     public function getType(): string
     {
         return Product::class;
+    }
+
+    public function getIterator(): Traversable
+    {
+        return new ArrayIterator($this->elements);
     }
 }

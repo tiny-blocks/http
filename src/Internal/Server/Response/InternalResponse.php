@@ -44,44 +44,9 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
-    public function hasHeader(string $name): bool
-    {
-        return $this->headers->hasHeader(name: $name);
-    }
-
     public function getBody(): StreamInterface
     {
         return $this->body;
-    }
-
-    public function getHeader(string $name): array
-    {
-        return $this->headers->getByName(name: $name);
-    }
-
-    public function getHeaders(): array
-    {
-        return $this->headers->toArray();
-    }
-
-    public function getStatusCode(): int
-    {
-        return $this->code->value;
-    }
-
-    public function getHeaderLine(string $name): string
-    {
-        return implode(', ', $this->getHeader(name: $name));
-    }
-
-    public function getReasonPhrase(): string
-    {
-        return $this->customReasonPhrase ?? $this->code->message();
-    }
-
-    public function getProtocolVersion(): string
-    {
-        return $this->protocolVersion->version;
     }
 
     public function withBody(StreamInterface $body): MessageInterface
@@ -90,6 +55,32 @@ final readonly class InternalResponse implements ResponseInterface
             body: $body,
             code: $this->code,
             headers: $this->headers,
+            protocolVersion: $this->protocolVersion,
+            customReasonPhrase: $this->customReasonPhrase
+        );
+    }
+
+    public function getHeader(string $name): array
+    {
+        return $this->headers->getByName(name: $name);
+    }
+
+    public function hasHeader(string $name): bool
+    {
+        return $this->headers->hasHeader(name: $name);
+    }
+
+    public function getHeaders(): array
+    {
+        return $this->headers->toArray();
+    }
+
+    public function withHeader(string $name, mixed $value): MessageInterface
+    {
+        return new InternalResponse(
+            body: $this->body,
+            code: $this->code,
+            headers: $this->headers->withReplaced(name: $name, value: $value),
             protocolVersion: $this->protocolVersion,
             customReasonPhrase: $this->customReasonPhrase
         );
@@ -106,15 +97,14 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
-    public function withHeader(string $name, mixed $value): MessageInterface
+    public function getHeaderLine(string $name): string
     {
-        return new InternalResponse(
-            body: $this->body,
-            code: $this->code,
-            headers: $this->headers->withReplaced(name: $name, value: $value),
-            protocolVersion: $this->protocolVersion,
-            customReasonPhrase: $this->customReasonPhrase
-        );
+        return implode(', ', $this->getHeader(name: $name));
+    }
+
+    public function getStatusCode(): int
+    {
+        return $this->code->value;
     }
 
     public function withoutHeader(string $name): MessageInterface
@@ -128,6 +118,11 @@ final readonly class InternalResponse implements ResponseInterface
         );
     }
 
+    public function getReasonPhrase(): string
+    {
+        return $this->customReasonPhrase ?? $this->code->message();
+    }
+
     public function withAddedHeader(string $name, mixed $value): MessageInterface
     {
         return new InternalResponse(
@@ -137,6 +132,11 @@ final readonly class InternalResponse implements ResponseInterface
             protocolVersion: $this->protocolVersion,
             customReasonPhrase: $this->customReasonPhrase
         );
+    }
+
+    public function getProtocolVersion(): string
+    {
+        return $this->protocolVersion->version;
     }
 
     public function withProtocolVersion(string $version): MessageInterface

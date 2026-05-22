@@ -15,59 +15,10 @@ use TinyBlocks\Http\Server\Response;
 
 final class ResponseWithCookiesTest extends TestCase
 {
-    public function testOkWhenSingleCookieGivenThenSetCookieHeaderReflectsConfiguration(): void
-    {
-        /** @Given a fully configured cookie */
-        $cookie = Cookie::create(name: 'session', value: 'abc')
-            ->secure()
-            ->httpOnly()
-            ->withPath(path: '/')
-            ->withMaxAge(seconds: 604800)
-            ->withSameSite(sameSite: SameSite::STRICT);
-
-        /** @When the response is built with the cookie */
-        $response = Response::ok(['ok' => true], $cookie);
-
-        /** @Then the Set-Cookie header reflects the cookie configuration */
-        self::assertSame(
-            ['session=abc; Max-Age=604800; Path=/; Secure; HttpOnly; SameSite=Strict'],
-            $response->getHeader('Set-Cookie')
-        );
-    }
-
-    public function testOkWhenMultipleCookiesGivenThenEachIsPreservedAsSeparateHeader(): void
-    {
-        /** @Given an access cookie */
-        $accessCookie = Cookie::create(name: 'access_token', value: 'aaa')
-            ->httpOnly()
-            ->secure()
-            ->withPath(path: '/');
-
-        /** @And a refresh cookie */
-        $refreshCookie = Cookie::create(name: 'refresh_token', value: 'bbb')
-            ->httpOnly()
-            ->secure()
-            ->withSameSite(sameSite: SameSite::STRICT)
-            ->withPath(path: '/v1/sessions')
-            ->withMaxAge(seconds: 604800);
-
-        /** @When the response is built with both cookies */
-        $response = Response::ok(['ok' => true], $accessCookie, $refreshCookie);
-
-        /** @Then both Set-Cookie header values are present */
-        $setCookieHeaders = $response->getHeader('Set-Cookie');
-        self::assertCount(2, $setCookieHeaders);
-        self::assertSame('access_token=aaa; Path=/; Secure; HttpOnly', $setCookieHeaders[0]);
-        self::assertSame(
-            'refresh_token=bbb; Max-Age=604800; Path=/v1/sessions; Secure; HttpOnly; SameSite=Strict',
-            $setCookieHeaders[1]
-        );
-    }
-
     public function testOkWhenCookiesAndOtherHeadersGivenThenAllPreserved(): void
     {
         /** @Given a cookie */
-        $cookie = Cookie::create(name: 'session', value: 'abc')->httpOnly()->secure();
+        $cookie = Cookie::create(name: 'session', value: 'abc')->secure()->httpOnly();
 
         /** @And a content type */
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
@@ -88,10 +39,10 @@ final class ResponseWithCookiesTest extends TestCase
     {
         /** @Given an expiration cookie with the same path used on set */
         $cookie = Cookie::expire(name: 'refresh_token')
-            ->httpOnly()
             ->secure()
-            ->withSameSite(sameSite: SameSite::STRICT)
-            ->withPath(path: '/v1/sessions');
+            ->httpOnly()
+            ->withPath(path: '/v1/sessions')
+            ->withSameSite(sameSite: SameSite::STRICT);
 
         /** @When a no-content response is built with the cookie */
         $response = Response::noContent($cookie);
@@ -100,6 +51,55 @@ final class ResponseWithCookiesTest extends TestCase
         self::assertSame(
             ['refresh_token=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; '
              . 'Path=/v1/sessions; Secure; HttpOnly; SameSite=Strict'],
+            $response->getHeader('Set-Cookie')
+        );
+    }
+
+    public function testOkWhenMultipleCookiesGivenThenEachIsPreservedAsSeparateHeader(): void
+    {
+        /** @Given an access cookie */
+        $accessCookie = Cookie::create(name: 'access_token', value: 'aaa')
+            ->secure()
+            ->httpOnly()
+            ->withPath(path: '/');
+
+        /** @And a refresh cookie */
+        $refreshCookie = Cookie::create(name: 'refresh_token', value: 'bbb')
+            ->secure()
+            ->httpOnly()
+            ->withPath(path: '/v1/sessions')
+            ->withMaxAge(seconds: 604800)
+            ->withSameSite(sameSite: SameSite::STRICT);
+
+        /** @When the response is built with both cookies */
+        $response = Response::ok(['ok' => true], $accessCookie, $refreshCookie);
+
+        /** @Then both Set-Cookie header values are present */
+        $setCookieHeaders = $response->getHeader('Set-Cookie');
+        self::assertCount(2, $setCookieHeaders);
+        self::assertSame('access_token=aaa; Path=/; Secure; HttpOnly', $setCookieHeaders[0]);
+        self::assertSame(
+            'refresh_token=bbb; Max-Age=604800; Path=/v1/sessions; Secure; HttpOnly; SameSite=Strict',
+            $setCookieHeaders[1]
+        );
+    }
+
+    public function testOkWhenSingleCookieGivenThenSetCookieHeaderReflectsConfiguration(): void
+    {
+        /** @Given a fully configured cookie */
+        $cookie = Cookie::create(name: 'session', value: 'abc')
+            ->secure()
+            ->httpOnly()
+            ->withPath(path: '/')
+            ->withMaxAge(seconds: 604800)
+            ->withSameSite(sameSite: SameSite::STRICT);
+
+        /** @When the response is built with the cookie */
+        $response = Response::ok(['ok' => true], $cookie);
+
+        /** @Then the Set-Cookie header reflects the cookie configuration */
+        self::assertSame(
+            ['session=abc; Max-Age=604800; Path=/; Secure; HttpOnly; SameSite=Strict'],
             $response->getHeader('Set-Cookie')
         );
     }

@@ -40,21 +40,19 @@ final readonly class RouteParameterResolver
         return new RouteParameterResolver(request: $request);
     }
 
-    public function resolveAttribute(string $key, string $attributeName, bool $scanKnownAttributes): mixed
+    private function resolve(string $attributeName): array
     {
-        $parameters = $this->resolve(attributeName: $attributeName);
-
-        if (array_key_exists($key, $parameters)) {
-            return $parameters[$key];
-        }
-
         $attribute = $this->request->getAttribute($attributeName);
 
-        if (is_scalar($attribute)) {
+        if (is_array($attribute)) {
             return $attribute;
         }
 
-        return $this->resolveFallback(key: $key, scanKnownAttributes: $scanKnownAttributes);
+        if (is_object($attribute)) {
+            return $this->extractFromObject(object: $attribute);
+        }
+
+        return [];
     }
 
     private function resolveFallback(string $key, bool $scanKnownAttributes): mixed
@@ -70,32 +68,21 @@ final readonly class RouteParameterResolver
         return $this->request->getAttribute($key);
     }
 
-    private function resolveFromKnownAttributes(): array
+    public function resolveAttribute(string $key, string $attributeName, bool $scanKnownAttributes): mixed
     {
-        foreach (RouteParameterResolver::KNOWN_ATTRIBUTE_KEYS as $key) {
-            $parameters = $this->resolve(attributeName: $key);
+        $parameters = $this->resolve(attributeName: $attributeName);
 
-            if (!empty($parameters)) {
-                return $parameters;
-            }
+        if (array_key_exists($key, $parameters)) {
+            return $parameters[$key];
         }
 
-        return [];
-    }
-
-    private function resolve(string $attributeName): array
-    {
         $attribute = $this->request->getAttribute($attributeName);
 
-        if (is_array($attribute)) {
+        if (is_scalar($attribute)) {
             return $attribute;
         }
 
-        if (is_object($attribute)) {
-            return $this->extractFromObject(object: $attribute);
-        }
-
-        return [];
+        return $this->resolveFallback(key: $key, scanKnownAttributes: $scanKnownAttributes);
     }
 
     private function extractFromObject(object $object): array
@@ -117,6 +104,19 @@ final readonly class RouteParameterResolver
                 if (is_array($parameters)) {
                     return $parameters;
                 }
+            }
+        }
+
+        return [];
+    }
+
+    private function resolveFromKnownAttributes(): array
+    {
+        foreach (RouteParameterResolver::KNOWN_ATTRIBUTE_KEYS as $key) {
+            $parameters = $this->resolve(attributeName: $key);
+
+            if (!empty($parameters)) {
+                return $parameters;
             }
         }
 

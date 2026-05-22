@@ -63,13 +63,19 @@ final readonly class Response
     }
 
     /**
-     * Returns the status code.
+     * Returns the underlying PSR-7 response.
      *
-     * @return Code The status code carried by the response.
+     * @return ResponseInterface The original PSR-7 response wrapped by this instance.
+     * @throws SynthesizedResponseHasNoRaw If the response was synthesized via {@see Response::with()} and
+     *                                      has no backing PSR-7 message.
      */
-    public function code(): Code
+    public function raw(): ResponseInterface
     {
-        return $this->code;
+        if (is_null($this->psr)) {
+            throw SynthesizedResponseHasNoRaw::create();
+        }
+
+        return $this->psr;
     }
 
     /**
@@ -80,6 +86,16 @@ final readonly class Response
     public function body(): Body
     {
         return $this->body;
+    }
+
+    /**
+     * Returns the status code.
+     *
+     * @return Code The status code carried by the response.
+     */
+    public function code(): Code
+    {
+        return $this->code;
     }
 
     /**
@@ -110,21 +126,5 @@ final readonly class Response
     public function isSuccess(): bool
     {
         return $this->code->isSuccess();
-    }
-
-    /**
-     * Returns the underlying PSR-7 response.
-     *
-     * @return ResponseInterface The original PSR-7 response wrapped by this instance.
-     * @throws SynthesizedResponseHasNoRaw If the response was synthesized via {@see Response::with()} and
-     *                                      has no backing PSR-7 message.
-     */
-    public function raw(): ResponseInterface
-    {
-        if (is_null($this->psr)) {
-            throw SynthesizedResponseHasNoRaw::create();
-        }
-
-        return $this->psr;
     }
 }

@@ -28,27 +28,6 @@ final class LaminasTest extends TestCase
         $this->middleware = new Middleware();
     }
 
-    public function testProcessWhenLaminasMiddlewareInvokedThenReturnsConfiguredResponse(): void
-    {
-        /** @Given a valid request */
-        $request = new ServerRequest(method: 'GET', uri: 'https://api.example.com/');
-
-        /** @And an HTTP response is created with a 200 OK status, a JSON body, Content-Type, and Cache-Control */
-        $response = Response::ok(
-            ['createdAt' => date(DateTimeInterface::ATOM)],
-            ContentType::applicationJson(charset: Charset::UTF_8),
-            CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache())
-        );
-
-        /** @When the request is processed by the handler */
-        $actual = $this->middleware->process($request, new Endpoint(response: $response));
-
-        /** @Then the response is returned through the middleware unchanged */
-        self::assertSame(Code::OK->value, $actual->getStatusCode());
-        self::assertSame($response->getBody()->__toString(), $actual->getBody()->__toString());
-        self::assertSame($response->getHeaders(), $actual->getHeaders());
-    }
-
     public function testEmitWhenLaminasEmitterUsedThenWritesBodyToOutputBuffer(): void
     {
         /** @Given a response with Content-Type, Cache-Control, and a custom header */
@@ -68,5 +47,26 @@ final class LaminasTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
         self::assertSame('OK', $response->getReasonPhrase());
         self::assertSame('123456', $response->getHeaderLine('X-Request-ID'));
+    }
+
+    public function testProcessWhenLaminasMiddlewareInvokedThenReturnsConfiguredResponse(): void
+    {
+        /** @Given a valid request */
+        $request = new ServerRequest(method: 'GET', uri: 'https://api.example.com/');
+
+        /** @And an HTTP response is created with a 200 OK status, a JSON body, Content-Type, and Cache-Control */
+        $response = Response::ok(
+            ['createdAt' => date(DateTimeInterface::ATOM)],
+            ContentType::applicationJson(charset: Charset::UTF_8),
+            CacheControl::fromResponseDirectives(ResponseCacheDirectives::noCache())
+        );
+
+        /** @When the request is processed by the handler */
+        $actual = $this->middleware->process($request, new Endpoint(response: $response));
+
+        /** @Then the response is returned through the middleware unchanged */
+        self::assertSame(Code::OK->value, $actual->getStatusCode());
+        self::assertSame($response->getBody()->__toString(), $actual->getBody()->__toString());
+        self::assertSame($response->getHeaders(), $actual->getHeaders());
     }
 }

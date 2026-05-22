@@ -30,16 +30,6 @@ final readonly class QueryParameters
     }
 
     /**
-     * Returns the QueryParameters as an associative array.
-     *
-     * @return array<string, mixed> The raw query parameters keyed by name.
-     */
-    public function toArray(): array
-    {
-        return $this->data;
-    }
-
-    /**
      * Returns the Attribute associated with the given query key.
      *
      * @param string $key The query parameter name to look up.
@@ -50,5 +40,15 @@ final readonly class QueryParameters
         $attributeValue = ($this->data[$key] ?? null);
 
         return Attribute::from(value: $attributeValue);
+    }
+
+    /**
+     * Returns the QueryParameters as an associative array.
+     *
+     * @return array<string, mixed> The raw query parameters keyed by name.
+     */
+    public function toArray(): array
+    {
+        return $this->data;
     }
 }

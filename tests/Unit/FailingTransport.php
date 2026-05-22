@@ -32,9 +32,9 @@ final readonly class FailingTransport implements Transport
         return new FailingTransport(factory: $factory);
     }
 
-    public static function raisingRequestInvalid(string $reason, RuntimeException $cause): FailingTransport
+    public static function raisingRequestFailure(string $reason, RuntimeException $cause): FailingTransport
     {
-        $factory = static fn(Request $request): HttpException => HttpRequestInvalid::from(
+        $factory = static fn(Request $request): HttpException => HttpRequestFailed::from(
             url: $request->url(),
             method: $request->method(),
             reason: $reason,
@@ -44,9 +44,9 @@ final readonly class FailingTransport implements Transport
         return new FailingTransport(factory: $factory);
     }
 
-    public static function raisingRequestFailure(string $reason, RuntimeException $cause): FailingTransport
+    public static function raisingRequestInvalid(string $reason, RuntimeException $cause): FailingTransport
     {
-        $factory = static fn(Request $request): HttpException => HttpRequestFailed::from(
+        $factory = static fn(Request $request): HttpException => HttpRequestInvalid::from(
             url: $request->url(),
             method: $request->method(),
             reason: $reason,

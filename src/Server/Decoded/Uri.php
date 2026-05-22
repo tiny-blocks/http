@@ -40,26 +40,6 @@ final readonly class Uri
     }
 
     /**
-     * Returns the Uri as a string.
-     *
-     * @return string The fully composed URI of the underlying request.
-     */
-    public function toString(): string
-    {
-        return $this->request->getUri()->__toString();
-    }
-
-    /**
-     * Returns the query parameters carried by the request URI.
-     *
-     * @return QueryParameters The QueryParameters value object built from the request.
-     */
-    public function queryParameters(): QueryParameters
-    {
-        return QueryParameters::from(request: $this->request);
-    }
-
-    /**
      * Returns the Attribute associated with the given route key.
      *
      * @param string $key The route attribute key to look up.
@@ -92,5 +72,25 @@ final readonly class Uri
             resolver: $this->resolver,
             routeAttributeName: $name
         );
+    }
+
+    /**
+     * Returns the Uri as a string.
+     *
+     * @return string The fully composed URI of the underlying request.
+     */
+    public function toString(): string
+    {
+        return $this->request->getUri()->__toString();
+    }
+
+    /**
+     * Returns the query parameters carried by the request URI.
+     *
+     * @return QueryParameters The QueryParameters value object built from the request.
+     */
+    public function queryParameters(): QueryParameters
+    {
+        return QueryParameters::from(request: $this->request);
     }
 }

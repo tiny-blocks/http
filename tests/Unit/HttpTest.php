@@ -27,40 +27,24 @@ final class HttpTest extends TestCase
         $this->factory = new Psr17Factory();
     }
 
-    public function testSendWhenTransportRespondsThenReturnsResponseWithMatchingCode(): void
+    public function testSendWhenBodyGivenThenSendsJsonPayload(): void
     {
-        /** @Given a transport seeded with a 200 response */
+        /** @Given a transport seeded with a 201 response */
         $http = Http::create()
             ->withBaseUrl(url: 'https://api.example.com')
             ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
+                client: CapturingClient::returningStatus(statusCode: 201),
                 factory: $this->factory
             ))
             ->build();
 
-        /** @When sending a valid request */
-        $response = $http->send(request: Request::get(url: '/dragons'));
+        /** @When sending a request with a JSON body */
+        $response = $http->send(
+            request: Request::post(url: '/dragons', body: ['name' => 'Hydra'])
+        );
 
         /** @Then the response code is correct */
-        self::assertSame(Code::OK, $response->code());
-    }
-
-    public function testSendWhenBaseUrlEndsWithSlashAndPathLeadsWithSlashThenNoDoubleSlash(): void
-    {
-        /** @Given a transport seeded with a 200 response and a base URL ending in slash */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com/')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @When sending a request whose path starts with a slash */
-        $response = $http->send(request: Request::get(url: '/dragons'));
-
-        /** @Then the response is returned without double slash in the URL */
-        self::assertSame(Code::OK, $response->code());
+        self::assertSame(Code::CREATED, $response->code());
     }
 
     public function testSendWhenQueryGivenThenAppendsAsRfc3986(): void
@@ -83,293 +67,34 @@ final class HttpTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
-    public function testSendWhenBodyGivenThenSendsJsonPayload(): void
+    public function testWithWhenHttpGivenThenAcceptsWithoutThrowing(): void
     {
-        /** @Given a transport seeded with a 201 response */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 201),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @When sending a request with a JSON body */
-        $response = $http->send(
-            request: Request::post(url: '/dragons', body: ['name' => 'Hydra'])
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
         );
 
-        /** @Then the response code is correct */
-        self::assertSame(Code::CREATED, $response->code());
+        /** @When constructing Http with a valid http:// base URL */
+        $http = Http::with(baseUrl: 'http://localhost:8080', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
     }
 
-    public function testSendWhenClientRaisesNetworkExceptionThenThrowsHttpNetworkFailed(): void
+    public function testWithWhenHttpsGivenThenAcceptsWithoutThrowing(): void
     {
-        /** @Given a PSR-18 client that throws NetworkExceptionInterface */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: ThrowingClient::throwing(exception: new PsrNetworkException('connection refused')),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then HttpNetworkFailed is thrown */
-        $this->expectException(HttpNetworkFailed::class);
-
-        /** @When sending the request */
-        $http->send(request: Request::get(url: '/dragons'));
-    }
-
-    public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
-    {
-        /** @Given a PSR-18 client that throws RequestExceptionInterface */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: ThrowingClient::throwing(exception: new PsrRequestException('bad request')),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then HttpRequestInvalid is thrown */
-        $this->expectException(HttpRequestInvalid::class);
-
-        /** @When sending the request */
-        $http->send(request: Request::get(url: '/dragons'));
-    }
-
-    public function testSendWhenGenericClientExceptionRaisedThenThrowsHttpRequestFailed(): void
-    {
-        /** @Given a PSR-18 client that throws a generic ClientExceptionInterface */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: ThrowingClient::throwing(exception: new PsrClientException('generic failure')),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then HttpRequestFailed is thrown */
-        $this->expectException(HttpRequestFailed::class);
-
-        /** @When sending the request */
-        $http->send(request: Request::get(url: '/dragons'));
-    }
-
-    public function testSendWhenProtocolRelativePathGivenThenThrowsMalformedPath(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then MalformedPath is thrown without invoking the transport */
-        $this->expectException(MalformedPath::class);
-
-        /** @When sending a request whose path is protocol-relative */
-        $http->send(request: Request::get(url: '//evil.example.com/attack'));
-    }
-
-    public function testSendWhenSchemePathGivenThenThrowsMalformedPath(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then MalformedPath is thrown */
-        $this->expectException(MalformedPath::class);
-
-        /** @When sending a request whose path contains a scheme */
-        $http->send(request: Request::get(url: 'javascript:alert(1)'));
-    }
-
-    public function testSendWhenControlCharsInPathGivenThenThrowsMalformedPath(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @Then MalformedPath is thrown */
-        $this->expectException(MalformedPath::class);
-
-        /** @When sending a request whose path contains control characters */
-        $http->send(request: Request::get(url: "/dragons\x00/evil"));
-    }
-
-    public function testSendWhenNetworkExceptionRaisedThenPreservesPreviousChain(): void
-    {
-        /** @Given a network exception */
-        $networkException = new PsrNetworkException('timeout');
-
-        /** @And an Http instance with a transport that throws it */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: ThrowingClient::throwing(exception: $networkException),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @When sending the request */
-        try {
-            $http->send(request: Request::get(url: '/dragons'));
-            self::fail('HttpNetworkFailed was expected.');
-        } catch (HttpNetworkFailed $exception) {
-            /** @Then the previous exception is preserved in the chain */
-            self::assertSame($networkException, $exception->getPrevious());
-        }
-    }
-
-    public function testSendWhenSchemePathGivenThenChainsPathContainsSchemeAsPrevious(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @And a request whose path contains a scheme */
-        $request = Request::get(url: 'https://attacker.com/steal');
-
-        /** @When sending the request */
-        try {
-            $http->send(request: $request);
-            self::fail('MalformedPath was expected.');
-        } catch (MalformedPath $exception) {
-            /** @Then the previous exception carries the offending path and a scheme-related reason */
-            $previous = $exception->getPrevious();
-            self::assertNotNull($previous);
-            self::assertStringContainsString('https://attacker.com/steal', $previous->getMessage());
-            self::assertStringContainsString('scheme', $previous->getMessage());
-        }
-    }
-
-    public function testSendWhenSchemePathGivenThenMalformedPathExposesOffendingPath(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @And a request whose path contains a scheme */
-        $request = Request::get(url: 'https://attacker.com/steal');
-
-        try {
-            /** @When sending the request */
-            $http->send(request: $request);
-        } catch (MalformedPath $exception) {
-            /** @Then the exception exposes the offending path */
-            self::assertSame('https://attacker.com/steal', $exception->path());
-        }
-    }
-
-    public function testSendWhenControlCharPathGivenThenChainsPathContainsControlCharsAsPrevious(): void
-    {
-        /** @Given an Http instance with a base URL */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(
-                client: CapturingClient::returningStatus(statusCode: 200),
-                factory: $this->factory
-            ))
-            ->build();
-
-        /** @And a request whose path contains a control character */
-        $request = Request::get(url: "/dragons\x00/evil");
-
-        /** @When sending the request */
-        try {
-            $http->send(request: $request);
-            self::fail('MalformedPath was expected.');
-        } catch (MalformedPath $exception) {
-            /** @Then the previous exception carries the offending path and a control-character reason */
-            $previous = $exception->getPrevious();
-            self::assertNotNull($previous);
-            self::assertStringContainsString("/dragons\x00/evil", $previous->getMessage());
-            self::assertStringContainsString('control characters', $previous->getMessage());
-        }
-    }
-
-    public function testSendWhenBaseUrlEmptyAndRelativePathGivenThenUsesPathDirectly(): void
-    {
-        /** @Given an Http instance with an empty base URL */
-        $client = CapturingClient::returningStatus(statusCode: 200);
-        $http = Http::with(baseUrl: '', transport: NetworkTransport::with(
-            client: $client,
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
             factory: $this->factory
-        ));
+        );
 
-        /** @And a request with a relative path */
-        $request = Request::get(url: '/dragons');
+        /** @When constructing Http with a valid https:// base URL */
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
 
-        /** @When sending the request */
-        $http->send(request: $request);
-
-        /** @Then the PSR-7 request URI is the path as-is */
-        self::assertNotNull($client->captured);
-        self::assertSame('/dragons', (string)$client->captured->getUri());
-    }
-
-    public function testSendWhenBaseUrlEndsWithSlashAndPathLeadsWithSlashThenSingleSlashJoinsThem(): void
-    {
-        /** @Given an Http instance with a trailing slash on the base URL */
-        $client = CapturingClient::returningStatus(statusCode: 200);
-        $http = Http::with(baseUrl: 'https://api.example.com/', transport: NetworkTransport::with(
-            client: $client,
-            factory: $this->factory
-        ));
-
-        /** @And a request whose path starts with a slash */
-        $request = Request::get(url: '/dragons');
-
-        /** @When sending the request */
-        $http->send(request: $request);
-
-        /** @Then the composed URI joins them with exactly one slash */
-        self::assertNotNull($client->captured);
-        self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
-    }
-
-    public function testSendWhenBaseUrlWithoutTrailingSlashAndPathWithoutLeadingSlashThenJoinsWithSingleSlash(): void
-    {
-        /** @Given an Http instance without trailing slash on the base URL */
-        $client = CapturingClient::returningStatus(statusCode: 200);
-        $http = Http::with(baseUrl: 'https://api.example.com', transport: NetworkTransport::with(
-            client: $client,
-            factory: $this->factory
-        ));
-
-        /** @And a request whose path lacks a leading slash */
-        $request = Request::get(url: 'dragons');
-
-        /** @When sending the request */
-        $http->send(request: $request);
-
-        /** @Then the composed URI joins them with exactly one slash */
-        self::assertNotNull($client->captured);
-        self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
     }
 
     public function testSendWhenQueryProvidedThenAppendsAsQueryString(): void
@@ -392,73 +117,85 @@ final class HttpTest extends TestCase
         self::assertSame('https://api.example.com/dragons?sort=name', (string)$client->captured->getUri());
     }
 
-    public function testSendWhenCustomTransportRaisesNetworkFailureThenExceptionCarriesRequestContext(): void
+    public function testSendWhenSchemePathGivenThenThrowsMalformedPath(): void
     {
-        /** @Given a custom transport that wraps a non-PSR network error and re-raises via the documented factory */
-        $http = Http::with(
-            baseUrl: 'https://api.example.com',
-            transport: FailingTransport::raisingNetworkFailure(
-                reason: 'DNS resolution failed.',
-                cause: new RuntimeException('curl: getaddrinfo')
-            )
-        );
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
 
-        try {
-            /** @When sending a request through the custom transport */
-            $http->send(request: Request::head(url: '/dragons'));
-            self::fail('HttpNetworkFailed was expected.');
-        } catch (HttpNetworkFailed $exception) {
-            /** @Then the exception carries the originating URL, method, and reason */
-            self::assertSame('https://api.example.com/dragons', $exception->url());
-            self::assertSame(Method::HEAD, $exception->method());
-            self::assertSame('DNS resolution failed.', $exception->reason());
-        }
+        /** @Then MalformedPath is thrown */
+        $this->expectException(MalformedPath::class);
+
+        /** @When sending a request whose path contains a scheme */
+        $http->send(request: Request::get(url: 'javascript:alert(1)'));
     }
 
-    public function testSendWhenCustomTransportRaisesRequestInvalidThenExceptionCarriesRequestContext(): void
+    public function testWithWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
     {
-        /** @Given a custom transport that maps an upstream validation error to HttpRequestInvalid */
-        $http = Http::with(
-            baseUrl: 'https://api.example.com',
-            transport: FailingTransport::raisingRequestInvalid(
-                reason: 'Upstream validator rejected the payload.',
-                cause: new RuntimeException('validator: required field missing')
-            )
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
         );
 
-        try {
-            /** @When sending a request through the custom transport */
-            $http->send(request: Request::patch(url: '/dragons'));
-            self::fail('HttpRequestInvalid was expected.');
-        } catch (HttpRequestInvalid $exception) {
-            /** @Then the exception carries the originating URL, method, and reason */
-            self::assertSame('https://api.example.com/dragons', $exception->url());
-            self::assertSame(Method::PATCH, $exception->method());
-            self::assertSame('Upstream validator rejected the payload.', $exception->reason());
-        }
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with an ftp:// base URL */
+        Http::with(baseUrl: 'ftp://example.com', transport: $transport);
     }
 
-    public function testSendWhenCustomTransportRaisesRequestFailureThenExceptionCarriesRequestContext(): void
+    public function testWithWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
     {
-        /** @Given a custom transport that maps an upstream cURL error to HttpRequestFailed */
-        $http = Http::with(
-            baseUrl: 'https://api.example.com',
-            transport: FailingTransport::raisingRequestFailure(
-                reason: 'cURL handle exhausted retries.',
-                cause: new RuntimeException('curl: too many retries')
-            )
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
         );
 
-        try {
-            /** @When sending a request through the custom transport */
-            $http->send(request: Request::put(url: '/dragons'));
-            self::fail('HttpRequestFailed was expected.');
-        } catch (HttpRequestFailed $exception) {
-            /** @Then the exception carries the originating URL, method, and reason */
-            self::assertSame('https://api.example.com/dragons', $exception->url());
-            self::assertSame(Method::PUT, $exception->method());
-            self::assertSame('cURL handle exhausted retries.', $exception->reason());
-        }
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a base URL containing a control character */
+        Http::with(baseUrl: "https://api.example.com\x00", transport: $transport);
+    }
+
+    public function testWithWhenEmptyStringGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with an empty base URL */
+        $http = Http::with(baseUrl: '', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
+
+    public function testSendWhenControlCharsInPathGivenThenThrowsMalformedPath(): void
+    {
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @Then MalformedPath is thrown */
+        $this->expectException(MalformedPath::class);
+
+        /** @When sending a request whose path contains control characters */
+        $http->send(request: Request::get(url: "/dragons\x00/evil"));
     }
 
     public function testSendWhenEmptyQueryArrayGivenThenNoTrailingQuestionMark(): void
@@ -496,21 +233,6 @@ final class HttpTest extends TestCase
         Http::with(baseUrl: 'javascript:alert(1)', transport: $transport);
     }
 
-    public function testWithWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
-    {
-        /** @Given a transport seeded with a response */
-        $transport = NetworkTransport::with(
-            client: CapturingClient::returningStatus(statusCode: 200),
-            factory: $this->factory
-        );
-
-        /** @Then an exception indicating the base URL is invalid is thrown */
-        $this->expectException(BaseUrlIsInvalid::class);
-
-        /** @When constructing Http with an ftp:// base URL */
-        Http::with(baseUrl: 'ftp://example.com', transport: $transport);
-    }
-
     public function testWithWhenProtocolRelativeGivenThenThrowsBaseUrlIsInvalid(): void
     {
         /** @Given a transport seeded with a response */
@@ -526,63 +248,341 @@ final class HttpTest extends TestCase
         Http::with(baseUrl: '//host', transport: $transport);
     }
 
-    public function testWithWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
+    public function testSendWhenNetworkExceptionRaisedThenPreservesPreviousChain(): void
     {
-        /** @Given a transport seeded with a response */
-        $transport = NetworkTransport::with(
-            client: CapturingClient::returningStatus(statusCode: 200),
-            factory: $this->factory
-        );
+        /** @Given a network exception */
+        $networkException = new PsrNetworkException('timeout');
 
-        /** @Then an exception indicating the base URL is invalid is thrown */
-        $this->expectException(BaseUrlIsInvalid::class);
+        /** @And an Http instance with a transport that throws it */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: $networkException),
+                factory: $this->factory
+            ))
+            ->build();
 
-        /** @When constructing Http with a base URL containing a control character */
-        Http::with(baseUrl: "https://api.example.com\x00", transport: $transport);
+        /** @When sending the request */
+        try {
+            $http->send(request: Request::get(url: '/dragons'));
+            self::fail('HttpNetworkFailed was expected.');
+        } catch (HttpNetworkFailed $exception) {
+            /** @Then the previous exception is preserved in the chain */
+            self::assertSame($networkException, $exception->getPrevious());
+        }
     }
 
-    public function testWithWhenHttpsGivenThenAcceptsWithoutThrowing(): void
+    public function testSendWhenProtocolRelativePathGivenThenThrowsMalformedPath(): void
     {
-        /** @Given a transport seeded with a response */
-        $transport = NetworkTransport::with(
-            client: CapturingClient::returningStatus(statusCode: 200),
-            factory: $this->factory
-        );
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
 
-        /** @When constructing Http with a valid https:// base URL */
-        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+        /** @Then MalformedPath is thrown without invoking the transport */
+        $this->expectException(MalformedPath::class);
 
-        /** @Then an Http instance is returned without throwing */
-        self::assertInstanceOf(Http::class, $http);
+        /** @When sending a request whose path is protocol-relative */
+        $http->send(request: Request::get(url: '//evil.example.com/attack'));
     }
 
-    public function testWithWhenHttpGivenThenAcceptsWithoutThrowing(): void
+    public function testSendWhenBaseUrlEmptyAndRelativePathGivenThenUsesPathDirectly(): void
     {
-        /** @Given a transport seeded with a response */
-        $transport = NetworkTransport::with(
-            client: CapturingClient::returningStatus(statusCode: 200),
+        /** @Given an Http instance with an empty base URL */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+        $http = Http::with(baseUrl: '', transport: NetworkTransport::with(
+            client: $client,
             factory: $this->factory
-        );
+        ));
 
-        /** @When constructing Http with a valid http:// base URL */
-        $http = Http::with(baseUrl: 'http://localhost:8080', transport: $transport);
+        /** @And a request with a relative path */
+        $request = Request::get(url: '/dragons');
 
-        /** @Then an Http instance is returned without throwing */
-        self::assertInstanceOf(Http::class, $http);
+        /** @When sending the request */
+        $http->send(request: $request);
+
+        /** @Then the PSR-7 request URI is the path as-is */
+        self::assertNotNull($client->captured);
+        self::assertSame('/dragons', (string)$client->captured->getUri());
     }
 
-    public function testWithWhenEmptyStringGivenThenAcceptsWithoutThrowing(): void
+    public function testSendWhenSchemePathGivenThenMalformedPathExposesOffendingPath(): void
     {
-        /** @Given a transport seeded with a response */
-        $transport = NetworkTransport::with(
-            client: CapturingClient::returningStatus(statusCode: 200),
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @And a request whose path contains a scheme */
+        $request = Request::get(url: 'https://attacker.com/steal');
+
+        try {
+            /** @When sending the request */
+            $http->send(request: $request);
+        } catch (MalformedPath $exception) {
+            /** @Then the exception exposes the offending path */
+            self::assertSame('https://attacker.com/steal', $exception->path());
+        }
+    }
+
+    public function testSendWhenTransportRespondsThenReturnsResponseWithMatchingCode(): void
+    {
+        /** @Given a transport seeded with a 200 response */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @When sending a valid request */
+        $response = $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the response code is correct */
+        self::assertSame(Code::OK, $response->code());
+    }
+
+    public function testSendWhenSchemePathGivenThenChainsPathContainsSchemeAsPrevious(): void
+    {
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @And a request whose path contains a scheme */
+        $request = Request::get(url: 'https://attacker.com/steal');
+
+        /** @When sending the request */
+        try {
+            $http->send(request: $request);
+            self::fail('MalformedPath was expected.');
+        } catch (MalformedPath $exception) {
+            /** @Then the previous exception carries the offending path and a scheme-related reason */
+            $previous = $exception->getPrevious();
+            self::assertNotNull($previous);
+            self::assertStringContainsString('https://attacker.com/steal', $previous->getMessage());
+            self::assertStringContainsString('scheme', $previous->getMessage());
+        }
+    }
+
+    public function testSendWhenClientRaisesNetworkExceptionThenThrowsHttpNetworkFailed(): void
+    {
+        /** @Given a PSR-18 client that throws NetworkExceptionInterface */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: new PsrNetworkException('connection refused')),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @Then HttpNetworkFailed is thrown */
+        $this->expectException(HttpNetworkFailed::class);
+
+        /** @When sending the request */
+        $http->send(request: Request::get(url: '/dragons'));
+    }
+
+    public function testSendWhenGenericClientExceptionRaisedThenThrowsHttpRequestFailed(): void
+    {
+        /** @Given a PSR-18 client that throws a generic ClientExceptionInterface */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: new PsrClientException('generic failure')),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @Then HttpRequestFailed is thrown */
+        $this->expectException(HttpRequestFailed::class);
+
+        /** @When sending the request */
+        $http->send(request: Request::get(url: '/dragons'));
+    }
+
+    public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
+    {
+        /** @Given a PSR-18 client that throws RequestExceptionInterface */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: ThrowingClient::throwing(exception: new PsrRequestException('bad request')),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @Then HttpRequestInvalid is thrown */
+        $this->expectException(HttpRequestInvalid::class);
+
+        /** @When sending the request */
+        $http->send(request: Request::get(url: '/dragons'));
+    }
+
+    public function testSendWhenBaseUrlEndsWithSlashAndPathLeadsWithSlashThenNoDoubleSlash(): void
+    {
+        /** @Given a transport seeded with a 200 response and a base URL ending in slash */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com/')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @When sending a request whose path starts with a slash */
+        $response = $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the response is returned without double slash in the URL */
+        self::assertSame(Code::OK, $response->code());
+    }
+
+    public function testSendWhenControlCharPathGivenThenChainsPathContainsControlCharsAsPrevious(): void
+    {
+        /** @Given an Http instance with a base URL */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(
+                client: CapturingClient::returningStatus(statusCode: 200),
+                factory: $this->factory
+            ))
+            ->build();
+
+        /** @And a request whose path contains a control character */
+        $request = Request::get(url: "/dragons\x00/evil");
+
+        /** @When sending the request */
+        try {
+            $http->send(request: $request);
+            self::fail('MalformedPath was expected.');
+        } catch (MalformedPath $exception) {
+            /** @Then the previous exception carries the offending path and a control-character reason */
+            $previous = $exception->getPrevious();
+            self::assertNotNull($previous);
+            self::assertStringContainsString("/dragons\x00/evil", $previous->getMessage());
+            self::assertStringContainsString('control characters', $previous->getMessage());
+        }
+    }
+
+    public function testSendWhenBaseUrlEndsWithSlashAndPathLeadsWithSlashThenSingleSlashJoinsThem(): void
+    {
+        /** @Given an Http instance with a trailing slash on the base URL */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+        $http = Http::with(baseUrl: 'https://api.example.com/', transport: NetworkTransport::with(
+            client: $client,
             factory: $this->factory
+        ));
+
+        /** @And a request whose path starts with a slash */
+        $request = Request::get(url: '/dragons');
+
+        /** @When sending the request */
+        $http->send(request: $request);
+
+        /** @Then the composed URI joins them with exactly one slash */
+        self::assertNotNull($client->captured);
+        self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
+    }
+
+    public function testSendWhenCustomTransportRaisesNetworkFailureThenExceptionCarriesRequestContext(): void
+    {
+        /** @Given a custom transport that wraps a non-PSR network error and re-raises via the documented factory */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: FailingTransport::raisingNetworkFailure(
+                reason: 'DNS resolution failed.',
+                cause: new RuntimeException('curl: getaddrinfo')
+            )
         );
 
-        /** @When constructing Http with an empty base URL */
-        $http = Http::with(baseUrl: '', transport: $transport);
+        try {
+            /** @When sending a request through the custom transport */
+            $http->send(request: Request::head(url: '/dragons'));
+            self::fail('HttpNetworkFailed was expected.');
+        } catch (HttpNetworkFailed $exception) {
+            /** @Then the exception carries the originating URL, method, and reason */
+            self::assertSame('https://api.example.com/dragons', $exception->url());
+            self::assertSame(Method::HEAD, $exception->method());
+            self::assertSame('DNS resolution failed.', $exception->reason());
+        }
+    }
 
-        /** @Then an Http instance is returned without throwing */
-        self::assertInstanceOf(Http::class, $http);
+    public function testSendWhenCustomTransportRaisesRequestFailureThenExceptionCarriesRequestContext(): void
+    {
+        /** @Given a custom transport that maps an upstream cURL error to HttpRequestFailed */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: FailingTransport::raisingRequestFailure(
+                reason: 'cURL handle exhausted retries.',
+                cause: new RuntimeException('curl: too many retries')
+            )
+        );
+
+        try {
+            /** @When sending a request through the custom transport */
+            $http->send(request: Request::put(url: '/dragons'));
+            self::fail('HttpRequestFailed was expected.');
+        } catch (HttpRequestFailed $exception) {
+            /** @Then the exception carries the originating URL, method, and reason */
+            self::assertSame('https://api.example.com/dragons', $exception->url());
+            self::assertSame(Method::PUT, $exception->method());
+            self::assertSame('cURL handle exhausted retries.', $exception->reason());
+        }
+    }
+
+    public function testSendWhenCustomTransportRaisesRequestInvalidThenExceptionCarriesRequestContext(): void
+    {
+        /** @Given a custom transport that maps an upstream validation error to HttpRequestInvalid */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: FailingTransport::raisingRequestInvalid(
+                reason: 'Upstream validator rejected the payload.',
+                cause: new RuntimeException('validator: required field missing')
+            )
+        );
+
+        try {
+            /** @When sending a request through the custom transport */
+            $http->send(request: Request::patch(url: '/dragons'));
+            self::fail('HttpRequestInvalid was expected.');
+        } catch (HttpRequestInvalid $exception) {
+            /** @Then the exception carries the originating URL, method, and reason */
+            self::assertSame('https://api.example.com/dragons', $exception->url());
+            self::assertSame(Method::PATCH, $exception->method());
+            self::assertSame('Upstream validator rejected the payload.', $exception->reason());
+        }
+    }
+
+    public function testSendWhenBaseUrlWithoutTrailingSlashAndPathWithoutLeadingSlashThenJoinsWithSingleSlash(): void
+    {
+        /** @Given an Http instance without trailing slash on the base URL */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: NetworkTransport::with(
+            client: $client,
+            factory: $this->factory
+        ));
+
+        /** @And a request whose path lacks a leading slash */
+        $request = Request::get(url: 'dragons');
+
+        /** @When sending the request */
+        $http->send(request: $request);
+
+        /** @Then the composed URI joins them with exactly one slash */
+        self::assertNotNull($client->captured);
+        self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
     }
 }
