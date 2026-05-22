@@ -11,11 +11,10 @@ use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Client\Transports\InMemoryTransport;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\BaseUrlIsInvalid;
 use TinyBlocks\Http\Exceptions\HttpConfigurationInvalid;
-use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\HttpBuilder;
-use TinyBlocks\Http\Method;
 
 final class HttpBuilderTest extends TestCase
 {
@@ -134,13 +133,7 @@ final class HttpBuilderTest extends TestCase
             ->build();
 
         /** @When sending a request */
-        $response = $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $response = $http->send(request: Request::get(url: '/dragons'));
 
         /** @Then the response is returned correctly */
         self::assertSame(Code::OK, $response->code());
@@ -155,15 +148,118 @@ final class HttpBuilderTest extends TestCase
         $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
 
         /** @And a simple GET request */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @Then the instance can send requests and returns the correct response */
         self::assertSame(Code::OK, $http->send(request: $request)->code());
+    }
+
+    public function testWithBaseUrlWhenJavascriptSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+        $this->expectExceptionMessage('Base URL <javascript:alert(1)> is invalid');
+
+        /** @When setting a javascript: scheme base URL */
+        $builder->withBaseUrl(url: 'javascript:alert(1)');
+    }
+
+    public function testWithBaseUrlWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When setting an ftp:// base URL */
+        $builder->withBaseUrl(url: 'ftp://example.com');
+    }
+
+    public function testWithBaseUrlWhenProtocolRelativeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When setting a protocol-relative base URL */
+        $builder->withBaseUrl(url: '//host');
+    }
+
+    public function testWithBaseUrlWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When setting a base URL containing a control character */
+        $builder->withBaseUrl(url: "https://api.example.com\x00");
+    }
+
+    public function testWithBaseUrlWhenHttpsGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a valid https:// base URL */
+        $updated = $builder->withBaseUrl(url: 'https://api.example.com');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenHttpGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a valid http:// base URL */
+        $updated = $builder->withBaseUrl(url: 'http://localhost:8080');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenEmptyStringGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting an empty base URL */
+        $updated = $builder->withBaseUrl(url: '');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenUppercaseHttpsGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a base URL with uppercase scheme */
+        $updated = $builder->withBaseUrl(url: 'HTTPS://api.example.com');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenSchemeEmbeddedInPathGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When setting a base URL with the scheme embedded mid-string */
+        $builder->withBaseUrl(url: 'example.com?redirect=https://api.example.com');
     }
 }

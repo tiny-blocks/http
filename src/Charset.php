@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
+/**
+ * Character encoding declared in an HTTP Content-Type header.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+ */
 enum Charset: string
 {
     case BIG5 = 'big5';

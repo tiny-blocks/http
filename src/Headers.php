@@ -5,13 +5,22 @@ declare(strict_types=1);
 namespace TinyBlocks\Http;
 
 use Psr\Http\Message\MessageInterface;
+use TinyBlocks\Http\Exceptions\HeaderNameIsInvalid;
+use TinyBlocks\Http\Exceptions\HeaderValueIsInvalid;
 
+/**
+ * Case-insensitive collection of HTTP headers represented as a name-to-value map.
+ *
+ * Multi-value header lines are folded into a single comma-separated string on construction.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
+ */
 final readonly class Headers
 {
     private array $entries;
     private array $lowerIndex;
 
-    public function __construct(array $entries)
+    private function __construct(array $entries)
     {
         $lowerIndex = [];
 
@@ -21,6 +30,30 @@ final readonly class Headers
 
         $this->entries = $entries;
         $this->lowerIndex = $lowerIndex;
+    }
+
+    /**
+     * Creates a Headers from a name-to-value map.
+     *
+     * @param array<string, string> $entries The header name to single folded value map; multi-value entries
+     *                                        must be pre-folded by the caller.
+     * @return Headers A Headers wrapping the supplied entries.
+     * @throws HeaderNameIsInvalid If any entry key violates RFC 7230 token rules.
+     * @throws HeaderValueIsInvalid If any entry value contains a forbidden control character.
+     */
+    public static function fromArray(array $entries): Headers
+    {
+        foreach ($entries as $name => $value) {
+            if (!preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $name)) {
+                throw HeaderNameIsInvalid::for(name: $name);
+            }
+
+            if (preg_match('/[\x00-\x08\x0A-\x1F\x7F]/', $value) === 1) {
+                throw HeaderValueIsInvalid::for(value: $value);
+            }
+        }
+
+        return new Headers(entries: $entries);
     }
 
     /**
@@ -36,7 +69,7 @@ final readonly class Headers
             $message->getHeaders()
         );
 
-        return new Headers(entries: $entries);
+        return Headers::fromArray(entries: $entries);
     }
 
     /**
@@ -55,7 +88,7 @@ final readonly class Headers
             }
         }
 
-        return new Headers(entries: $entries);
+        return Headers::fromArray(entries: $entries);
     }
 
     /**
@@ -115,6 +148,33 @@ final readonly class Headers
     }
 
     /**
+     * Returns a copy of these Headers with the named entry replaced or appended.
+     *
+     * The lookup is case-insensitive: <code>with('content-type', 'text/plain')</code> replaces
+     * an existing <code>Content-Type</code> entry regardless of how it was originally cased.
+     * When no entry matches, the new header is appended under the supplied name.
+     *
+     * @param string $name The header name.
+     * @param string $value The replacement or new header value.
+     * @return Headers A new instance carrying the updated header.
+     * @throws HeaderNameIsInvalid If the name violates RFC 7230 token rules.
+     * @throws HeaderValueIsInvalid If the value contains a forbidden control character.
+     */
+    public function with(string $name, string $value): Headers
+    {
+        $key = strtolower($name);
+        $entries = $this->entries;
+
+        if (isset($this->lowerIndex[$key])) {
+            $entries[$this->lowerIndex[$key]] = $value;
+        } else {
+            $entries[$name] = $value;
+        }
+
+        return Headers::fromArray(entries: $entries);
+    }
+
+    /**
      * Returns a copy of these Headers merged with another instance, with existing entries winning on collision.
      *
      * @param Headers $other The Headers whose entries are merged under the existing ones.
@@ -132,6 +192,6 @@ final readonly class Headers
             $merged[$name] = $value;
         }
 
-        return new Headers(entries: $merged);
+        return Headers::fromArray(entries: $merged);
     }
 }

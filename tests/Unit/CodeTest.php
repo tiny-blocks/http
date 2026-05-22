@@ -102,6 +102,162 @@ final class CodeTest extends TestCase
         self::assertFalse($actual);
     }
 
+    public function testIsInformationalWhenCodeContinueGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::CONTINUE */
+        $code = Code::CONTINUE;
+
+        /** @When invoking isInformational */
+        $actual = $code->isInformational();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsInformationalWhenCodeEarlyHintsGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::EARLY_HINTS */
+        $code = Code::EARLY_HINTS;
+
+        /** @When invoking isInformational */
+        $actual = $code->isInformational();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsInformationalWhenCodeOkGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::OK */
+        $code = Code::OK;
+
+        /** @When invoking isInformational */
+        $actual = $code->isInformational();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
+    public function testIsRedirectionWhenCodeMovedPermanentlyGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::MOVED_PERMANENTLY */
+        $code = Code::MOVED_PERMANENTLY;
+
+        /** @When invoking isRedirection */
+        $actual = $code->isRedirection();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsRedirectionWhenCodeMultipleChoicesGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::MULTIPLE_CHOICES */
+        $code = Code::MULTIPLE_CHOICES;
+
+        /** @When invoking isRedirection */
+        $actual = $code->isRedirection();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsRedirectionWhenCodePermanentRedirectGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::PERMANENT_REDIRECT */
+        $code = Code::PERMANENT_REDIRECT;
+
+        /** @When invoking isRedirection */
+        $actual = $code->isRedirection();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsRedirectionWhenCodeOkGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::OK */
+        $code = Code::OK;
+
+        /** @When invoking isRedirection */
+        $actual = $code->isRedirection();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
+    public function testIsClientErrorWhenCodeBadRequestGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::BAD_REQUEST */
+        $code = Code::BAD_REQUEST;
+
+        /** @When invoking isClientError */
+        $actual = $code->isClientError();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsClientErrorWhenCodeUnavailableForLegalReasonsGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::UNAVAILABLE_FOR_LEGAL_REASONS */
+        $code = Code::UNAVAILABLE_FOR_LEGAL_REASONS;
+
+        /** @When invoking isClientError */
+        $actual = $code->isClientError();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsClientErrorWhenCodeInternalServerErrorGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::INTERNAL_SERVER_ERROR */
+        $code = Code::INTERNAL_SERVER_ERROR;
+
+        /** @When invoking isClientError */
+        $actual = $code->isClientError();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
+    public function testIsServerErrorWhenCodeInternalServerErrorGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::INTERNAL_SERVER_ERROR */
+        $code = Code::INTERNAL_SERVER_ERROR;
+
+        /** @When invoking isServerError */
+        $actual = $code->isServerError();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsServerErrorWhenCodeNetworkAuthenticationRequiredGivenThenReturnsTrue(): void
+    {
+        /** @Given Code::NETWORK_AUTHENTICATION_REQUIRED */
+        $code = Code::NETWORK_AUTHENTICATION_REQUIRED;
+
+        /** @When invoking isServerError */
+        $actual = $code->isServerError();
+
+        /** @Then the result is true */
+        self::assertTrue($actual);
+    }
+
+    public function testIsServerErrorWhenCodeBadRequestGivenThenReturnsFalse(): void
+    {
+        /** @Given Code::BAD_REQUEST */
+        $code = Code::BAD_REQUEST;
+
+        /** @When invoking isServerError */
+        $actual = $code->isServerError();
+
+        /** @Then the result is false */
+        self::assertFalse($actual);
+    }
+
     public static function messagesDataProvider(): array
     {
         return [

@@ -29,14 +29,18 @@ final readonly class RequestResolver
     public function resolve(Request $request): Request
     {
         try {
-            $url = Url::compose(path: $request->url(), query: $request->query(), baseUrl: $this->baseUrl);
+            $url = Url::compose(
+                path: $request->url(),
+                baseUrl: $this->baseUrl,
+                queryParameters: $request->queryParameters()
+            );
         } catch (PathContainsScheme | PathContainsControlChars $exception) {
             throw MalformedPath::fromRequest(request: $request, previous: $exception);
         }
 
         return $request
             ->withUrl(url: $url)
-            ->withQuery(query: null)
-            ->withMergedHeaders(defaults: new Headers(entries: RequestResolver::JSON_DEFAULTS));
+            ->withMergedHeaders(defaults: Headers::fromArray(entries: RequestResolver::JSON_DEFAULTS))
+            ->withQueryParameters(queryParameters: null);
     }
 }

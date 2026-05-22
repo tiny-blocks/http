@@ -17,6 +17,12 @@ use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 
+/**
+ * PSR-18-backed {@see Transport} that dispatches each request through a real HTTP client.
+ *
+ * Builds PSR-7 request messages using a PSR-17 factory, serializes the body as JSON,
+ * and maps PSR-18 client exceptions to typed library exceptions.
+ */
 final readonly class NetworkTransport implements Transport
 {
     private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;

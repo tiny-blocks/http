@@ -10,8 +10,6 @@ use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Client\Transports\InMemoryTransport;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\NoMoreResponses;
-use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
 
 final class InMemoryTransportTest extends TestCase
 {
@@ -27,13 +25,7 @@ final class InMemoryTransportTest extends TestCase
         $transport = InMemoryTransport::with(responses: [$first, $second]);
 
         /** @And a request to dispatch */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @When the queue is drained twice */
         $drained = [
@@ -52,13 +44,7 @@ final class InMemoryTransportTest extends TestCase
         $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
 
         /** @And a request to dispatch */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @And the seeded response is already consumed */
         $transport->send(request: $request);
@@ -76,13 +62,7 @@ final class InMemoryTransportTest extends TestCase
         $transport = InMemoryTransport::with(responses: []);
 
         /** @And a request to dispatch */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @Then NoMoreResponses is thrown immediately */
         $this->expectException(NoMoreResponses::class);
@@ -97,13 +77,7 @@ final class InMemoryTransportTest extends TestCase
         $transport = InMemoryTransport::with(responses: []);
 
         /** @And a request to dispatch */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @Then the raised exception message references the exhausted index */
         $this->expectException(NoMoreResponses::class);
@@ -119,13 +93,7 @@ final class InMemoryTransportTest extends TestCase
         $transport = InMemoryTransport::with(responses: [Response::with(code: Code::CREATED)]);
 
         /** @And a request to dispatch */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @When the request is sent */
         $response = $transport->send(request: $request);

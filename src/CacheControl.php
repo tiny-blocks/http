@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
+/**
+ * HTTP Cache-Control header value composed of one or more response directives.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+ */
 final readonly class CacheControl implements Headerable
 {
     private function __construct(private array $directives)

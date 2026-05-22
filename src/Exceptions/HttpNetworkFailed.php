@@ -10,6 +10,12 @@ use Throwable;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Method;
 
+/**
+ * Raised when the transport could not deliver a request due to a network-level failure such as
+ * DNS resolution failure, connection refused, or timeout.
+ *
+ * Wraps the underlying PSR-18 <code>NetworkExceptionInterface</code> when produced by the network transport.
+ */
 final class HttpNetworkFailed extends RuntimeException implements TransportFailure
 {
     private const string REASON_TEMPLATE = 'Network failure for %s %s: %s';

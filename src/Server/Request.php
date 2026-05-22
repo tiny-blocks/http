@@ -9,6 +9,11 @@ use TinyBlocks\Http\Internal\Server\Request\Decoder;
 use TinyBlocks\Http\Method;
 use TinyBlocks\Http\Server\Decoded\DecodedRequest;
 
+/**
+ * Typed wrapper around an incoming PSR-7 server request.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+ */
 final readonly class Request
 {
     private function __construct(private ServerRequestInterface $request)

@@ -6,6 +6,11 @@ namespace TinyBlocks\Http\Server\Decoded;
 
 use TinyBlocks\Http\Body;
 
+/**
+ * Typed view of an incoming HTTP request decoded into its URI and body.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+ */
 final readonly class DecodedRequest
 {
     private function __construct(private Uri $uri, private Body $body)

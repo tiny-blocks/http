@@ -10,11 +10,11 @@ use RuntimeException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\BaseUrlIsInvalid;
 use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 use TinyBlocks\Http\Exceptions\MalformedPath;
-use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\Method;
 
@@ -39,13 +39,7 @@ final class HttpTest extends TestCase
             ->build();
 
         /** @When sending a valid request */
-        $response = $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $response = $http->send(request: Request::get(url: '/dragons'));
 
         /** @Then the response code is correct */
         self::assertSame(Code::OK, $response->code());
@@ -63,13 +57,7 @@ final class HttpTest extends TestCase
             ->build();
 
         /** @When sending a request whose path starts with a slash */
-        $response = $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $response = $http->send(request: Request::get(url: '/dragons'));
 
         /** @Then the response is returned without double slash in the URL */
         self::assertSame(Code::OK, $response->code());
@@ -88,13 +76,7 @@ final class HttpTest extends TestCase
 
         /** @When sending a request with query parameters */
         $response = $http->send(
-            request: Request::create(
-                url: '/dragons',
-                body: null,
-                query: ['sort' => 'name', 'order' => 'asc'],
-                method: Method::GET,
-                headers: Headers::from()
-            )
+            request: Request::get(url: '/dragons', queryParameters: ['sort' => 'name', 'order' => 'asc'])
         );
 
         /** @Then the response code is correct */
@@ -114,13 +96,7 @@ final class HttpTest extends TestCase
 
         /** @When sending a request with a JSON body */
         $response = $http->send(
-            request: Request::create(
-                url: '/dragons',
-                body: ['name' => 'Hydra'],
-                query: null,
-                method: Method::POST,
-                headers: Headers::from()
-            )
+            request: Request::post(url: '/dragons', body: ['name' => 'Hydra'])
         );
 
         /** @Then the response code is correct */
@@ -142,13 +118,7 @@ final class HttpTest extends TestCase
         $this->expectException(HttpNetworkFailed::class);
 
         /** @When sending the request */
-        $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: '/dragons'));
     }
 
     public function testSendWhenClientRaisesRequestExceptionThenThrowsHttpRequestInvalid(): void
@@ -166,13 +136,7 @@ final class HttpTest extends TestCase
         $this->expectException(HttpRequestInvalid::class);
 
         /** @When sending the request */
-        $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: '/dragons'));
     }
 
     public function testSendWhenGenericClientExceptionRaisedThenThrowsHttpRequestFailed(): void
@@ -190,13 +154,7 @@ final class HttpTest extends TestCase
         $this->expectException(HttpRequestFailed::class);
 
         /** @When sending the request */
-        $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: '/dragons'));
     }
 
     public function testSendWhenProtocolRelativePathGivenThenThrowsMalformedPath(): void
@@ -214,13 +172,7 @@ final class HttpTest extends TestCase
         $this->expectException(MalformedPath::class);
 
         /** @When sending a request whose path is protocol-relative */
-        $http->send(request: Request::create(
-            url: '//evil.example.com/attack',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: '//evil.example.com/attack'));
     }
 
     public function testSendWhenSchemePathGivenThenThrowsMalformedPath(): void
@@ -238,13 +190,7 @@ final class HttpTest extends TestCase
         $this->expectException(MalformedPath::class);
 
         /** @When sending a request whose path contains a scheme */
-        $http->send(request: Request::create(
-            url: 'javascript:alert(1)',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: 'javascript:alert(1)'));
     }
 
     public function testSendWhenControlCharsInPathGivenThenThrowsMalformedPath(): void
@@ -262,13 +208,7 @@ final class HttpTest extends TestCase
         $this->expectException(MalformedPath::class);
 
         /** @When sending a request whose path contains control characters */
-        $http->send(request: Request::create(
-            url: "/dragons\x00/evil",
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $http->send(request: Request::get(url: "/dragons\x00/evil"));
     }
 
     public function testSendWhenNetworkExceptionRaisedThenPreservesPreviousChain(): void
@@ -287,13 +227,7 @@ final class HttpTest extends TestCase
 
         /** @When sending the request */
         try {
-            $http->send(request: Request::create(
-                url: '/dragons',
-                body: null,
-                query: null,
-                method: Method::GET,
-                headers: Headers::from()
-            ));
+            $http->send(request: Request::get(url: '/dragons'));
             self::fail('HttpNetworkFailed was expected.');
         } catch (HttpNetworkFailed $exception) {
             /** @Then the previous exception is preserved in the chain */
@@ -313,13 +247,7 @@ final class HttpTest extends TestCase
             ->build();
 
         /** @And a request whose path contains a scheme */
-        $request = Request::create(
-            url: 'https://attacker.com/steal',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: 'https://attacker.com/steal');
 
         /** @When sending the request */
         try {
@@ -346,13 +274,7 @@ final class HttpTest extends TestCase
             ->build();
 
         /** @And a request whose path contains a scheme */
-        $request = Request::create(
-            url: 'https://attacker.com/steal',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: 'https://attacker.com/steal');
 
         try {
             /** @When sending the request */
@@ -375,13 +297,7 @@ final class HttpTest extends TestCase
             ->build();
 
         /** @And a request whose path contains a control character */
-        $request = Request::create(
-            url: "/dragons\x00/evil",
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: "/dragons\x00/evil");
 
         /** @When sending the request */
         try {
@@ -406,13 +322,7 @@ final class HttpTest extends TestCase
         ));
 
         /** @And a request with a relative path */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @When sending the request */
         $http->send(request: $request);
@@ -432,13 +342,7 @@ final class HttpTest extends TestCase
         ));
 
         /** @And a request whose path starts with a slash */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @When sending the request */
         $http->send(request: $request);
@@ -458,13 +362,7 @@ final class HttpTest extends TestCase
         ));
 
         /** @And a request whose path lacks a leading slash */
-        $request = Request::create(
-            url: 'dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: 'dragons');
 
         /** @When sending the request */
         $http->send(request: $request);
@@ -484,13 +382,7 @@ final class HttpTest extends TestCase
         ));
 
         /** @And a request with query parameters */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: ['sort' => 'name'],
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons', queryParameters: ['sort' => 'name']);
 
         /** @When sending the request */
         $http->send(request: $request);
@@ -513,13 +405,7 @@ final class HttpTest extends TestCase
 
         try {
             /** @When sending a request through the custom transport */
-            $http->send(request: Request::create(
-                url: '/dragons',
-                body: null,
-                query: null,
-                method: Method::HEAD,
-                headers: Headers::from()
-            ));
+            $http->send(request: Request::head(url: '/dragons'));
             self::fail('HttpNetworkFailed was expected.');
         } catch (HttpNetworkFailed $exception) {
             /** @Then the exception carries the originating URL, method, and reason */
@@ -542,13 +428,7 @@ final class HttpTest extends TestCase
 
         try {
             /** @When sending a request through the custom transport */
-            $http->send(request: Request::create(
-                url: '/dragons',
-                body: null,
-                query: null,
-                method: Method::PATCH,
-                headers: Headers::from()
-            ));
+            $http->send(request: Request::patch(url: '/dragons'));
             self::fail('HttpRequestInvalid was expected.');
         } catch (HttpRequestInvalid $exception) {
             /** @Then the exception carries the originating URL, method, and reason */
@@ -571,13 +451,7 @@ final class HttpTest extends TestCase
 
         try {
             /** @When sending a request through the custom transport */
-            $http->send(request: Request::create(
-                url: '/dragons',
-                body: null,
-                query: null,
-                method: Method::PUT,
-                headers: Headers::from()
-            ));
+            $http->send(request: Request::put(url: '/dragons'));
             self::fail('HttpRequestFailed was expected.');
         } catch (HttpRequestFailed $exception) {
             /** @Then the exception carries the originating URL, method, and reason */
@@ -597,13 +471,7 @@ final class HttpTest extends TestCase
         ));
 
         /** @And a request with an empty query array */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: [],
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons', queryParameters: []);
 
         /** @When sending the request */
         $http->send(request: $request);
@@ -611,5 +479,110 @@ final class HttpTest extends TestCase
         /** @Then the composed URI has no trailing question mark */
         self::assertNotNull($client->captured);
         self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
+    }
+
+    public function testWithWhenJavascriptSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a javascript: scheme base URL */
+        Http::with(baseUrl: 'javascript:alert(1)', transport: $transport);
+    }
+
+    public function testWithWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with an ftp:// base URL */
+        Http::with(baseUrl: 'ftp://example.com', transport: $transport);
+    }
+
+    public function testWithWhenProtocolRelativeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a protocol-relative base URL */
+        Http::with(baseUrl: '//host', transport: $transport);
+    }
+
+    public function testWithWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a base URL containing a control character */
+        Http::with(baseUrl: "https://api.example.com\x00", transport: $transport);
+    }
+
+    public function testWithWhenHttpsGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with a valid https:// base URL */
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
+
+    public function testWithWhenHttpGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with a valid http:// base URL */
+        $http = Http::with(baseUrl: 'http://localhost:8080', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
+
+    public function testWithWhenEmptyStringGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with an empty base URL */
+        $http = Http::with(baseUrl: '', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
     }
 }

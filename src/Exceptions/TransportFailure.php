@@ -6,6 +6,13 @@ namespace TinyBlocks\Http\Exceptions;
 
 use TinyBlocks\Http\Method;
 
+/**
+ * Specialization of <code>HttpException</code> for failures that occur during transport dispatch.
+ *
+ * Implementations carry the URL, HTTP method, and transport-level reason associated with the
+ * failed request, allowing callers to inspect what was attempted and why without unwrapping
+ * the previous exception chain.
+ */
 interface TransportFailure extends HttpException
 {
     /**

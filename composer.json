@@ -1,16 +1,19 @@
 {
     "name": "tiny-blocks/http",
-    "description": "Implements PSR-7, PSR-15, and PSR-18 HTTP primitives for PHP, with a fluent response builder, cookies, cache control, and a PSR-18 client facade.",
+    "description": "Implements PSR-7, PSR-15, PSR-17 and PSR-18 HTTP primitives for PHP, with a fluent response builder, cookies, cache control, and a PSR-18 client facade.",
     "license": "MIT",
     "type": "library",
     "keywords": [
         "http",
         "psr-7",
         "psr-15",
+        "psr-17",
         "psr-18",
+        "cookie",
         "http-codes",
-        "tiny-blocks",
-        "http-client"
+        "http-client",
+        "http-server",
+        "tiny-blocks"
     ],
     "authors": [
         {
@@ -31,9 +34,9 @@
         "tiny-blocks/mapper": "^2.1"
     },
     "require-dev": {
-        "ergebnis/composer-normalize": "^2.51",
-        "guzzlehttp/guzzle": "^7.9",
-        "infection/infection": "^0.32",
+        "ergebnis/composer-normalize": "^2.52",
+        "guzzlehttp/guzzle": "^7.10",
+        "infection/infection": "^0.33",
         "laminas/laminas-httphandlerrunner": "^2.13",
         "nyholm/psr7": "^1.8",
         "phpstan/phpstan": "^2.1",

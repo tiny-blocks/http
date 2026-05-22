@@ -9,6 +9,11 @@ use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Headerable;
 use TinyBlocks\Http\Internal\Server\Response\InternalResponse;
 
+/**
+ * Factory class for building PSR-7 server responses with a typed status code and optional headers.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+ */
 final class Response implements Responses
 {
     private function __construct()

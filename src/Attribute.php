@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
+/**
+ * Typed wrapper around a scalar or array value extracted from an HTTP message.
+ *
+ * Provides coercion methods that convert the wrapped value to a requested primitive type,
+ * falling back to a safe zero-value when conversion is not possible.
+ */
 final readonly class Attribute
 {
     private function __construct(private mixed $value)

@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
+/**
+ * HTTP Content-Type header combining a MIME type with an optional character encoding.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+ */
 final readonly class ContentType implements Headerable
 {
     private function __construct(private MimeType $mimeType, private ?Charset $charset)

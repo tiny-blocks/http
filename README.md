@@ -132,9 +132,31 @@ Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
+`withStatus($code, $reasonPhrase)` honors the supplied reason phrase: when a non-empty string is
+passed, `getReasonPhrase()` returns it instead of the enum-derived phrase.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Server\Response;
+
+$response = Response::ok(body: null)->withStatus(Code::OK->value, 'All Good');
+$response->getReasonPhrase(); # "All Good"
+```
+
 #### Setting cookies
 
-`Cookie` implements `Headerable` and composes naturally with `Response`:
+`Cookie` implements `Headerable` and composes naturally with `Response`.
+
+`withSameSite(SameSite::NONE)` automatically enables the `Secure` flag. Browsers reject
+`SameSite=None` cookies that lack it. Calling `secure()` separately is not required.
+
+`withMaxAge(...)` and `withExpires(...)` are mutually exclusive (last-write-wins): setting one
+clears the other. This follows RFC 6265 §4.1.2.2, which specifies that `Max-Age` takes precedence
+over `Expires` when both are present.
 
 ```php
 <?php
@@ -155,7 +177,27 @@ $session = Cookie::create(name: 'session', value: $token)
 Response::ok(['ok' => true], $session);
 ```
 
+Setting `SameSite=None` without calling `secure()` first is safe. Secure is set automatically:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Cookie;
+use TinyBlocks\Http\SameSite;
+use TinyBlocks\Http\Server\Response;
+
+# Secure is applied automatically when SameSite=None is set.
+$crossSite = Cookie::create(name: 'session', value: $token)
+    ->withSameSite(sameSite: SameSite::NONE);
+
+Response::ok(['ok' => true], $crossSite);
+```
+
 To expire a cookie, use `Cookie::expire(...)` with the same `Path` and `Domain` used at creation.
+The expired cookie carries both `Max-Age=0` and `Expires` set to the Unix epoch: modern browsers
+honor `Max-Age`. The `Expires` fallback covers legacy user agents.
 
 ```php
 <?php
@@ -186,10 +228,14 @@ declare(strict_types=1);
 
 use TinyBlocks\Http\Code;
 
-Code::OK->value;                        # 200
-Code::OK->message();                    # "OK"
-Code::OK->isSuccess();                  # true
-Code::INTERNAL_SERVER_ERROR->isError(); # true
+Code::OK->value;                              # 200
+Code::OK->message();                          # "OK"
+Code::OK->isSuccess();                        # true
+Code::CONTINUE->isInformational();            # true
+Code::MOVED_PERMANENTLY->isRedirection();     # true
+Code::BAD_REQUEST->isClientError();           # true
+Code::INTERNAL_SERVER_ERROR->isError();       # true
+Code::INTERNAL_SERVER_ERROR->isServerError(); # true
 
 Code::isValidCode(code: 200);   # true
 Code::isErrorCode(code: 500);   # true
@@ -233,12 +279,13 @@ use GuzzleHttp\Psr7\HttpFactory;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Http;
 
+$client = new Client(config: ['timeout' => 30, 'connect_timeout' => 5]);
 $factory = new HttpFactory();
 
 $http = Http::with(
     baseUrl: 'https://api.example.com',
     transport: NetworkTransport::with(
-        client: new Client(config: ['timeout' => 30, 'connect_timeout' => 5]),
+        client: $client,
         factory: $factory
     )
 );
@@ -246,9 +293,8 @@ $http = Http::with(
 
 #### Making a request
 
-Every parameter on `Request::create(...)` is explicit. Pass `null` for `body` and `query` when absent. Pass
-`Method::GET` (or another method) for `method`. Build `headers` from one or more `Headerable` instances via
-`Headers::from(...)`, or call `Headers::from()` with no arguments when no headers apply.
+Six shortcut factories cover the most common HTTP methods. Supply only the arguments the request
+needs. The `body`, `queryParameters`, and `headers` all default to absent or empty.
 
 ```php
 <?php
@@ -258,20 +304,22 @@ declare(strict_types=1);
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
+
+$response = $http->send(request: Request::get(url: '/v1/charges/abc123'));
 
 $response = $http->send(
-    request: Request::create(
+    request: Request::post(
         url: '/v1/charges',
         body: ['amount' => 1000, 'currency' => 'usd'],
-        query: null,
-        method: Method::POST,
         headers: Headers::from(ContentType::applicationJson())
     )
 );
+
+$response = $http->send(request: Request::delete(url: '/v1/charges/abc123'));
 ```
 
-A simple `GET` still passes every parameter, with `Headers::from()` for the empty header set:
+For HTTP methods not covered by the six shortcuts (`OPTIONS`, `TRACE`, `CONNECT`, or any custom
+method), use `Request::for(...)`, which accepts an explicit `Method` argument:
 
 ```php
 <?php
@@ -279,18 +327,26 @@ A simple `GET` still passes every parameter, with `Headers::from()` for the empt
 declare(strict_types=1);
 
 use TinyBlocks\Http\Client\Request;
-use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Method;
 
 $response = $http->send(
-    request: Request::create(
-        url: '/v1/charges/abc123',
-        body: null,
-        query: null,
-        method: Method::GET,
-        headers: Headers::from()
-    )
+    request: Request::for(url: '/v1/charges', method: Method::OPTIONS)
 );
+```
+
+`Method` also exposes RFC 9110 safety and idempotency predicates:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Method;
+
+Method::GET->isSafe();        # true  (RFC 9110 §9.2.1)
+Method::POST->isSafe();       # false
+Method::PUT->isIdempotent();  # true  (RFC 9110 §9.2.2)
+Method::POST->isIdempotent(); # false
 ```
 
 #### Reading the response
@@ -319,7 +375,7 @@ $hasTrace = $response->headers()->has(name: 'X-Trace-Id');      # true
 
 #### Query parameters
 
-Pass the query as a named parameter - the library encodes it in RFC3986 form.
+Pass query parameters via `queryParameters:`. The library encodes them in RFC 3986 form.
 
 ```php
 <?php
@@ -327,18 +383,19 @@ Pass the query as a named parameter - the library encodes it in RFC3986 form.
 declare(strict_types=1);
 
 use TinyBlocks\Http\Client\Request;
-use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
 
 $response = $http->send(
-    request: Request::create(
+    request: Request::get(
         url: '/v1/charges',
-        body: null,
-        query: ['status' => 'succeeded', 'limit' => 50],
-        method: Method::GET,
-        headers: Headers::from()
+        queryParameters: ['status' => 'succeeded', 'limit' => 50]
     )
 );
+```
+
+To replace query parameters on an existing request, use `withQueryParameters(...)`:
+
+```php
+$updated = $request->withQueryParameters(queryParameters: ['limit' => 100]);
 ```
 
 #### Custom headers and content type
@@ -354,7 +411,6 @@ use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\Headerable;
 use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
 
 final readonly class IdempotencyKey implements Headerable
 {
@@ -369,11 +425,9 @@ final readonly class IdempotencyKey implements Headerable
 }
 
 $response = $http->send(
-    request: Request::create(
+    request: Request::post(
         url: '/v1/charges',
         body: ['amount' => 1000],
-        query: null,
-        method: Method::POST,
         headers: Headers::from(
             ContentType::applicationJson(),
             new IdempotencyKey(value: $key)
@@ -384,12 +438,25 @@ $response = $http->send(
 
 Custom headers always win over the library's JSON defaults.
 
+To add or replace a single header on an existing request, use `withHeader(...)`. The lookup is
+case-insensitive: replacing `Content-Type` via `content-type` still finds and replaces the entry.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+
+$updated = Request::get(url: '/v1/charges')
+    ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
+```
+
 #### Setting the User-Agent
 
 The `UserAgent` value object implements `Headerable` and renders the standard
-`User-Agent` header. Empty version is normalized to "no version" - the rendered
-header carries only the product token in that case, so configuration with an
-optional version flows in directly.
+`User-Agent` header. An absent or empty version is normalized to "no version". The rendered
+header carries only the product token in that case.
 
 ```php
 <?php
@@ -398,17 +465,13 @@ declare(strict_types=1);
 
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
 use TinyBlocks\Http\UserAgent;
 
 $userAgent = UserAgent::from(product: 'MyApp', version: '1.2.3');
 
 $response = $http->send(
-    request: Request::create(
+    request: Request::get(
         url: '/v1/charges',
-        body: null,
-        query: null,
-        method: Method::GET,
         headers: Headers::from($userAgent)
     )
 );
@@ -437,15 +500,12 @@ declare(strict_types=1);
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\Headers;
-use TinyBlocks\Http\Method;
 use TinyBlocks\Http\UserAgent;
 
 $response = $http->send(
-    request: Request::create(
+    request: Request::post(
         url: '/v1/charges',
         body: ['amount' => 1000],
-        query: null,
-        method: Method::POST,
         headers: Headers::from(
             UserAgent::from(product: 'MyApp', version: '1.2.3'),
             ContentType::applicationJson()
