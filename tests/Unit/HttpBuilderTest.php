@@ -12,10 +12,8 @@ use TinyBlocks\Http\Client\Transports\InMemoryTransport;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\HttpConfigurationInvalid;
-use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\HttpBuilder;
-use TinyBlocks\Http\Method;
 
 final class HttpBuilderTest extends TestCase
 {
@@ -134,13 +132,7 @@ final class HttpBuilderTest extends TestCase
             ->build();
 
         /** @When sending a request */
-        $response = $http->send(request: Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        ));
+        $response = $http->send(request: Request::get(url: '/dragons'));
 
         /** @Then the response is returned correctly */
         self::assertSame(Code::OK, $response->code());
@@ -155,15 +147,10 @@ final class HttpBuilderTest extends TestCase
         $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
 
         /** @And a simple GET request */
-        $request = Request::create(
-            url: '/dragons',
-            body: null,
-            query: null,
-            method: Method::GET,
-            headers: Headers::from()
-        );
+        $request = Request::get(url: '/dragons');
 
         /** @Then the instance can send requests and returns the correct response */
         self::assertSame(Code::OK, $http->send(request: $request)->code());
     }
+
 }
