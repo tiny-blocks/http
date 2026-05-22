@@ -32,9 +32,11 @@ final readonly class ResponseHeaders
         return new ResponseHeaders(headers: $merged);
     }
 
-    public function hasHeader(string $name): bool
+    private function findKey(string $name): ?string
     {
-        return !empty($this->getByName(name: $name));
+        $lowered = strtolower($name);
+
+        return array_find(array_keys($this->headers), static fn(string $key): bool => strtolower($key) === $lowered);
     }
 
     public function toArray(): array
@@ -49,33 +51,9 @@ final readonly class ResponseHeaders
         return is_null($key) ? [] : $this->headers[$key];
     }
 
-    private function findKey(string $name): ?string
+    public function hasHeader(string $name): bool
     {
-        $lowered = strtolower($name);
-
-        return array_find(array_keys($this->headers), static fn(string $key): bool => strtolower($key) === $lowered);
-    }
-
-    public function withReplaced(string $name, string|array $value): ResponseHeaders
-    {
-        $headers = $this->headers;
-        $existingKey = $this->findKey(name: $name);
-        $targetKey = $existingKey ?? $name;
-        $headers[$targetKey] = is_array($value) ? $value : [$value];
-
-        return new ResponseHeaders(headers: $headers);
-    }
-
-    public function removeByName(string $name): ResponseHeaders
-    {
-        $headers = $this->headers;
-        $existingKey = $this->findKey(name: $name);
-
-        if (!is_null($existingKey)) {
-            unset($headers[$existingKey]);
-        }
-
-        return new ResponseHeaders(headers: $headers);
+        return !empty($this->getByName(name: $name));
     }
 
     public function withAdded(string $name, string|array $value): ResponseHeaders
@@ -99,6 +77,28 @@ final readonly class ResponseHeaders
         }
 
         $headers[$existingKey] = $existingValues;
+
+        return new ResponseHeaders(headers: $headers);
+    }
+
+    public function removeByName(string $name): ResponseHeaders
+    {
+        $headers = $this->headers;
+        $existingKey = $this->findKey(name: $name);
+
+        if (!is_null($existingKey)) {
+            unset($headers[$existingKey]);
+        }
+
+        return new ResponseHeaders(headers: $headers);
+    }
+
+    public function withReplaced(string $name, string|array $value): ResponseHeaders
+    {
+        $headers = $this->headers;
+        $existingKey = $this->findKey(name: $name);
+        $targetKey = $existingKey ?? $name;
+        $headers[$targetKey] = is_array($value) ? $value : [$value];
 
         return new ResponseHeaders(headers: $headers);
     }

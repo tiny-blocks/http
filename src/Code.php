@@ -104,17 +104,6 @@ enum Code: int
     }
 
     /**
-     * Tells whether the given code falls in the success range (2xx).
-     *
-     * @param int $code The HTTP status code to check.
-     * @return bool True when the code falls in the success range, otherwise false.
-     */
-    public static function isSuccessCode(int $code): bool
-    {
-        return $code >= Code::OK->value && $code <= Code::IM_USED->value;
-    }
-
-    /**
      * Tells whether the given code is a valid HTTP status code represented by the enum.
      *
      * @param int $code The HTTP status code to check.
@@ -126,13 +115,14 @@ enum Code: int
     }
 
     /**
-     * Tells whether the status code falls in the 1xx range.
+     * Tells whether the given code falls in the success range (2xx).
      *
-     * @return bool True when the code represents an informational response.
+     * @param int $code The HTTP status code to check.
+     * @return bool True when the code falls in the success range, otherwise false.
      */
-    public function isInformational(): bool
+    public static function isSuccessCode(int $code): bool
     {
-        return $this->value >= Code::CONTINUE->value && $this->value <= Code::EARLY_HINTS->value;
+        return $code >= Code::OK->value && $code <= Code::IM_USED->value;
     }
 
     /**
@@ -145,47 +135,6 @@ enum Code: int
     public function isError(): bool
     {
         return Code::isErrorCode(code: $this->value);
-    }
-
-    /**
-     * Tells whether the status code falls in the 2xx range.
-     *
-     * @return bool True when the code represents a successful response.
-     */
-    public function isSuccess(): bool
-    {
-        return Code::isSuccessCode(code: $this->value);
-    }
-
-    /**
-     * Tells whether the status code falls in the 3xx range.
-     *
-     * @return bool True when the code represents a redirection response.
-     */
-    public function isRedirection(): bool
-    {
-        return $this->value >= Code::MULTIPLE_CHOICES->value && $this->value <= Code::PERMANENT_REDIRECT->value;
-    }
-
-    /**
-     * Tells whether the status code falls in the 4xx range.
-     *
-     * @return bool True when the code represents a client error response.
-     */
-    public function isClientError(): bool
-    {
-        return $this->value >= Code::BAD_REQUEST->value && $this->value <= Code::UNAVAILABLE_FOR_LEGAL_REASONS->value;
-    }
-
-    /**
-     * Tells whether the status code falls in the 5xx range.
-     *
-     * @return bool True when the code represents a server error response.
-     */
-    public function isServerError(): bool
-    {
-        return $this->value >= Code::INTERNAL_SERVER_ERROR->value
-            && $this->value <= Code::NETWORK_AUTHENTICATION_REQUIRED->value;
     }
 
     /**
@@ -204,5 +153,56 @@ enum Code: int
         };
 
         return str_replace('_', ' ', $subject);
+    }
+
+    /**
+     * Tells whether the status code falls in the 2xx range.
+     *
+     * @return bool True when the code represents a successful response.
+     */
+    public function isSuccess(): bool
+    {
+        return Code::isSuccessCode(code: $this->value);
+    }
+
+    /**
+     * Tells whether the status code falls in the 4xx range.
+     *
+     * @return bool True when the code represents a client error response.
+     */
+    public function isClientError(): bool
+    {
+        return $this->value >= Code::BAD_REQUEST->value && $this->value <= Code::UNAVAILABLE_FOR_LEGAL_REASONS->value;
+    }
+
+    /**
+     * Tells whether the status code falls in the 3xx range.
+     *
+     * @return bool True when the code represents a redirection response.
+     */
+    public function isRedirection(): bool
+    {
+        return $this->value >= Code::MULTIPLE_CHOICES->value && $this->value <= Code::PERMANENT_REDIRECT->value;
+    }
+
+    /**
+     * Tells whether the status code falls in the 5xx range.
+     *
+     * @return bool True when the code represents a server error response.
+     */
+    public function isServerError(): bool
+    {
+        return $this->value >= Code::INTERNAL_SERVER_ERROR->value
+            && $this->value <= Code::NETWORK_AUTHENTICATION_REQUIRED->value;
+    }
+
+    /**
+     * Tells whether the status code falls in the 1xx range.
+     *
+     * @return bool True when the code represents an informational response.
+     */
+    public function isInformational(): bool
+    {
+        return $this->value >= Code::CONTINUE->value && $this->value <= Code::EARLY_HINTS->value;
     }
 }

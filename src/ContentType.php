@@ -38,17 +38,6 @@ final readonly class ContentType implements Headerable
     }
 
     /**
-     * Creates a ContentType for <code>application/json</code> with an optional charset.
-     *
-     * @param Charset|null $charset The optional charset folded into the header value.
-     * @return ContentType A ContentType for <code>application/json</code>.
-     */
-    public static function applicationJson(?Charset $charset = null): ContentType
-    {
-        return new ContentType(mimeType: MimeType::APPLICATION_JSON, charset: $charset);
-    }
-
-    /**
      * Creates a ContentType for <code>application/pdf</code> with an optional charset.
      *
      * @param Charset|null $charset The optional charset folded into the header value.
@@ -57,6 +46,17 @@ final readonly class ContentType implements Headerable
     public static function applicationPdf(?Charset $charset = null): ContentType
     {
         return new ContentType(mimeType: MimeType::APPLICATION_PDF, charset: $charset);
+    }
+
+    /**
+     * Creates a ContentType for <code>application/json</code> with an optional charset.
+     *
+     * @param Charset|null $charset The optional charset folded into the header value.
+     * @return ContentType A ContentType for <code>application/json</code>.
+     */
+    public static function applicationJson(?Charset $charset = null): ContentType
+    {
+        return new ContentType(mimeType: MimeType::APPLICATION_JSON, charset: $charset);
     }
 
     /**

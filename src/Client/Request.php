@@ -24,44 +24,49 @@ final readonly class Request
     }
 
     /**
-     * Builds a GET request targeting the given URL.
+     * Builds a Request for any HTTP method, including those not covered by the six shortcut factories.
      *
+     * Use this factory when the target method is <code>OPTIONS</code>, <code>TRACE</code>,
+     * <code>CONNECT</code>, or any other method not represented by a dedicated shortcut.
+     *
+     * @param Method $method The HTTP method used by the request.
      * @param string $url The URL (relative or absolute) the request targets.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
+     * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
      * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
-     * @return Request A new GET request instance.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
+     * @return Request A new immutable request instance.
      */
-    public static function get(string $url, ?array $queryParameters = null, ?Headers $headers = null): Request
-    {
+    public static function for(
+        Method $method,
+        string $url,
+        ?array $body = null,
+        ?Headers $headers = null,
+        ?array $queryParameters = null
+    ): Request {
         return new Request(
             url: $url,
-            body: null,
-            method: Method::GET,
-            headers: $headers ?? Headers::from(),
+            body: $body,
+            method: $method,
+            headers: $headers ?? Headers::empty(),
             queryParameters: $queryParameters
         );
     }
 
     /**
-     * Builds a POST request targeting the given URL.
+     * Builds a GET request targeting the given URL.
      *
      * @param string $url The URL (relative or absolute) the request targets.
-     * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
-     * @return Request A new POST request instance.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
+     * @return Request A new GET request instance.
      */
-    public static function post(
-        string $url,
-        ?array $body = null,
-        ?array $queryParameters = null,
-        ?Headers $headers = null
-    ): Request {
+    public static function get(string $url, ?Headers $headers = null, ?array $queryParameters = null): Request
+    {
         return new Request(
             url: $url,
-            body: $body,
-            method: Method::POST,
-            headers: $headers ?? Headers::from(),
+            body: null,
+            method: Method::GET,
+            headers: $headers ?? Headers::empty(),
             queryParameters: $queryParameters
         );
     }
@@ -71,21 +76,64 @@ final readonly class Request
      *
      * @param string $url The URL (relative or absolute) the request targets.
      * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @return Request A new PUT request instance.
      */
     public static function put(
         string $url,
         ?array $body = null,
-        ?array $queryParameters = null,
-        ?Headers $headers = null
+        ?Headers $headers = null,
+        ?array $queryParameters = null
     ): Request {
         return new Request(
             url: $url,
             body: $body,
             method: Method::PUT,
-            headers: $headers ?? Headers::from(),
+            headers: $headers ?? Headers::empty(),
+            queryParameters: $queryParameters
+        );
+    }
+
+    /**
+     * Builds a HEAD request targeting the given URL.
+     *
+     * @param string $url The URL (relative or absolute) the request targets.
+     * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
+     * @return Request A new HEAD request instance.
+     */
+    public static function head(string $url, ?Headers $headers = null, ?array $queryParameters = null): Request
+    {
+        return new Request(
+            url: $url,
+            body: null,
+            method: Method::HEAD,
+            headers: $headers ?? Headers::empty(),
+            queryParameters: $queryParameters
+        );
+    }
+
+    /**
+     * Builds a POST request targeting the given URL.
+     *
+     * @param string $url The URL (relative or absolute) the request targets.
+     * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
+     * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
+     * @return Request A new POST request instance.
+     */
+    public static function post(
+        string $url,
+        ?array $body = null,
+        ?Headers $headers = null,
+        ?array $queryParameters = null
+    ): Request {
+        return new Request(
+            url: $url,
+            body: $body,
+            method: Method::POST,
+            headers: $headers ?? Headers::empty(),
             queryParameters: $queryParameters
         );
     }
@@ -95,21 +143,21 @@ final readonly class Request
      *
      * @param string $url The URL (relative or absolute) the request targets.
      * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @return Request A new PATCH request instance.
      */
     public static function patch(
         string $url,
         ?array $body = null,
-        ?array $queryParameters = null,
-        ?Headers $headers = null
+        ?Headers $headers = null,
+        ?array $queryParameters = null
     ): Request {
         return new Request(
             url: $url,
             body: $body,
             method: Method::PATCH,
-            headers: $headers ?? Headers::from(),
+            headers: $headers ?? Headers::empty(),
             queryParameters: $queryParameters
         );
     }
@@ -118,65 +166,17 @@ final readonly class Request
      * Builds a DELETE request targeting the given URL.
      *
      * @param string $url The URL (relative or absolute) the request targets.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
+     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
      * @return Request A new DELETE request instance.
      */
-    public static function delete(string $url, ?array $queryParameters = null, ?Headers $headers = null): Request
+    public static function delete(string $url, ?Headers $headers = null, ?array $queryParameters = null): Request
     {
         return new Request(
             url: $url,
             body: null,
             method: Method::DELETE,
-            headers: $headers ?? Headers::from(),
-            queryParameters: $queryParameters
-        );
-    }
-
-    /**
-     * Builds a HEAD request targeting the given URL.
-     *
-     * @param string $url The URL (relative or absolute) the request targets.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
-     * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
-     * @return Request A new HEAD request instance.
-     */
-    public static function head(string $url, ?array $queryParameters = null, ?Headers $headers = null): Request
-    {
-        return new Request(
-            url: $url,
-            body: null,
-            method: Method::HEAD,
-            headers: $headers ?? Headers::from(),
-            queryParameters: $queryParameters
-        );
-    }
-
-    /**
-     * Builds a Request for any HTTP method, including those not covered by the six shortcut factories.
-     *
-     * Use this factory when the target method is <code>OPTIONS</code>, <code>TRACE</code>,
-     * <code>CONNECT</code>, or any other method not represented by a dedicated shortcut.
-     *
-     * @param Method $method The HTTP method used by the request.
-     * @param string $url The URL (relative or absolute) the request targets.
-     * @param array<string, mixed>|null $body The request body as an associative array, or null when absent.
-     * @param array<string, scalar>|null $queryParameters The query string parameters, or null when absent.
-     * @param Headers|null $headers The headers carried by the request, or null to default to an empty set.
-     * @return Request A new immutable request instance.
-     */
-    public static function for(
-        Method $method,
-        string $url,
-        ?array $body = null,
-        ?array $queryParameters = null,
-        ?Headers $headers = null
-    ): Request {
-        return new Request(
-            url: $url,
-            body: $body,
-            method: $method,
-            headers: $headers ?? Headers::from(),
+            headers: $headers ?? Headers::empty(),
             queryParameters: $queryParameters
         );
     }
@@ -222,16 +222,6 @@ final readonly class Request
     }
 
     /**
-     * Returns the query parameters.
-     *
-     * @return array<string, scalar>|null The query string parameters, or null when absent.
-     */
-    public function queryParameters(): ?array
-    {
-        return $this->queryParameters;
-    }
-
-    /**
      * Returns a copy of the Request with the URL replaced.
      *
      * @param string $url The replacement URL.
@@ -267,6 +257,16 @@ final readonly class Request
             headers: $this->headers->with(name: $name, value: $value),
             queryParameters: $this->queryParameters
         );
+    }
+
+    /**
+     * Returns the query parameters.
+     *
+     * @return array<string, scalar>|null The query string parameters, or null when absent.
+     */
+    public function queryParameters(): ?array
+    {
+        return $this->queryParameters;
     }
 
     /**

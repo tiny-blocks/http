@@ -120,6 +120,51 @@ final readonly class Cookie implements Headerable
         );
     }
 
+    public function toArray(): array
+    {
+        $nameValueTemplate = '%s=%s';
+        $parts = [sprintf($nameValueTemplate, $this->name->toString(), $this->value->toString())];
+
+        if (!is_null($this->maxAge)) {
+            $maxAgeTemplate = 'Max-Age=%d';
+            $parts[] = sprintf($maxAgeTemplate, $this->maxAge);
+        }
+
+        if (!is_null($this->expires)) {
+            $expiresTemplate = 'Expires=%s';
+            $parts[] = sprintf($expiresTemplate, $this->expires->format(Cookie::EXPIRES_FORMAT));
+        }
+
+        if (!is_null($this->path)) {
+            $pathTemplate = 'Path=%s';
+            $parts[] = sprintf($pathTemplate, $this->path);
+        }
+
+        if (!is_null($this->domain)) {
+            $domainTemplate = 'Domain=%s';
+            $parts[] = sprintf($domainTemplate, $this->domain);
+        }
+
+        if ($this->secure) {
+            $parts[] = 'Secure';
+        }
+
+        if ($this->httpOnly) {
+            $parts[] = 'HttpOnly';
+        }
+
+        if (!is_null($this->sameSite)) {
+            $sameSiteTemplate = 'SameSite=%s';
+            $parts[] = sprintf($sameSiteTemplate, $this->sameSite->value);
+        }
+
+        if ($this->partitioned) {
+            $parts[] = 'Partitioned';
+        }
+
+        return ['Set-Cookie' => [implode('; ', $parts)]];
+    }
+
     /**
      * Returns a copy of the Cookie with the <code>HttpOnly</code> attribute enabled.
      *
@@ -138,27 +183,6 @@ final readonly class Cookie implements Headerable
             httpOnly: true,
             sameSite: $this->sameSite,
             partitioned: $this->partitioned
-        );
-    }
-
-    /**
-     * Returns a copy of the Cookie with the <code>Partitioned</code> attribute enabled.
-     *
-     * @return Cookie A new instance carrying the <code>Partitioned</code> attribute.
-     */
-    public function partitioned(): Cookie
-    {
-        return new Cookie(
-            name: $this->name,
-            path: $this->path,
-            value: $this->value,
-            domain: $this->domain,
-            maxAge: $this->maxAge,
-            secure: $this->secure,
-            expires: $this->expires,
-            httpOnly: $this->httpOnly,
-            sameSite: $this->sameSite,
-            partitioned: true
         );
     }
 
@@ -259,6 +283,27 @@ final readonly class Cookie implements Headerable
     }
 
     /**
+     * Returns a copy of the Cookie with the <code>Partitioned</code> attribute enabled.
+     *
+     * @return Cookie A new instance carrying the <code>Partitioned</code> attribute.
+     */
+    public function partitioned(): Cookie
+    {
+        return new Cookie(
+            name: $this->name,
+            path: $this->path,
+            value: $this->value,
+            domain: $this->domain,
+            maxAge: $this->maxAge,
+            secure: $this->secure,
+            expires: $this->expires,
+            httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
+            partitioned: true
+        );
+    }
+
+    /**
      * Returns a copy of the Cookie with Expires replaced (normalized to UTC) and Max-Age cleared.
      *
      * Max-Age and Expires are mutually exclusive in this library: setting one clears the other
@@ -311,50 +356,5 @@ final readonly class Cookie implements Headerable
             sameSite: $sameSite,
             partitioned: $this->partitioned
         );
-    }
-
-    public function toArray(): array
-    {
-        $nameValueTemplate = '%s=%s';
-        $parts = [sprintf($nameValueTemplate, $this->name->toString(), $this->value->toString())];
-
-        if (!is_null($this->maxAge)) {
-            $maxAgeTemplate = 'Max-Age=%d';
-            $parts[] = sprintf($maxAgeTemplate, $this->maxAge);
-        }
-
-        if (!is_null($this->expires)) {
-            $expiresTemplate = 'Expires=%s';
-            $parts[] = sprintf($expiresTemplate, $this->expires->format(Cookie::EXPIRES_FORMAT));
-        }
-
-        if (!is_null($this->path)) {
-            $pathTemplate = 'Path=%s';
-            $parts[] = sprintf($pathTemplate, $this->path);
-        }
-
-        if (!is_null($this->domain)) {
-            $domainTemplate = 'Domain=%s';
-            $parts[] = sprintf($domainTemplate, $this->domain);
-        }
-
-        if ($this->secure) {
-            $parts[] = 'Secure';
-        }
-
-        if ($this->httpOnly) {
-            $parts[] = 'HttpOnly';
-        }
-
-        if (!is_null($this->sameSite)) {
-            $sameSiteTemplate = 'SameSite=%s';
-            $parts[] = sprintf($sameSiteTemplate, $this->sameSite->value);
-        }
-
-        if ($this->partitioned) {
-            $parts[] = 'Partitioned';
-        }
-
-        return ['Set-Cookie' => [implode('; ', $parts)]];
     }
 }

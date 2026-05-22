@@ -13,6 +13,24 @@ use TinyBlocks\Http\Exceptions\NoMoreResponses;
 
 final class InMemoryTransportTest extends TestCase
 {
+    public function testSendWhenQueueExhaustedThenThrowsNoMoreResponses(): void
+    {
+        /** @Given a transport seeded with one response */
+        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+
+        /** @And a request to dispatch */
+        $request = Request::get(url: '/dragons');
+
+        /** @And the seeded response is already consumed */
+        $transport->send(request: $request);
+
+        /** @Then NoMoreResponses is thrown on the next call */
+        $this->expectException(NoMoreResponses::class);
+
+        /** @When sending a second request */
+        $transport->send(request: $request);
+    }
+
     public function testSendWhenMultipleResponsesQueuedThenServesInFifoOrder(): void
     {
         /** @Given a first queued response carrying OK */
@@ -38,24 +56,6 @@ final class InMemoryTransportTest extends TestCase
         self::assertSame(Code::CREATED, $drained[1]->code());
     }
 
-    public function testSendWhenQueueExhaustedThenThrowsNoMoreResponses(): void
-    {
-        /** @Given a transport seeded with one response */
-        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
-
-        /** @And a request to dispatch */
-        $request = Request::get(url: '/dragons');
-
-        /** @And the seeded response is already consumed */
-        $transport->send(request: $request);
-
-        /** @Then NoMoreResponses is thrown on the next call */
-        $this->expectException(NoMoreResponses::class);
-
-        /** @When sending a second request */
-        $transport->send(request: $request);
-    }
-
     public function testSendWhenQueueEmptyThenThrowsNoMoreResponsesImmediately(): void
     {
         /** @Given a transport seeded with zero responses */
@@ -66,22 +66,6 @@ final class InMemoryTransportTest extends TestCase
 
         /** @Then NoMoreResponses is thrown immediately */
         $this->expectException(NoMoreResponses::class);
-
-        /** @When sending a request against the empty queue */
-        $transport->send(request: $request);
-    }
-
-    public function testSendWhenQueueEmptyThenExceptionMessageReferencesExhaustedIndex(): void
-    {
-        /** @Given a transport seeded with zero responses */
-        $transport = InMemoryTransport::with(responses: []);
-
-        /** @And a request to dispatch */
-        $request = Request::get(url: '/dragons');
-
-        /** @Then the raised exception message references the exhausted index */
-        $this->expectException(NoMoreResponses::class);
-        $this->expectExceptionMessage('InMemoryTransport has no response queued at index 0');
 
         /** @When sending a request against the empty queue */
         $transport->send(request: $request);
@@ -100,5 +84,21 @@ final class InMemoryTransportTest extends TestCase
 
         /** @Then the returned response carries the queued CREATED code */
         self::assertSame(Code::CREATED, $response->code());
+    }
+
+    public function testSendWhenQueueEmptyThenExceptionMessageReferencesExhaustedIndex(): void
+    {
+        /** @Given a transport seeded with zero responses */
+        $transport = InMemoryTransport::with(responses: []);
+
+        /** @And a request to dispatch */
+        $request = Request::get(url: '/dragons');
+
+        /** @Then the raised exception message references the exhausted index */
+        $this->expectException(NoMoreResponses::class);
+        $this->expectExceptionMessage('InMemoryTransport has no response queued at index 0');
+
+        /** @When sending a request against the empty queue */
+        $transport->send(request: $request);
     }
 }

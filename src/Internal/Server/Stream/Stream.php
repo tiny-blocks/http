@@ -88,63 +88,9 @@ final class Stream implements StreamInterface
         return new Stream(seekable: $raw['seekable'], resource: $resource);
     }
 
-    public function close(): void
-    {
-        if (!is_resource($this->resource)) {
-            return;
-        }
-
-        $resource = $this->resource;
-        $this->resource = null;
-
-        fclose($resource);
-    }
-
-    public function detach(): mixed
-    {
-        $resource = $this->resource;
-        $this->resource = null;
-
-        return $resource;
-    }
-
-    public function getSize(): ?int
-    {
-        if (!is_resource($this->resource)) {
-            return null;
-        }
-
-        $size = fstat($this->resource);
-
-        return is_array($size) ? $size['size'] : null;
-    }
-
-    public function tell(): int
-    {
-        if (!is_resource($this->resource)) {
-            throw new MissingResourceStream();
-        }
-
-        return ftell($this->resource);
-    }
-
     public function eof(): bool
     {
         return is_resource($this->resource) && feof($this->resource);
-    }
-
-    public function seek(int $offset, int $whence = SEEK_SET): void
-    {
-        if (!is_resource($this->resource)) {
-            throw new NonSeekableStream();
-        }
-
-        fseek($this->resource, $offset, $whence);
-    }
-
-    public function rewind(): void
-    {
-        $this->seek(Stream::OFFSET_ZERO);
     }
 
     public function read(int $length): string
@@ -162,6 +108,36 @@ final class Stream implements StreamInterface
         return $chunk === false ? '' : $chunk;
     }
 
+    public function seek(int $offset, int $whence = SEEK_SET): void
+    {
+        if (!is_resource($this->resource)) {
+            throw new NonSeekableStream();
+        }
+
+        fseek($this->resource, $offset, $whence);
+    }
+
+    public function tell(): int
+    {
+        if (!is_resource($this->resource)) {
+            throw new MissingResourceStream();
+        }
+
+        return ftell($this->resource);
+    }
+
+    public function close(): void
+    {
+        if (!is_resource($this->resource)) {
+            return;
+        }
+
+        $resource = $this->resource;
+        $this->resource = null;
+
+        fclose($resource);
+    }
+
     public function write(string $string): int
     {
         if (!is_resource($this->resource)) {
@@ -169,6 +145,39 @@ final class Stream implements StreamInterface
         }
 
         return fwrite($this->resource, $string);
+    }
+
+    public function detach(): mixed
+    {
+        $resource = $this->resource;
+        $this->resource = null;
+
+        return $resource;
+    }
+
+    public function rewind(): void
+    {
+        $this->seek(Stream::OFFSET_ZERO);
+    }
+
+    public function getSize(): ?int
+    {
+        if (!is_resource($this->resource)) {
+            return null;
+        }
+
+        $size = fstat($this->resource);
+
+        return is_array($size) ? $size['size'] : null;
+    }
+
+    public function __toString(): string
+    {
+        if ($this->isSeekable()) {
+            $this->rewind();
+        }
+
+        return $this->getContents();
     }
 
     public function isReadable(): bool
@@ -182,6 +191,11 @@ final class Stream implements StreamInterface
         return in_array($mode, Stream::READABLE_MODES, true);
     }
 
+    public function isSeekable(): bool
+    {
+        return is_resource($this->resource) && $this->seekable;
+    }
+
     public function isWritable(): bool
     {
         if (!is_resource($this->resource)) {
@@ -191,11 +205,6 @@ final class Stream implements StreamInterface
         $mode = stream_get_meta_data($this->resource)['mode'];
 
         return in_array($mode, Stream::WRITABLE_MODES, true);
-    }
-
-    public function isSeekable(): bool
-    {
-        return is_resource($this->resource) && $this->seekable;
     }
 
     public function getContents(): string
@@ -222,14 +231,5 @@ final class Stream implements StreamInterface
         }
 
         return $metaData[$key] ?? null;
-    }
-
-    public function __toString(): string
-    {
-        if ($this->isSeekable()) {
-            $this->rewind();
-        }
-
-        return $this->getContents();
     }
 }

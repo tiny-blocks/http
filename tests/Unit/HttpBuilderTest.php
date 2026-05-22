@@ -18,6 +18,30 @@ use TinyBlocks\Http\HttpBuilder;
 
 final class HttpBuilderTest extends TestCase
 {
+    public function testWithBaseUrlWhenHttpGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a valid http:// base URL */
+        $updated = $builder->withBaseUrl(url: 'http://localhost:8080');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenHttpsGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a valid https:// base URL */
+        $updated = $builder->withBaseUrl(url: 'https://api.example.com');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
     public function testCreateWhenInvokedThenReturnsEmptyBuilder(): void
     {
         /** @When calling Http::create() */
@@ -25,6 +49,42 @@ final class HttpBuilderTest extends TestCase
 
         /** @Then a builder instance is returned */
         self::assertInstanceOf(HttpBuilder::class, $builder);
+    }
+
+    public function testWithBaseUrlWhenEmptyStringGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting an empty base URL */
+        $updated = $builder->withBaseUrl(url: '');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
+    }
+
+    public function testWithBaseUrlWhenInvokedThenReturnsNewBuilder(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @When calling withBaseUrl */
+        $updated = $original->withBaseUrl(url: 'https://api.example.com');
+
+        /** @Then a new builder instance is returned */
+        self::assertNotSame($original, $updated);
+    }
+
+    public function testWithBaseUrlWhenUppercaseHttpsGivenThenAccepts(): void
+    {
+        /** @Given an empty builder */
+        $builder = Http::create();
+
+        /** @When setting a base URL with uppercase scheme */
+        $updated = $builder->withBaseUrl(url: 'HTTPS://api.example.com');
+
+        /** @Then a new builder instance is returned without throwing */
+        self::assertNotSame($builder, $updated);
     }
 
     public function testWithTransportWhenInvokedThenReturnsNewBuilder(): void
@@ -43,6 +103,54 @@ final class HttpBuilderTest extends TestCase
 
         /** @Then a new builder instance is returned */
         self::assertNotSame($original, $updated);
+    }
+
+    public function testWithWhenInvokedDirectlyThenReturnsWorkingHttp(): void
+    {
+        /** @Given a transport seeded with one response */
+        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+
+        /** @When constructing Http directly via Http::with */
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+
+        /** @And a simple GET request */
+        $request = Request::get(url: '/dragons');
+
+        /** @Then the instance can send requests and returns the correct response */
+        self::assertSame(Code::OK, $http->send(request: $request)->code());
+    }
+
+    public function testBuildWhenFullyConfiguredThenProducesWorkingHttp(): void
+    {
+        /** @Given a transport seeded with one response */
+        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+
+        /** @And a fully configured builder */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: $transport)
+            ->build();
+
+        /** @When sending a request */
+        $response = $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the response is returned correctly */
+        self::assertSame(Code::OK, $response->code());
+    }
+
+    public function testWithBaseUrlWhenInvokedThenOriginalBuilderStillThrows(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @And the original builder receives a new base URL */
+        $original->withBaseUrl(url: 'https://api.example.com');
+
+        /** @Then the original builder still throws on build */
+        $this->expectException(HttpConfigurationInvalid::class);
+
+        /** @When calling build on the original builder */
+        $original->build();
     }
 
     public function testWithTransportWhenInvokedThenOriginalBuilderStillThrows(): void
@@ -66,44 +174,16 @@ final class HttpBuilderTest extends TestCase
         $original->build();
     }
 
-    public function testWithBaseUrlWhenInvokedThenReturnsNewBuilder(): void
+    public function testWithBaseUrlWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
     {
         /** @Given an empty builder */
-        $original = Http::create();
+        $builder = Http::create();
 
-        /** @When calling withBaseUrl */
-        $updated = $original->withBaseUrl(url: 'https://api.example.com');
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
 
-        /** @Then a new builder instance is returned */
-        self::assertNotSame($original, $updated);
-    }
-
-    public function testWithBaseUrlWhenInvokedThenOriginalBuilderStillThrows(): void
-    {
-        /** @Given an empty builder */
-        $original = Http::create();
-
-        /** @And the original builder receives a new base URL */
-        $original->withBaseUrl(url: 'https://api.example.com');
-
-        /** @Then the original builder still throws on build */
-        $this->expectException(HttpConfigurationInvalid::class);
-
-        /** @When calling build on the original builder */
-        $original->build();
-    }
-
-    public function testBuildWhenTransportMissingThenThrowsHttpConfigurationInvalid(): void
-    {
-        /** @Given a builder with no transport */
-        $builder = Http::create()->withBaseUrl(url: 'https://api.example.com');
-
-        /** @Then HttpConfigurationInvalid is thrown */
-        $this->expectException(HttpConfigurationInvalid::class);
-        $this->expectExceptionMessage('Transport is required to build Http.');
-
-        /** @When calling build */
-        $builder->build();
+        /** @When setting an ftp:// base URL */
+        $builder->withBaseUrl(url: 'ftp://example.com');
     }
 
     public function testBuildWhenBaseUrlMissingThenThrowsHttpConfigurationInvalid(): void
@@ -121,37 +201,29 @@ final class HttpBuilderTest extends TestCase
         $builder->build();
     }
 
-    public function testBuildWhenFullyConfiguredThenProducesWorkingHttp(): void
+    public function testWithBaseUrlWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
     {
-        /** @Given a transport seeded with one response */
-        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+        /** @Given an empty builder */
+        $builder = Http::create();
 
-        /** @And a fully configured builder */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: $transport)
-            ->build();
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
 
-        /** @When sending a request */
-        $response = $http->send(request: Request::get(url: '/dragons'));
-
-        /** @Then the response is returned correctly */
-        self::assertSame(Code::OK, $response->code());
+        /** @When setting a base URL containing a control character */
+        $builder->withBaseUrl(url: "https://api.example.com\x00");
     }
 
-    public function testWithWhenInvokedDirectlyThenReturnsWorkingHttp(): void
+    public function testBuildWhenTransportMissingThenThrowsHttpConfigurationInvalid(): void
     {
-        /** @Given a transport seeded with one response */
-        $transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+        /** @Given a builder with no transport */
+        $builder = Http::create()->withBaseUrl(url: 'https://api.example.com');
 
-        /** @When constructing Http directly via Http::with */
-        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+        /** @Then HttpConfigurationInvalid is thrown */
+        $this->expectException(HttpConfigurationInvalid::class);
+        $this->expectExceptionMessage('Transport is required to build Http.');
 
-        /** @And a simple GET request */
-        $request = Request::get(url: '/dragons');
-
-        /** @Then the instance can send requests and returns the correct response */
-        self::assertSame(Code::OK, $http->send(request: $request)->code());
+        /** @When calling build */
+        $builder->build();
     }
 
     public function testWithBaseUrlWhenJavascriptSchemeGivenThenThrowsBaseUrlIsInvalid(): void
@@ -167,18 +239,6 @@ final class HttpBuilderTest extends TestCase
         $builder->withBaseUrl(url: 'javascript:alert(1)');
     }
 
-    public function testWithBaseUrlWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @Then an exception indicating the base URL is invalid is thrown */
-        $this->expectException(BaseUrlIsInvalid::class);
-
-        /** @When setting an ftp:// base URL */
-        $builder->withBaseUrl(url: 'ftp://example.com');
-    }
-
     public function testWithBaseUrlWhenProtocolRelativeGivenThenThrowsBaseUrlIsInvalid(): void
     {
         /** @Given an empty builder */
@@ -189,66 +249,6 @@ final class HttpBuilderTest extends TestCase
 
         /** @When setting a protocol-relative base URL */
         $builder->withBaseUrl(url: '//host');
-    }
-
-    public function testWithBaseUrlWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @Then an exception indicating the base URL is invalid is thrown */
-        $this->expectException(BaseUrlIsInvalid::class);
-
-        /** @When setting a base URL containing a control character */
-        $builder->withBaseUrl(url: "https://api.example.com\x00");
-    }
-
-    public function testWithBaseUrlWhenHttpsGivenThenAccepts(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @When setting a valid https:// base URL */
-        $updated = $builder->withBaseUrl(url: 'https://api.example.com');
-
-        /** @Then a new builder instance is returned without throwing */
-        self::assertNotSame($builder, $updated);
-    }
-
-    public function testWithBaseUrlWhenHttpGivenThenAccepts(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @When setting a valid http:// base URL */
-        $updated = $builder->withBaseUrl(url: 'http://localhost:8080');
-
-        /** @Then a new builder instance is returned without throwing */
-        self::assertNotSame($builder, $updated);
-    }
-
-    public function testWithBaseUrlWhenEmptyStringGivenThenAccepts(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @When setting an empty base URL */
-        $updated = $builder->withBaseUrl(url: '');
-
-        /** @Then a new builder instance is returned without throwing */
-        self::assertNotSame($builder, $updated);
-    }
-
-    public function testWithBaseUrlWhenUppercaseHttpsGivenThenAccepts(): void
-    {
-        /** @Given an empty builder */
-        $builder = Http::create();
-
-        /** @When setting a base URL with uppercase scheme */
-        $updated = $builder->withBaseUrl(url: 'HTTPS://api.example.com');
-
-        /** @Then a new builder instance is returned without throwing */
-        self::assertNotSame($builder, $updated);
     }
 
     public function testWithBaseUrlWhenSchemeEmbeddedInPathGivenThenThrowsBaseUrlIsInvalid(): void

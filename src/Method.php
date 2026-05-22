@@ -13,13 +13,13 @@ enum Method: string
 {
     case GET = 'GET';
     case PUT = 'PUT';
-    case POST = 'POST';
     case HEAD = 'HEAD';
+    case POST = 'POST';
     case PATCH = 'PATCH';
     case TRACE = 'TRACE';
     case DELETE = 'DELETE';
-    case OPTIONS = 'OPTIONS';
     case CONNECT = 'CONNECT';
+    case OPTIONS = 'OPTIONS';
 
     /**
      * Tells whether the method is safe per RFC 9110 §9.2.1.
