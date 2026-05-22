@@ -10,6 +10,14 @@ use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\SynthesizedResponseHasNoRaw;
 use TinyBlocks\Http\Headers;
 
+/**
+ * Typed wrapper around an HTTP response carrying a status code, body, and headers.
+ *
+ * Can be constructed from a PSR-7 response or synthesized directly from a status code and
+ * an optional body for use in tests and in-memory transports.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+ */
 final readonly class Response
 {
     private function __construct(

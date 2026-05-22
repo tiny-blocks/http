@@ -8,6 +8,11 @@ use Psr\Http\Message\ServerRequestInterface;
 use TinyBlocks\Http\Attribute;
 use TinyBlocks\Http\Internal\Server\Request\RouteParameterResolver;
 
+/**
+ * Typed accessor for the URI of an incoming HTTP request, including route attributes and query parameters.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/URI
+ */
 final readonly class Uri
 {
     private const string ROUTE = '__route__';
@@ -73,6 +78,9 @@ final readonly class Uri
 
     /**
      * Returns a copy of the Uri scoped to a different route attribute name.
+     *
+     * When <code>$name</code> is omitted, the Uri is re-scoped to the library's default route
+     * attribute key (<code>__route__</code>).
      *
      * @param string $name The route attribute name to scope the Uri to.
      * @return Uri A new Uri scoped to the supplied attribute name.

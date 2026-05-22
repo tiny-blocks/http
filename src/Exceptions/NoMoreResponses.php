@@ -6,6 +6,11 @@ namespace TinyBlocks\Http\Exceptions;
 
 use LogicException;
 
+/**
+ * Raised when <code>InMemoryTransport</code> is asked to deliver a response beyond the end of its seeded queue.
+ *
+ * Always indicates a programmer error. The test or scenario consumed more responses than were preloaded.
+ */
 final class NoMoreResponses extends LogicException implements HttpException
 {
     private const string REASON_TEMPLATE = 'InMemoryTransport has no response queued at index %d.';

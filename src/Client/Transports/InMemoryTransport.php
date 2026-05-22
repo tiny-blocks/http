@@ -10,6 +10,12 @@ use TinyBlocks\Http\Client\Transport;
 use TinyBlocks\Http\Exceptions\NoMoreResponses;
 use TinyBlocks\Http\Internal\Client\Cursor;
 
+/**
+ * In-memory {@see Transport} that serves pre-built responses from a FIFO queue.
+ *
+ * Intended for use in tests and local development to avoid real network calls.
+ * Raises {@see NoMoreResponses} when the queue is exhausted.
+ */
 final readonly class InMemoryTransport implements Transport
 {
     private function __construct(private Cursor $cursor, private array $responses)

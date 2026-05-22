@@ -9,7 +9,9 @@ use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Headerable;
 
 /**
- * Define standard HTTP response methods.
+ * Contract for factories that build PSR-7 responses with semantic HTTP status helpers.
+ *
+ * Implemented by <code>Server\Response</code>.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
  */

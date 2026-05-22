@@ -7,6 +7,11 @@ namespace TinyBlocks\Http\Server\Decoded;
 use Psr\Http\Message\ServerRequestInterface;
 use TinyBlocks\Http\Attribute;
 
+/**
+ * Typed collection of query string parameters extracted from an HTTP request URI.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/URI
+ */
 final readonly class QueryParameters
 {
     private function __construct(private array $data)

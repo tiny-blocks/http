@@ -10,6 +10,11 @@ use Throwable;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Method;
 
+/**
+ * Raised when a request is malformed and rejected by the transport before dispatch.
+ *
+ * Wraps the underlying PSR-18 <code>RequestExceptionInterface</code> when produced by the network transport.
+ */
 final class HttpRequestInvalid extends RuntimeException implements TransportFailure
 {
     private const string REASON_TEMPLATE = 'Request is invalid for %s %s: %s';

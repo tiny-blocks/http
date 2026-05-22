@@ -10,6 +10,12 @@ use Throwable;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Method;
 
+/**
+ * Raised when the underlying PSR-18 client fails for a reason not classified as a network failure
+ * or request-invalid error.
+ *
+ * Wraps the originating PSR-18 <code>ClientExceptionInterface</code>.
+ */
 final class HttpRequestFailed extends RuntimeException implements TransportFailure
 {
     private const string REASON_TEMPLATE = 'PSR-18 client failed for %s %s: %s';

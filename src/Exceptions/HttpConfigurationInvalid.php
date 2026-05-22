@@ -6,6 +6,10 @@ namespace TinyBlocks\Http\Exceptions;
 
 use LogicException;
 
+/**
+ * Raised when <code>HttpBuilder::build()</code> is called without all required dependencies configured
+ * (base URL and Transport).
+ */
 final class HttpConfigurationInvalid extends LogicException implements HttpException
 {
     private const string MISSING_BASE_URL_REASON = 'Base URL is required to build Http.';

@@ -8,6 +8,12 @@ use RuntimeException;
 use Throwable;
 use TinyBlocks\Http\Client\Request;
 
+/**
+ * Raised when a request path would escape the configured base URL.
+ *
+ * Triggered by paths containing a scheme, paths that are protocol-relative, or paths that carry
+ * control characters. Raised by the request resolver before the transport is invoked.
+ */
 final class MalformedPath extends RuntimeException implements HttpException
 {
     private const string REASON_TEMPLATE = 'Path "%s" is malformed and cannot be composed safely against a base URL.';

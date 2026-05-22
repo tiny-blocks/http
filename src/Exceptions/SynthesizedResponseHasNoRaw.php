@@ -6,6 +6,12 @@ namespace TinyBlocks\Http\Exceptions;
 
 use LogicException;
 
+/**
+ * Raised when <code>Response::raw()</code> is called on a response synthesized via <code>Response::with()</code>.
+ *
+ * Synthesized responses exist only for in-process scenarios (tests, in-memory transports) and have
+ * no backing PSR-7 message to expose.
+ */
 final class SynthesizedResponseHasNoRaw extends LogicException implements HttpException
 {
     private const string REASON = 'Response was synthesized via Response::with(...) and has no underlying PSR-7 raw '
