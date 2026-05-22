@@ -14,6 +14,9 @@ namespace TinyBlocks\Http;
  * Client error (400 – 499)
  * Server error (500 – 599)
  *
+ * The <code>is*()</code> instance helpers validate by enum case, so they cover only the status codes
+ * represented here. Status codes outside this list (for example 250) return false for every helper.
+ *
  * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Status#information_responses
  */
 enum Code: int
@@ -123,7 +126,19 @@ enum Code: int
     }
 
     /**
+     * Tells whether the status code falls in the 1xx range.
+     *
+     * @return bool True when the code represents an informational response.
+     */
+    public function isInformational(): bool
+    {
+        return $this->value >= Code::CONTINUE->value && $this->value <= Code::EARLY_HINTS->value;
+    }
+
+    /**
      * Tells whether the status code falls in the 4xx or 5xx range.
+     *
+     * Equivalent to <code>isClientError() || isServerError()</code>.
      *
      * @return bool True when the code represents an error response.
      */
@@ -140,6 +155,37 @@ enum Code: int
     public function isSuccess(): bool
     {
         return Code::isSuccessCode(code: $this->value);
+    }
+
+    /**
+     * Tells whether the status code falls in the 3xx range.
+     *
+     * @return bool True when the code represents a redirection response.
+     */
+    public function isRedirection(): bool
+    {
+        return $this->value >= Code::MULTIPLE_CHOICES->value && $this->value <= Code::PERMANENT_REDIRECT->value;
+    }
+
+    /**
+     * Tells whether the status code falls in the 4xx range.
+     *
+     * @return bool True when the code represents a client error response.
+     */
+    public function isClientError(): bool
+    {
+        return $this->value >= Code::BAD_REQUEST->value && $this->value <= Code::UNAVAILABLE_FOR_LEGAL_REASONS->value;
+    }
+
+    /**
+     * Tells whether the status code falls in the 5xx range.
+     *
+     * @return bool True when the code represents a server error response.
+     */
+    public function isServerError(): bool
+    {
+        return $this->value >= Code::INTERNAL_SERVER_ERROR->value
+            && $this->value <= Code::NETWORK_AUTHENTICATION_REQUIRED->value;
     }
 
     /**
