@@ -50,7 +50,7 @@ final readonly class Response
             psr: null,
             body: Body::fromArray(data: $body ?? []),
             code: $code,
-            headers: $headers ?? new Headers(entries: [])
+            headers: $headers ?? Headers::fromArray(entries: [])
         );
     }
 

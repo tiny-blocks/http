@@ -182,7 +182,7 @@ final class ResponseTest extends TestCase
     public function testWithWhenHeadersGivenThenExposesViaHeadersAccessor(): void
     {
         /** @Given a Headers instance with one entry */
-        $headers = new Headers(entries: ['X-Trace' => 'abc']);
+        $headers = Headers::fromArray(entries: ['X-Trace' => 'abc']);
 
         /** @When synthesizing a response with the headers */
         $response = Response::with(code: Code::OK, headers: $headers);

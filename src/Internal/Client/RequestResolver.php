@@ -37,6 +37,6 @@ final readonly class RequestResolver
         return $request
             ->withUrl(url: $url)
             ->withQuery(query: null)
-            ->withMergedHeaders(defaults: new Headers(entries: RequestResolver::JSON_DEFAULTS));
+            ->withMergedHeaders(defaults: Headers::fromArray(entries: RequestResolver::JSON_DEFAULTS));
     }
 }
