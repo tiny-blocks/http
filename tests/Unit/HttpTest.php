@@ -10,6 +10,7 @@ use RuntimeException;
 use TinyBlocks\Http\Client\Request;
 use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\BaseUrlIsInvalid;
 use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
@@ -480,4 +481,108 @@ final class HttpTest extends TestCase
         self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
     }
 
+    public function testWithWhenJavascriptSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a javascript: scheme base URL */
+        Http::with(baseUrl: 'javascript:alert(1)', transport: $transport);
+    }
+
+    public function testWithWhenFtpSchemeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with an ftp:// base URL */
+        Http::with(baseUrl: 'ftp://example.com', transport: $transport);
+    }
+
+    public function testWithWhenProtocolRelativeGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a protocol-relative base URL */
+        Http::with(baseUrl: '//host', transport: $transport);
+    }
+
+    public function testWithWhenControlCharGivenThenThrowsBaseUrlIsInvalid(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @Then an exception indicating the base URL is invalid is thrown */
+        $this->expectException(BaseUrlIsInvalid::class);
+
+        /** @When constructing Http with a base URL containing a control character */
+        Http::with(baseUrl: "https://api.example.com\x00", transport: $transport);
+    }
+
+    public function testWithWhenHttpsGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with a valid https:// base URL */
+        $http = Http::with(baseUrl: 'https://api.example.com', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
+
+    public function testWithWhenHttpGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with a valid http:// base URL */
+        $http = Http::with(baseUrl: 'http://localhost:8080', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
+
+    public function testWithWhenEmptyStringGivenThenAcceptsWithoutThrowing(): void
+    {
+        /** @Given a transport seeded with a response */
+        $transport = NetworkTransport::with(
+            client: CapturingClient::returningStatus(statusCode: 200),
+            factory: $this->factory
+        );
+
+        /** @When constructing Http with an empty base URL */
+        $http = Http::with(baseUrl: '', transport: $transport);
+
+        /** @Then an Http instance is returned without throwing */
+        self::assertInstanceOf(Http::class, $http);
+    }
 }
