@@ -36,7 +36,8 @@ Verify every item before producing any test code. If any item fails, revise befo
 4. No intermediate variables used only once. Chain method calls when the intermediate state is
    not referenced elsewhere (e.g., `Money::of(...)->add(...)` instead of
    `$money = Money::of(...)` followed by `$money->add(...)`).
-5. No private or helper methods in test classes. The only non-test methods allowed are data
+5. No private or helper methods in test classes. The only non-test methods allowed are PHPUnit
+   lifecycle hooks (`setUp`, `setUpBeforeClass`, `tearDown`, `tearDownAfterClass`) and data
    providers. Setup logic complex enough to extract belongs in a dedicated fixture class.
 6. Test only the public API. Never assert on private state or `Internal/` classes directly.
 7. Test the behavior that **raises** an exception, never the exception itself. Exception classes
@@ -69,6 +70,8 @@ Verify every item before producing any test code. If any item fails, revise befo
 15. Never use `@codeCoverageIgnore`, attributes, or configuration that exclude code from
     coverage. Never suppress mutants via `infection.json.dist` or any other mechanism. See
     "Coverage and mutation discipline".
+16. Member ordering in test classes follows `php-library-code-style.md` rule 6 (PHPUnit
+    test-class sub-grouping).
 
 ## Structure: Given/When/Then (BDD)
 

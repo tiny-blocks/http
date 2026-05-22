@@ -44,27 +44,45 @@ Verify every item before producing any PHP code. If any item fails, revise befor
 5. Classes follow the rules in "Inheritance and constructors". `final readonly` is the default,
    with documented exceptions for extension points and for parents that are not `readonly`.
 6. Members are ordered constants first, then constructor, then static methods, then instance
-   methods. Within each group, order by body size ascending (number of lines between `{` and `}`).
-   Constants and enum cases, which have no body, are ordered by name length ascending. This
-   ordering may be overridden only when the alternative carries explicit documentation value:
-   grouping by domain class with section markers (HTTP status codes by 1xx/2xx/3xx/etc),
-   mirroring the order of an implemented interface, or similar evident structure. The override
-   must be obvious at first reading.
+   methods. Within each group, order by **member name length ascending** (count the name only,
+   without parentheses, arguments, or return type). Constants, enum cases, and methods share
+   the same name-length-ascending rule, applied within their respective groups. This mirrors
+   the rule that governs constructor parameters and named arguments (rule 7). When two names
+   have equal length, order them alphabetically. This ordering may be overridden only when the
+   alternative carries explicit documentation value: grouping by domain class with section
+   markers (HTTP status codes by 1xx/2xx/3xx/etc), mirroring the order of an implemented
+   interface, or similar evident structure. The override must be obvious at first reading.
 
    **At call sites** (chained method calls in production code, tests, or documentation
-   examples), consecutive method invocations on the same receiver are ordered by the **visible
-   width** of each call expression ascending. The body is not visible at the call site, so the
-   visible width is the practical proxy for body size. Boolean toggles such as `->secure()` and
-   `->httpOnly()` come before parameterized `with*` builders for the same reason. When two
-   calls have equal width, order them alphabetically by method name.
+   examples), consecutive method invocations on the same receiver are ordered by **method name
+   length ascending**, the same rule that governs member declarations. Boolean toggles such as
+   `->secure()` and `->httpOnly()` come before parameterized `with*` builders because their
+   names are shorter, not because the expression is narrower. When two method names have equal
+   length, order them alphabetically.
 
    **Terminal methods that change the receiver type** stay at the end of the chain regardless
-   of width. A `build()` that returns the built value, a `commit()` that finalizes a unit of
-   work, a `send()` that flushes a request, are terminal: the chain ends with them. The
+   of name length. A `build()` that returns the built value, a `commit()` that finalizes a unit
+   of work, a `send()` that flushes a request, are terminal: the chain ends with them. The
    ordering rule applies only to consecutive calls on the same receiver type; calls that
    transition to a different type are not reorderable. The same applies in reverse to the
    factory or accessor that starts the chain (`Cookie::create(...)`, `$repository`) — it stays
    at its position.
+
+   **PHPUnit test classes** follow a dedicated sub-grouping inside the instance-methods group
+   that overrides the name-length-ascending rule:
+
+    1. **Lifecycle hooks** first, in PHPUnit execution order:
+       `setUpBeforeClass` → `setUp` → `tearDown` → `tearDownAfterClass`. Only those actually
+       defined appear; never introduce an empty hook to satisfy the rule.
+    2. **Test methods** (prefix `test`) next, ordered by name length ascending (alphabetical
+       tiebreak).
+    3. **Data providers** last, ordered by name length ascending (alphabetical tiebreak).
+
+   A method is a data provider if and only if its name appears as the string argument of a
+   `#[DataProvider('<name>')]` attribute or a `@dataProvider <name>` docblock annotation on a
+   test method in the same class. The naming convention (`*DataProvider`) is informational
+   only; the reference is the authoritative signal. A method named `*DataProvider` that no
+   test references is dead code under rule 17, not a data provider.
 7. Constructor parameters are ordered by parameter name length ascending (count the name only,
    without `$` or type), except when parameters have an implicit semantic order (for example,
    `$start/$end`, `$from/$to`, `$startAt/$endAt`), which takes precedence. Parameters with default
@@ -225,10 +243,7 @@ are `canceled` (not `cancelled`), `organization` (not `organisation`), `initiali
 
 ### When required
 
-- Every method of an interface, **including interfaces declared inside `src/Internal/`**.
-  Interfaces define contracts. The contract is documentation by definition, regardless of
-  namespace. The `Internal/` boundary applies to implementations, not to the contracts that
-  internal collaborators expose to each other.
+- Every method of an interface.
 - Every public method of a concrete class outside `src/Internal/`. Public classes are at the
   public API boundary by definition. Consumers call every public method directly, and the
   PHPDoc is the contract for each call. Trivial getters and `with*` methods are not exempt.
@@ -244,10 +259,7 @@ are `canceled` (not `cancelled`), `organization` (not `organisation`), `initiali
   interface. The interface carries the docblock.
 - Anything inside `src/Internal/`. Internal types are implementation detail and must not carry
   PHPDoc. The namespace itself is the boundary. See `php-library-architecture.md` for the
-  architectural meaning of `Internal/`. **Exception**: interfaces and their methods. An
-  interface declared inside `src/Internal/` still defines a contract, and the contract is
-  documented per `### When required` regardless of namespace. The prohibition covers concrete
-  classes, traits, enums, and anonymous classes inside `Internal/`, never interfaces.
+  architectural meaning of `Internal/`.
 - Anywhere inside `tests/`. Test methods name the scenario via the `testXxxWhenYyyGivenThenZzz`
   naming convention, and the `@Given`/`@When`/`@Then`/`@And` annotation blocks defined in
   `php-library-testing.md` describe the steps. PHPDoc documentation (summary plus
@@ -270,10 +282,7 @@ The PHPDoc prohibitions above take priority over the typed-array case. When PHPS
 
 - On a **constructor parameter** → suppress via `ignoreErrors` in `phpstan.neon.dist`. Do not
   add PHPDoc.
-- On anything inside **`src/Internal/`** (concrete classes, traits, enums) → suppress via
-  `ignoreErrors`. Do not add PHPDoc. Interfaces inside `src/Internal/` are the exception:
-  they carry PHPDoc per `### When required`, and the PHPStan errors they raise are resolved
-  through the PHPDoc, never through `ignoreErrors`.
+- On anything inside **`src/Internal/`** → suppress via `ignoreErrors`. Do not add PHPDoc.
 - On anything inside **`tests/`** → suppress via `ignoreErrors`. Do not add PHPDoc.
 - On a **public method of a public (non-Internal) class** → add full PHPDoc with summary,
   `@param` descriptions, and the typed-array information. The bare-tag form remains
@@ -338,8 +347,7 @@ public function __construct(public array $entries)
 }
 ```
 
-**Prohibited.** PHPDoc on a **concrete class** inside `src/Internal/` (the prohibition does
-not extend to interfaces; see "Correct" below for an Internal/ interface):
+**Prohibited.** PHPDoc on anything inside `src/Internal/`:
 
 ```php
 namespace TinyBlocks\Http\Internal\Client;
@@ -350,26 +358,6 @@ final readonly class Url
     public static function compose(string $path, ?array $query, string $baseUrl): string
     {
     }
-}
-```
-
-**Correct.** Interface declared **inside `src/Internal/`** still carries PHPDoc on every
-method. The Internal/ prohibition covers concrete classes; interfaces are exempt because they
-are the contract:
-
-```php
-namespace TinyBlocks\Http\Internal\Client;
-
-interface RequestResolver
-{
-    /**
-     * Resolves the given URL against the configured base URL.
-     *
-     * @param string $url The path or absolute URL to resolve.
-     * @return string The absolute URL to dispatch.
-     * @throws MalformedPath If the URL violates RFC 3986.
-     */
-    public function resolve(string $url): string;
 }
 ```
 
