@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit\Server;
 
-use DateTime;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +18,7 @@ use Test\TinyBlocks\Http\Models\Product;
 use Test\TinyBlocks\Http\Models\Products;
 use Test\TinyBlocks\Http\Models\Status;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\BodyTypeIsUnsupported;
 use TinyBlocks\Http\Server\Response;
 
 final class ResponseTest extends TestCase
@@ -225,37 +225,6 @@ final class ResponseTest extends TestCase
         self::assertTrue(Code::isErrorCode(code: $actual->getStatusCode()));
     }
 
-    public static function responseFromProvider(): array
-    {
-        return [
-            'I am a teapot'                           => [
-                'code'         => Code::IM_A_TEAPOT,
-                'body'         => 'Short and stout',
-                'expectedBody' => 'Short and stout'
-            ],
-            'OK with array body'                      => [
-                'code'         => Code::OK,
-                'body'         => ['status' => 'success'],
-                'expectedBody' => '{"status":"success"}'
-            ],
-            'Accepted with null body'                 => [
-                'code'         => Code::ACCEPTED,
-                'body'         => null,
-                'expectedBody' => ''
-            ],
-            'Not Found with string body'              => [
-                'code'         => Code::NOT_FOUND,
-                'body'         => 'Resource not found',
-                'expectedBody' => 'Resource not found'
-            ],
-            'Internal Server Error with complex body' => [
-                'code'         => Code::INTERNAL_SERVER_ERROR,
-                'body'         => ['error' => ['code' => 500, 'message' => 'Crash']],
-                'expectedBody' => '{"error":{"code":500,"message":"Crash"}}'
-            ]
-        ];
-    }
-
     #[DataProvider('bodyProviderData')]
     public function testOkWhenAnyBodyShapeGivenThenSerializesToExpectedString(mixed $body, string $expected): void
     {
@@ -292,68 +261,6 @@ final class ResponseTest extends TestCase
 
         /** @Then the returned response reflects the new status code */
         self::assertSame(Code::OK->value, $updated->getStatusCode());
-    }
-
-    public static function bodyProviderData(): array
-    {
-        return [
-            'UnitEnum'                => [
-                'body'     => Color::RED,
-                'expected' => 'RED'
-            ],
-            'BackedEnum'              => [
-                'body'     => Status::PAID,
-                'expected' => '1'
-            ],
-            'Null value'              => [
-                'body'     => null,
-                'expected' => ''
-            ],
-            'Empty string'            => [
-                'body'     => '',
-                'expected' => ''
-            ],
-            'Simple object'           => [
-                'body'     => new Dragon(name: 'Drakengard Firestorm', weight: 6000.0),
-                'expected' => '{"name":"Drakengard Firestorm","weight":6000.0}'
-            ],
-            'Non-empty string'        => [
-                'body'     => 'Hello, World!',
-                'expected' => 'Hello, World!'
-            ],
-            'Serializer object'       => [
-                'body'     => new Order(
-                    id: 1,
-                    products: new Products(elements: [
-                        new Product(name: 'Product One', amount: new Amount(value: 100.50, currency: Currency::USD)),
-                        new Product(name: 'Product Two', amount: new Amount(value: 200.75, currency: Currency::BRL))
-                    ])
-                ),
-                'expected' => json_encode([
-                    'id'       => 1,
-                    'products' => [
-                        ['name' => 'Product One', 'amount' => ['value' => 100.50, 'currency' => 'USD']],
-                        ['name' => 'Product Two', 'amount' => ['value' => 200.75, 'currency' => 'BRL']]
-                    ]
-                ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)
-            ],
-            'Boolean true value'      => [
-                'body'     => true,
-                'expected' => 'true'
-            ],
-            'Boolean false value'     => [
-                'body'     => false,
-                'expected' => 'false'
-            ],
-            'Large integer value'     => [
-                'body'     => PHP_INT_MAX,
-                'expected' => (string)PHP_INT_MAX
-            ],
-            'DateTimeInterface value' => [
-                'body'     => new DateTime('2024-12-16'),
-                'expected' => '[]'
-            ]
-        ];
     }
 
     public function testGetBodyWhenInvokedThenStreamIsReadable(): void
@@ -781,5 +688,103 @@ final class ResponseTest extends TestCase
 
         /** @When asking for the full contents */
         $stream->getContents();
+    }
+
+    public function testOkWhenArbitraryObjectGivenThenThrowsBodyTypeIsUnsupported(): void
+    {
+        /** @Given an arbitrary object that is not a Mapper, BackedEnum, or UnitEnum */
+        $body = new Dragon(name: 'Drakengard Firestorm', weight: 6000.0);
+
+        /** @Then an exception indicating the body type is unsupported is thrown */
+        $this->expectException(BodyTypeIsUnsupported::class);
+        $this->expectExceptionMessage('Response body type <Test\TinyBlocks\Http\Models\Dragon> is not supported');
+
+        /** @When creating a response with the arbitrary object */
+        Response::ok(body: $body);
+    }
+
+    public static function responseFromProvider(): array
+    {
+        return [
+            'I am a teapot'                           => [
+                'code'         => Code::IM_A_TEAPOT,
+                'body'         => 'Short and stout',
+                'expectedBody' => 'Short and stout'
+            ],
+            'OK with array body'                      => [
+                'code'         => Code::OK,
+                'body'         => ['status' => 'success'],
+                'expectedBody' => '{"status":"success"}'
+            ],
+            'Accepted with null body'                 => [
+                'code'         => Code::ACCEPTED,
+                'body'         => null,
+                'expectedBody' => ''
+            ],
+            'Not Found with string body'              => [
+                'code'         => Code::NOT_FOUND,
+                'body'         => 'Resource not found',
+                'expectedBody' => 'Resource not found'
+            ],
+            'Internal Server Error with complex body' => [
+                'code'         => Code::INTERNAL_SERVER_ERROR,
+                'body'         => ['error' => ['code' => 500, 'message' => 'Crash']],
+                'expectedBody' => '{"error":{"code":500,"message":"Crash"}}'
+            ]
+        ];
+    }
+
+    public static function bodyProviderData(): array
+    {
+        return [
+            'UnitEnum'           => [
+                'body'     => Color::RED,
+                'expected' => 'RED'
+            ],
+            'BackedEnum'         => [
+                'body'     => Status::PAID,
+                'expected' => '1'
+            ],
+            'Null value'         => [
+                'body'     => null,
+                'expected' => ''
+            ],
+            'Empty string'       => [
+                'body'     => '',
+                'expected' => ''
+            ],
+            'Non-empty string'   => [
+                'body'     => 'Hello, World!',
+                'expected' => 'Hello, World!'
+            ],
+            'Serializer object'  => [
+                'body'     => new Order(
+                    id: 1,
+                    products: new Products(elements: [
+                        new Product(name: 'Product One', amount: new Amount(value: 100.50, currency: Currency::USD)),
+                        new Product(name: 'Product Two', amount: new Amount(value: 200.75, currency: Currency::BRL))
+                    ])
+                ),
+                'expected' => json_encode([
+                    'id'       => 1,
+                    'products' => [
+                        ['name' => 'Product One', 'amount' => ['value' => 100.50, 'currency' => 'USD']],
+                        ['name' => 'Product Two', 'amount' => ['value' => 200.75, 'currency' => 'BRL']]
+                    ]
+                ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)
+            ],
+            'Boolean true value' => [
+                'body'     => true,
+                'expected' => 'true'
+            ],
+            'Boolean false value' => [
+                'body'     => false,
+                'expected' => 'false'
+            ],
+            'Large integer value' => [
+                'body'     => PHP_INT_MAX,
+                'expected' => (string)PHP_INT_MAX
+            ]
+        ];
     }
 }
