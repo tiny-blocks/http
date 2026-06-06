@@ -17,13 +17,12 @@ final class CookieTest extends TestCase
     #[DataProvider('invalidNameProvider')]
     public function testCreateWhenInvalidNameGivenThenThrows(string $name): void
     {
-        /**
-         * @Given an invalid cookie name
-         * @When  Cookie::create is called with that name
-         * @Then  it throws CookieNameIsInvalid
-         */
+        /** @Given an invalid cookie name */
+
+        /** @Then it throws CookieNameIsInvalid */
         $this->expectException(InvalidArgumentException::class);
 
+        /** @When Cookie::create is called with that name */
         Cookie::create(name: $name, value: 'value');
     }
 
@@ -40,13 +39,12 @@ final class CookieTest extends TestCase
     #[DataProvider('invalidValueProvider')]
     public function testCreateWhenInvalidValueGivenThenThrows(string $value): void
     {
-        /**
-         * @Given an invalid cookie value
-         * @When  Cookie::create is called with that value
-         * @Then  it throws CookieValueIsInvalid
-         */
+        /** @Given an invalid cookie value */
+
+        /** @Then it throws CookieValueIsInvalid */
         $this->expectException(InvalidArgumentException::class);
 
+        /** @When Cookie::create is called with that value */
         Cookie::create(name: 'session', value: $value);
     }
 
@@ -70,10 +68,13 @@ final class CookieTest extends TestCase
         $base = Cookie::create(name: 'session', value: 'abc');
 
         /** @When the secure flag is applied */
-        $base->secure();
+        $secured = $base->secure();
 
         /** @Then the base instance remains unchanged */
         self::assertSame(['Set-Cookie' => ['session=abc']], $base->toArray());
+
+        /** @And the derived cookie is a separate instance from the base */
+        self::assertNotSame($base, $secured);
     }
 
     public function testCreateWhenEmptyValueGivenThenRendersEmpty(): void

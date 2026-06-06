@@ -6,14 +6,14 @@ namespace Test\TinyBlocks\Http\Models;
 
 use ArrayIterator;
 use IteratorAggregate;
-use TinyBlocks\Mapper\IterableMappability;
-use TinyBlocks\Mapper\IterableMapper;
+use TinyBlocks\Mapper\ElementType;
+use TinyBlocks\Mapper\IterableMappable;
+use TinyBlocks\Mapper\Mapper;
 use Traversable;
 
-final class Products implements IterableMapper, IteratorAggregate
+#[ElementType(Product::class)]
+final class Products implements IterableMappable, IteratorAggregate
 {
-    use IterableMappability;
-
     private array $elements;
 
     public function __construct(iterable $elements = [])
@@ -21,9 +21,19 @@ final class Products implements IterableMapper, IteratorAggregate
         $this->elements = is_array($elements) ? array_values($elements) : iterator_to_array($elements, false);
     }
 
-    public function getType(): string
+    public static function createFrom(iterable $elements): static
     {
-        return Product::class;
+        return new static(elements: $elements);
+    }
+
+    public function toJson(): string
+    {
+        return Mapper::create()->toJson(source: $this);
+    }
+
+    public function toArray(): array
+    {
+        return Mapper::create()->toArray(source: $this);
     }
 
     public function getIterator(): Traversable

@@ -17,8 +17,11 @@ use TinyBlocks\Http\Internal\Client\BaseUrl;
  */
 final readonly class HttpBuilder
 {
-    public function __construct(private ?string $baseUrl, private ?Transport $transport)
-    {
+    public function __construct(
+        private ?string $baseUrl,
+        private ?Transport $transport,
+        private ?Headers $defaultHeaders
+    ) {
     }
 
     /**
@@ -40,7 +43,11 @@ final readonly class HttpBuilder
             throw HttpConfigurationInvalid::missingBaseUrl();
         }
 
-        return Http::with(baseUrl: $this->baseUrl, transport: $this->transport);
+        return Http::with(
+            baseUrl: $this->baseUrl,
+            transport: $this->transport,
+            defaultHeaders: $this->defaultHeaders ?? Headers::empty()
+        );
     }
 
     /**
@@ -53,8 +60,12 @@ final readonly class HttpBuilder
      */
     public function withBaseUrl(string $url): HttpBuilder
     {
-        $baseUrl = BaseUrl::from($url);
-        return new HttpBuilder(baseUrl: $baseUrl->toString(), transport: $this->transport);
+        $baseUrl = BaseUrl::from(value: $url);
+        return new HttpBuilder(
+            baseUrl: $baseUrl->toString(),
+            transport: $this->transport,
+            defaultHeaders: $this->defaultHeaders
+        );
     }
 
     /**
@@ -65,6 +76,20 @@ final readonly class HttpBuilder
      */
     public function withTransport(Transport $transport): HttpBuilder
     {
-        return new HttpBuilder(baseUrl: $this->baseUrl, transport: $transport);
+        return new HttpBuilder(baseUrl: $this->baseUrl, transport: $transport, defaultHeaders: $this->defaultHeaders);
+    }
+
+    /**
+     * Returns a new builder carrying the given default headers.
+     *
+     * <p>The default headers are merged beneath the per-request headers on every request, after
+     * the JSON defaults. A header set explicitly on a request always wins over a default.</p>
+     *
+     * @param Headers $headers The default headers applied to every request.
+     * @return HttpBuilder A new builder instance.
+     */
+    public function withDefaultHeaders(Headers $headers): HttpBuilder
+    {
+        return new HttpBuilder(baseUrl: $this->baseUrl, transport: $this->transport, defaultHeaders: $headers);
     }
 }

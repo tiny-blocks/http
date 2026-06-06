@@ -147,11 +147,8 @@ final readonly class Headers
         $key = strtolower($name);
         $entries = $this->entries;
 
-        if (isset($this->lowerIndex[$key])) {
-            $entries[$this->lowerIndex[$key]] = $value;
-        } else {
-            $entries[$name] = $value;
-        }
+        $canonical = $this->lowerIndex[$key] ?? $name;
+        $entries[$canonical] = $value;
 
         return Headers::fromArray(entries: $entries);
     }
@@ -182,6 +179,19 @@ final readonly class Headers
     public function toArray(): array
     {
         return $this->entries;
+    }
+
+    /**
+     * Returns the header value wrapped as a typed Attribute, or null when no entry matches.
+     *
+     * @param string $name The header name to look up, case-insensitively.
+     * @return Attribute|null The Attribute wrapping the folded value, or null when absent.
+     */
+    public function attribute(string $name): ?Attribute
+    {
+        $value = $this->get(name: $name);
+
+        return is_null($value) ? null : Attribute::from(value: $value);
     }
 
     /**

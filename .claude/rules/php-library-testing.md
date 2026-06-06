@@ -40,6 +40,8 @@ Verify every item before producing any test code. If any item fails, revise befo
    lifecycle hooks (`setUp`, `setUpBeforeClass`, `tearDown`, `tearDownAfterClass`) and data
    providers. Setup logic complex enough to extract belongs in a dedicated fixture class.
 6. Test only the public API. Never assert on private state or `Internal/` classes directly.
+   One narrow, last-resort exception covers irreducible internal elements. See "White-box
+   coverage of irreducible internals".
 7. Test the behavior that **raises** an exception, never the exception itself. Exception classes
    represent invariant violations and are value objects, not the subject of behavior tests. A
    test constructs the conditions, invokes the public method that is supposed to fail, and
@@ -51,7 +53,12 @@ Verify every item before producing any test code. If any item fails, revise befo
    removed.
 8. Never mock internal collaborators. Use real objects. Test doubles are used only at system
    boundaries (filesystem, clock, network) when the library interacts with external resources.
-9. Name tests after behavior, not method names.
+9. Name tests after behavior using the `testXxxWhenYyyThenZzz` shape, never after the method
+   under test. `Xxx` names the subject or operation, `Yyy` the condition, `Zzz` the expected
+   outcome (for example, `testAddMoneyWhenSameCurrencyThenAmountsAreSummed`). The `When`/`Then`
+   structure is mandatory. The `@Given`/`@When`/`@Then`/`@And` annotation blocks describe the
+   steps within. A condition-free operation may collapse to `testXxxThenZzz` when there is no
+   meaningful precondition to name.
 10. Use domain-specific names in variables and properties. Never `$spy`, `$mock`, `$stub`,
     `$fake`, `$dummy` as variable or property names. Use the domain concept the object
     represents (`$collection`, `$amount`, `$currency`, `$sortedElements`). Class names like
@@ -60,8 +67,9 @@ Verify every item before producing any test code. If any item fails, revise befo
     `/** @Given a mocked collection in test state */`.
 12. Never use the `/** @test */` annotation. Test methods are discovered by the `test` prefix in
     the method name.
-13. Never use named arguments on PHPUnit assertions (`assertEquals`, `assertSame`, `assertTrue`,
-    `expectException`, etc.). Pass arguments positionally.
+13. Named arguments are never used on PHPUnit assertions and expectations. Arguments are passed
+    positionally. The canonical rule and its full exclusion list live in
+    `php-library-code-style.md` rule 4.
 14. Never include conditional logic inside tests. Each `@Then` block expresses one logical
     concept. The only allowed `try`/`catch` is when the assertion target is a property of the
     caught exception that cannot be expressed via `expectException*` methods (notably
@@ -72,6 +80,21 @@ Verify every item before producing any test code. If any item fails, revise befo
     "Coverage and mutation discipline".
 16. Member ordering in test classes follows `php-library-code-style.md` rule 6 (PHPUnit
     test-class sub-grouping).
+
+## Generics in test PHPDoc
+
+The "zero PHPDoc anywhere inside `tests/`" rule (defined in `php-library-code-style.md`) has one
+narrow exception: PHPDoc that exists *purely to express generics* the native type system cannot.
+A test fixture that extends a generic public type carries the type argument with `@extends` (for
+example `@extends Collection<Invoice>` on an `Invoices` fixture), and a generics-only `@var` may
+pin a type parameter at an inference point where an imprecise result feeds a typed sink (for
+example `/** @var Collection<Shipment> $shipments */` before passing a mapped collection to
+`Shipments::createFrom(...)`). These tags carry only the type-parameter information, never a
+summary or prose description. Every other form of PHPDoc (summaries, `@param`/`@return`
+descriptions on test methods, fixtures, data providers, or anonymous classes) stays prohibited.
+This is the same carve-out stated in `php-library-code-style.md` under "When prohibited",
+restated here because it most often surfaces on collection fixtures and inference points in
+`tests/`.
 
 ## Structure: Given/When/Then (BDD)
 
@@ -118,9 +141,6 @@ public function testAddMoneyWhenDifferentCurrenciesThenCurrencyMismatch(): void
     $brl->add(other: $usd);
 }
 ```
-
-Use `@And` for complementary preconditions or actions within the same scenario, avoiding
-consecutive `@Given` or `@When` tags.
 
 ## Testing exceptions
 
@@ -205,8 +225,8 @@ code. Remove it instead of writing a behavior test against a constructor.
 does not cover.** Message, code, and class are covered by PHPUnit (`expectException`,
 `expectExceptionMessage`, `expectExceptionMessageMatches`, `expectExceptionCode`): use those
 methods, not `try`/`catch`. The only case that warrants `try`/`catch` is inspecting accessors
-that PHPUnit cannot reach — notably `getPrevious()` for chain inspection, or domain-specific
-accessors on a `TransportFailure` (`url()`, `method()`, `reason()`).
+that PHPUnit cannot reach, notably `getPrevious()` for chain inspection, or domain-specific
+accessors on a `HttpNetworkFailed` (`url()`, `method()`, `reason()`).
 
 **Prohibited.** `try`/`catch` to assert message:
 
@@ -230,22 +250,11 @@ $http->send(request: $request);
 
 ## Test setup and fixtures
 
-- Each `@Given` or `@And` block contains exactly one annotation followed by one expression or
-  assignment. Never place multiple declarations under a single annotation. The exception for
-  data-provider tests applies here as well (see rule 3).
-- No intermediate variables used only once. Chain method calls when the intermediate state is
-  not referenced elsewhere.
-- No private or helper methods in test classes. The only non-test methods allowed are data
-  providers. Setup logic complex enough to extract belongs in a dedicated fixture class, not in
-  a private method on the test class.
-- Domain terms in variables and properties. Never use technical testing jargon (`$spy`, `$mock`,
-  `$stub`, `$fake`, `$dummy`) as variable or property names. Use the domain concept the object
-  represents (`$collection`, `$amount`, `$currency`, `$sortedElements`). Class names like
-  `ClientMock` or `GatewaySpy` are acceptable. The variable holding the instance is what
-  matters.
-- Annotations use domain language. Write `/** @Given a collection of amounts */`, not
-  `/** @Given a mocked collection in test state */`. The annotation describes the domain
-  scenario, not the technical setup.
+Checklist items 3, 4, 5, 10, and 11 govern setup blocks: one declaration per annotation, no
+single-use intermediate variables, no private or helper methods, domain-named variables, and
+domain-language annotations. The examples below illustrate the rules most often violated in
+practice. Double naming (the `$spy`/`$mock` banlist and the class-name suffix nuance) is detailed
+in "Test doubles" below.
 
 **Prohibited.** Multiple declarations under a single annotation:
 
@@ -321,8 +330,43 @@ Conventions for naming and locating test doubles (mocks, spies, stubs, fakes, du
 - Never suppress mutants via `infection.json.dist` or any other mechanism.
 - If a line or mutation cannot be covered or killed, the design is wrong. Refactor the
   production code to make it testable. Never work around the tool.
+- The sole exception is an irreducible internal element (a non-functional memoization
+  cache, or the private constructor of a static-only surface) that cannot be reached
+  publicly without harming the design. It is covered or killed through a reflection-based
+  white-box test, never through suppression. See "White-box coverage of irreducible
+  internals".
 
 Canonical thresholds (MSI 100, covered MSI 100) live in `php-library-tooling.md`. They are
 enforced by `infection.json.dist`. Achieving MSI 100 implies effective full coverage of `src/`
 because every mutation must be killed by an assertion. This file covers only the behavioral
 rules that complement those thresholds.
+
+## White-box coverage of irreducible internals
+
+Rules 6 and 15 are near-absolute: tests exercise the public API, refactoring is the response
+when a line or mutation resists coverage, and code is never hidden from coverage or mutation.
+They yield in one narrow case: an *irreducible* internal element that cannot be reached
+through the public API without either removing a legitimate non-functional optimization or
+defeating a deliberate design. Two such elements recur:
+
+- **Memoization caches.** A purely non-functional cache (a resolved-mapping cache, a
+  shared-instance cache, a reflection-descriptor cache) whose removal leaves behavior
+  identical. The mutant that drops the cache is an equivalent mutant: no public observation
+  distinguishes the cached path from the recomputed one, so no public-API test can kill it.
+- **Intentionally-uncallable members.** The private constructor of a static-only surface (a
+  class that exists solely to expose static factories and must never be instantiated). It is
+  never executed through any public path, so its line stays uncovered by construction.
+
+For these, and only these, a white-box test is permitted as a last resort: reflecting into
+`Internal/` private state to assert that memoization holds, or reflection-invoking an
+uncallable constructor so its line is covered. Such a test still follows the BDD structure
+and `testXxxWhenYyyThenZzz` naming, and the repeated-invocation `@When` exception (checklist
+item 3) already covers the memoization case.
+
+This exception covers code. It never hides it. `@codeCoverageIgnore`, coverage-excluding
+configuration, and mutant suppression remain prohibited without exception. The irreducible
+element is killed or covered honestly through reflection, not excluded from the metric. The
+burden is on demonstrating irreducibility: if the line or mutation can be reached through the
+public API, or if a proportionate refactor would expose it without harming the design, this
+exception does not apply and the public-API test is required. White-box access is never a
+convenience and never the first resort.

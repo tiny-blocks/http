@@ -13,6 +13,7 @@ use TinyBlocks\Http\Client\Transports\NetworkTransport;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\BaseUrlIsInvalid;
 use TinyBlocks\Http\Exceptions\HttpConfigurationInvalid;
+use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\HttpBuilder;
 
@@ -164,10 +165,13 @@ final class HttpBuilderTest extends TestCase
             factory: new Psr17Factory()
         );
 
-        /** @And the original builder receives a new transport */
-        $original->withTransport(transport: $transport);
+        /** @And a copy derived by adding the transport to the original */
+        $configured = $original->withTransport(transport: $transport);
 
-        /** @Then the original builder still throws on build */
+        /** @Then the derived copy is a separate instance from the original */
+        self::assertNotSame($original, $configured);
+
+        /** @And the original builder still throws on build */
         $this->expectException(HttpConfigurationInvalid::class);
 
         /** @When calling build on the original builder */
@@ -261,5 +265,39 @@ final class HttpBuilderTest extends TestCase
 
         /** @When setting a base URL with the scheme embedded mid-string */
         $builder->withBaseUrl(url: 'example.com?redirect=https://api.example.com');
+    }
+
+    public function testWithDefaultHeadersWhenInvokedThenReturnsNewBuilder(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @When calling withDefaultHeaders */
+        $updated = $original->withDefaultHeaders(
+            headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token'])
+        );
+
+        /** @Then a new builder instance is returned */
+        self::assertNotSame($original, $updated);
+    }
+
+    public function testBuildWhenDefaultHeadersProvidedThenReachTransport(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And a builder configured with a default header */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(client: $client, factory: new Psr17Factory()))
+            ->withDefaultHeaders(headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token']))
+            ->build();
+
+        /** @When sending a request */
+        $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the default header reaches the transport */
+        self::assertNotNull($client->captured);
+        self::assertSame('Bearer token', $client->captured->getHeaderLine('Authorization'));
     }
 }

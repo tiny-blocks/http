@@ -8,6 +8,7 @@
     + [Server](#server)
         - [Decoding a request](#decoding-a-request)
         - [Creating a response](#creating-a-response)
+        - [Pagination links](#pagination-links)
         - [Setting cookies](#setting-cookies)
         - [Status code](#status-code)
     + [Client](#client)
@@ -16,6 +17,7 @@
         - [Reading the response](#reading-the-response)
         - [Query parameters](#query-parameters)
         - [Custom headers and content type](#custom-headers-and-content-type)
+        - [Default headers](#default-headers)
         - [Setting the User-Agent](#setting-the-user-agent)
         - [Error handling](#error-handling)
         - [Configuring timeouts](#configuring-timeouts)
@@ -35,7 +37,7 @@ The library covers both sides of an HTTP exchange:
   by any PSR-18 client, and exposes responses with typed body and header access.
 
 Shared primitives at `TinyBlocks\Http\`: `Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `MimeType`,
-`Charset`, `Cookie`, `SameSite`, `CacheControl`, `ResponseCacheDirectives`, `UserAgent`.
+`Charset`, `Cookie`, `SameSite`, `CacheControl`, `ResponseCacheDirectives`, `Link`, `LinkRelation`, `UserAgent`.
 
 ## Installation
 
@@ -68,6 +70,17 @@ $name = $decoded->body()->get(key: 'name')->toString();
 $amount = $decoded->body()->get(key: 'amount')->toFloat();
 ```
 
+To pull several route parameters in one call, `only(...)` returns a map of typed `Attribute`
+instances keyed by name. A key with no matching route parameter resolves to an `Attribute`
+wrapping `null` rather than being omitted:
+
+```php
+$attributes = $decoded->uri()->route()->only(keys: ['id', 'slug']);
+
+$id = $attributes['id']->toInteger();
+$slug = $attributes['slug']->toString();
+```
+
 The HTTP method is available as a typed `Method` enum:
 
 ```php
@@ -80,6 +93,27 @@ use TinyBlocks\Http\Server\Request;
 
 /** @var ServerRequestInterface $psrRequest */
 $method = Request::from(request: $psrRequest)->method();
+```
+
+`Server\Request` also exposes the headers, the query parameters, and the raw body directly,
+without decoding the payload. `rawBody()` returns the exact bytes received (handy for verifying a
+signature) and rewinds seekable streams, so a later `decode()` still observes the full body.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Psr\Http\Message\ServerRequestInterface;
+use TinyBlocks\Http\Server\Request;
+
+/** @var ServerRequestInterface $psrRequest */
+$request = Request::from(request: $psrRequest);
+
+$contentType = $request->headers()->get(name: 'content-type'); # case-insensitive lookup
+$trace = $request->header(name: 'X-Trace-Id');                 # typed Attribute, or null
+$sort = $request->query()->get(key: 'sort')->toString();
+$rawBody = $request->rawBody();                                 # exact bytes, undecoded
 ```
 
 #### Creating a response
@@ -146,6 +180,31 @@ use TinyBlocks\Http\Server\Response;
 $response = Response::ok(body: null)->withStatus(Code::OK->value, 'All Good');
 $response->getReasonPhrase(); # "All Good"
 ```
+
+#### Pagination links
+
+`Link` implements `Headerable` and renders an RFC 8288 `Link` response header. Chain `to(...)` and `and(...)` with
+`LinkRelation` targets to emit the standard pagination relations (`first`, `prev`, `next`, `last`, `self`), then attach
+it to any response.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Link;
+use TinyBlocks\Http\LinkRelation;
+use TinyBlocks\Http\Server\Response;
+
+$links = Link::to(uri: 'https://api.example.com/items?page=1', relation: LinkRelation::FIRST)
+    ->and(uri: 'https://api.example.com/items?page=4', relation: LinkRelation::PREVIOUS)
+    ->and(uri: 'https://api.example.com/items?page=6', relation: LinkRelation::NEXT)
+    ->and(uri: 'https://api.example.com/items?page=9', relation: LinkRelation::LAST);
+
+Response::ok(['data' => []], $links);
+```
+
+The four targets fold into a single comma-separated `Link` response header in the order they were added.
 
 #### Setting cookies
 
@@ -236,10 +295,15 @@ Code::MOVED_PERMANENTLY->isRedirection();     # true
 Code::BAD_REQUEST->isClientError();           # true
 Code::INTERNAL_SERVER_ERROR->isError();       # true
 Code::INTERNAL_SERVER_ERROR->isServerError(); # true
+Code::GATEWAY_TIMEOUT->isTimeout();           # true
 
 Code::isValidCode(code: 200);   # true
 Code::isErrorCode(code: 500);   # true
 Code::isSuccessCode(code: 200); # true
+
+Code::tryFromNullable(code: 200);  # Code::OK
+Code::tryFromNullable(code: 250);  # null (status code not represented)
+Code::tryFromNullable(code: null); # null
 ```
 
 ### Client
@@ -371,6 +435,15 @@ $response->headers();   # TinyBlocks\Http\Headers value object
 ```php
 $contentType = $response->headers()->get(name: 'content-type'); # "application/json"
 $hasTrace = $response->headers()->has(name: 'X-Trace-Id');      # true
+$trace = $response->headers()->attribute(name: 'X-Trace-Id');   # Attribute, or null
+```
+
+`orFail()` returns the response unchanged on a 2xx status and throws `HttpResponseUnsuccessful`
+otherwise. The exception carries the `Code` and the decoded `Body`, so a non-2xx status can be
+branched on and its payload inspected in one place, then mapped to a domain error:
+
+```php
+$body = $response->orFail()->body(); # throws HttpResponseUnsuccessful when the status is not 2xx
 ```
 
 #### Query parameters
@@ -450,6 +523,57 @@ use TinyBlocks\Http\Client\Request;
 
 $updated = Request::get(url: '/v1/charges')
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
+```
+
+`ContentType` renders its raw header value via `toString()`, useful when composing the header by
+hand:
+
+```php
+ContentType::applicationJson(charset: Charset::UTF_8)->toString(); # "application/json; charset=utf-8"
+ContentType::applicationJson(charset: Charset::UTF_8)->mimeType(); # MimeType::APPLICATION_JSON
+```
+
+#### Default headers
+
+Carry headers applied to every request (for example a static authorization header) by passing
+`defaultHeaders` to the builder or to `Http::with(...)`. Precedence per request is: a header set on
+the request wins over a default, and a default wins over the JSON defaults
+(`Accept`/`Content-Type: application/json`).
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Http;
+
+$defaultHeaders = Headers::fromArray(entries: ['Authorization' => 'Bearer token']);
+
+$http = Http::create()
+    ->withBaseUrl(url: 'https://api.example.com')
+    ->withTransport(transport: NetworkTransport::with(client: $client, factory: $factory))
+    ->withDefaultHeaders(headers: $defaultHeaders)
+    ->build();
+```
+
+The same headers can be supplied through the single-call factory:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Headers;
+use TinyBlocks\Http\Http;
+
+$http = Http::with(
+    baseUrl: 'https://api.example.com',
+    transport: NetworkTransport::with(client: $client, factory: $factory),
+    defaultHeaders: Headers::fromArray(entries: ['Authorization' => 'Bearer token'])
+);
 ```
 
 #### Setting the User-Agent
@@ -558,6 +682,7 @@ try {
 | `NoMoreResponses`             | `InMemoryTransport` exhausted (programmer error).                                     |
 | `HttpConfigurationInvalid`    | Builder called without required dependencies.                                         |
 | `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`.             |
+| `HttpResponseUnsuccessful`    | `Response::orFail()` called on a non-2xx response.                                    |
 
 #### Configuring timeouts
 

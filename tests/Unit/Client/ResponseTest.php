@@ -8,6 +8,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Client\Response;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\HttpResponseUnsuccessful;
 use TinyBlocks\Http\Exceptions\SynthesizedResponseHasNoRaw;
 use TinyBlocks\Http\Headers;
 
@@ -240,5 +241,65 @@ final class ResponseTest extends TestCase
 
         /** @When calling raw() */
         $response->raw();
+    }
+
+    public function testOrFailWhenSuccessfulResponseGivenThenReturnsSameInstance(): void
+    {
+        /** @Given a successful synthesized response */
+        $response = Response::with(code: Code::OK);
+
+        /** @When requiring a successful status via orFail */
+        $actual = $response->orFail();
+
+        /** @Then the same response instance is returned */
+        self::assertSame($response, $actual);
+    }
+
+    public function testOrFailWhenClientErrorResponseGivenThenThrowsHttpResponseUnsuccessful(): void
+    {
+        /** @Given a client-error synthesized response */
+        $response = Response::with(code: Code::BAD_REQUEST);
+
+        /** @Then an exception carrying the formatted status message is thrown */
+        $this->expectException(HttpResponseUnsuccessful::class);
+        $this->expectExceptionMessage('HTTP response returned a non-success status: 400 Bad Request.');
+
+        /** @When requiring a successful status via orFail */
+        $response->orFail();
+    }
+
+    public function testOrFailWhenServerErrorResponseGivenThenThrowsHttpResponseUnsuccessful(): void
+    {
+        /** @Given a server-error synthesized response */
+        $response = Response::with(code: Code::INTERNAL_SERVER_ERROR);
+
+        /** @Then an exception signaling the unsuccessful response is thrown */
+        $this->expectException(HttpResponseUnsuccessful::class);
+
+        /** @When requiring a successful status via orFail */
+        $response->orFail();
+    }
+
+    public function testOrFailWhenUnsuccessfulResponseGivenThenExceptionCarriesCodeAndBody(): void
+    {
+        /** @Given an unsuccessful status code */
+        $code = Code::UNPROCESSABLE_ENTITY;
+
+        /** @And a decoded error body */
+        $body = ['error' => 'Invalid payload.'];
+
+        /** @And a synthesized response carrying that code and body */
+        $response = Response::with(code: $code, body: $body);
+
+        try {
+            /** @When requiring a successful status via orFail */
+            $response->orFail();
+        } catch (HttpResponseUnsuccessful $exception) {
+            /** @Then the exception carries the response status code */
+            self::assertSame($code, $exception->code());
+
+            /** @And the exception carries the decoded response body */
+            self::assertSame($body['error'], $exception->body()->get(key: 'error')->toString());
+        }
     }
 }

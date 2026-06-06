@@ -38,10 +38,10 @@ outputting.
     concept.
 11. Test fixtures representing domain concepts live in `tests/Models/`. Test doubles for system
     boundaries live at the root of `tests/Unit/` or `tests/Integration/`. No dedicated `Mocks/`
-    or `Doubles/` subdirectory exists. `tests/Drivers/<Vendor>/` is permitted when the library
-    exposes a port exercised against multiple third-party implementations (PSR adapters,
-    framework integrations). Each `<Vendor>/` subdir holds tests against one specific
-    implementation.
+    or `Doubles/` subdirectory exists. Vendor compatibility (driver) tests, verifying the
+    library against specific external libraries/frameworks, are optional and have no `src/`
+    counterpart. They exist only as tests, under `tests/Integration/Drivers/<Vendor>/`,
+    grouped by vendor. Never a top-level `Drivers/` under `tests/`.
 12. The `tests/Integration/` folder exists only when the library interacts with external
     infrastructure (filesystem, database, network). Otherwise, the folder is absent.
 
@@ -68,6 +68,8 @@ tests/
 │   ├── <SomeMock>.php        # test doubles at root of Unit/
 │   └── <SomeSpy>.php
 └── Integration/              # only present when the library interacts with infrastructure
+    ├── Drivers/              # only present when the library exposes vendor-specific drivers
+    │   └── <Vendor>/         # tests against one specific third-party implementation
     └── <SomeMock>.php        # test doubles at root of Integration/ when needed
 ```
 
