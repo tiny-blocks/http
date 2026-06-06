@@ -91,6 +91,17 @@ final class CodeTest extends TestCase
         self::assertSame($expected, $actual);
     }
 
+    #[DataProvider('nullableCodesDataProvider')]
+    public function testTryFromNullableWhenIntegerOrNullGivenThenResolvesExpected(?int $code, ?Code $expected): void
+    {
+        /** @Given a nullable HTTP status code */
+        /** @When resolving it through tryFromNullable */
+        $actual = Code::tryFromNullable(code: $code);
+
+        /** @Then the resolved Code matches the expected value */
+        self::assertSame($expected, $actual);
+    }
+
     #[DataProvider('messagesDataProvider')]
     public function testMessageWhenKnownCodeGivenThenReturnsRfcDescription(Code $code, string $expected): void
     {
@@ -99,6 +110,17 @@ final class CodeTest extends TestCase
         $actual = $code->message();
 
         /** @Then the message matches the expected string */
+        self::assertSame($expected, $actual);
+    }
+
+    #[DataProvider('timeoutCodesDataProvider')]
+    public function testIsTimeoutWhenCodeGivenThenReturnsExpected(Code $code, bool $expected): void
+    {
+        /** @Given an HTTP status code */
+        /** @When checking whether it represents a request or gateway timeout */
+        $actual = $code->isTimeout();
+
+        /** @Then the result matches the expected boolean */
         self::assertSame($expected, $actual);
     }
 
@@ -333,6 +355,28 @@ final class CodeTest extends TestCase
             'Code 201 Created'               => ['code' => 201, 'expected' => true],
             'Code 226 IM Used'               => ['code' => 226, 'expected' => true],
             'Code 500 Internal Server Error' => ['code' => 500, 'expected' => false]
+        ];
+    }
+
+    public static function timeoutCodesDataProvider(): array
+    {
+        return [
+            'Code 408 Request Timeout'       => ['code' => Code::REQUEST_TIMEOUT, 'expected' => true],
+            'Code 504 Gateway Timeout'       => ['code' => Code::GATEWAY_TIMEOUT, 'expected' => true],
+            'Code 200 OK'                    => ['code' => Code::OK, 'expected' => false],
+            'Code 400 Bad Request'           => ['code' => Code::BAD_REQUEST, 'expected' => false],
+            'Code 500 Internal Server Error' => ['code' => Code::INTERNAL_SERVER_ERROR, 'expected' => false],
+            'Code 502 Bad Gateway'           => ['code' => Code::BAD_GATEWAY, 'expected' => false]
+        ];
+    }
+
+    public static function nullableCodesDataProvider(): array
+    {
+        return [
+            'Null code'                         => ['code' => null, 'expected' => null],
+            'Unrepresented code 250'            => ['code' => 250, 'expected' => null],
+            'Represented code 200 OK'           => ['code' => 200, 'expected' => Code::OK],
+            'Represented code 500 Server Error' => ['code' => 500, 'expected' => Code::INTERNAL_SERVER_ERROR]
         ];
     }
 }

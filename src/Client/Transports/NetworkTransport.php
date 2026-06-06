@@ -57,7 +57,7 @@ final readonly class NetworkTransport implements Transport
 
         if (!is_null($body)) {
             $encoded = json_encode($body, NetworkTransport::JSON_FLAGS);
-            $psrRequest = $psrRequest->withBody(body: $this->factory->createStream($encoded));
+            $psrRequest = $psrRequest->withBody($this->factory->createStream($encoded));
         }
 
         try {

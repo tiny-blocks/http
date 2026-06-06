@@ -57,6 +57,27 @@ final readonly class Uri
     }
 
     /**
+     * Returns the named route attributes wrapped as typed Attributes, keyed by name.
+     *
+     * <p>Each key is resolved through the same route resolution as {@see Uri::get()}, so an absent key
+     * yields an Attribute wrapping null rather than being omitted. Only the named keys are resolved,
+     * keeping the result deterministic and avoiding leaking unrelated PSR-7 request attributes.</p>
+     *
+     * @param array<int, string> $keys The route attribute keys to resolve.
+     * @return array<string, Attribute> A map from each requested key to its resolved Attribute.
+     */
+    public function only(array $keys): array
+    {
+        $resolved = [];
+
+        foreach ($keys as $key) {
+            $resolved[$key] = $this->get(key: $key);
+        }
+
+        return $resolved;
+    }
+
+    /**
      * Returns a copy of the Uri scoped to a different route attribute name.
      *
      * When <code>$name</code> is omitted, the Uri is re-scoped to the library's default route

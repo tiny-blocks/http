@@ -26,26 +26,31 @@ final readonly class Http
 {
     private RequestResolver $resolver;
 
-    private function __construct(string $baseUrl, private Transport $transport)
+    private function __construct(string $baseUrl, private Transport $transport, ?Headers $defaultHeaders)
     {
         $baseUrl = BaseUrl::from(value: $baseUrl);
-        $this->resolver = RequestResolver::withBaseUrl(baseUrl: $baseUrl->toString());
+        $this->resolver = RequestResolver::withBaseUrl(
+            baseUrl: $baseUrl->toString(),
+            defaultHeaders: $defaultHeaders ?? Headers::empty()
+        );
     }
 
     /**
      * Creates an Http instance directly from a base URL and transport.
      *
-     * Explicit single-call alternative to the fluent builder returned by
-     * create(). Both arguments are required.
+     * <p>Explicit single-call alternative to the fluent builder returned by create(). The base
+     * URL and transport are required. Default headers are optional and merged beneath the
+     * per-request headers on every request.</p>
      *
      * @param string $baseUrl The absolute base URL prepended to every request path.
      * @param Transport $transport The transport that delivers resolved requests.
+     * @param Headers|null $defaultHeaders The headers merged under every request, or null for none.
      * @return Http A configured Http facade.
      * @throws BaseUrlIsInvalid If the base URL is not an accepted form.
      */
-    public static function with(string $baseUrl, Transport $transport): Http
+    public static function with(string $baseUrl, Transport $transport, ?Headers $defaultHeaders = null): Http
     {
-        return new Http(baseUrl: $baseUrl, transport: $transport);
+        return new Http(baseUrl: $baseUrl, transport: $transport, defaultHeaders: $defaultHeaders);
     }
 
     /**
@@ -58,7 +63,7 @@ final readonly class Http
      */
     public static function create(): HttpBuilder
     {
-        return new HttpBuilder(baseUrl: null, transport: null);
+        return new HttpBuilder(baseUrl: null, transport: null, defaultHeaders: null);
     }
 
     /**

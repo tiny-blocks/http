@@ -419,6 +419,174 @@ final class RequestTest extends TestCase
         self::assertSame('', $route->get(key: 'id')->toString());
     }
 
+    public function testQueryWhenUriHasParametersThenReturnsThem(): void
+    {
+        /** @Given a server request carrying query string parameters */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withQueryParams(['sort' => 'name', 'order' => 'asc']);
+
+        /** @When asking for the query parameters */
+        $actual = Request::from(request: $serverRequest)->query();
+
+        /** @Then the query parameters are exposed */
+        self::assertSame(['sort' => 'name', 'order' => 'asc'], $actual->toArray());
+        self::assertSame('name', $actual->get(key: 'sort')->toString());
+    }
+
+    public function testRawBodyWhenBodyEmptyThenReturnsEmptyString(): void
+    {
+        /** @Given a server request with an empty body */
+        $serverRequest = new ServerRequest(method: 'POST', uri: 'https://api.example.com')
+            ->withBody($this->factory->createStream(''));
+
+        /** @When reading the raw body */
+        $actual = Request::from(request: $serverRequest)->rawBody();
+
+        /** @Then an empty string is returned */
+        self::assertSame('', $actual);
+    }
+
+    public function testRawBodyWhenBodyGivenThenReturnsExactBytesWithoutDecoding(): void
+    {
+        /** @Given a server request with a raw body carrying insignificant whitespace */
+        $serverRequest = new ServerRequest(
+            method: 'POST',
+            uri: 'https://api.example.com',
+            body: $this->factory->createStream('{ "name" : "Hydra" }')
+        );
+
+        /** @When reading the raw body */
+        $actual = Request::from(request: $serverRequest)->rawBody();
+
+        /** @Then the exact bytes are returned without JSON decoding */
+        self::assertSame('{ "name" : "Hydra" }', $actual);
+    }
+
+    public function testHeadersWhenMessageHasHeaderThenExposesItCaseInsensitively(): void
+    {
+        /** @Given a server request carrying a Content-Type header */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withHeader('Content-Type', 'application/json');
+
+        /** @When asking for the typed headers */
+        $actual = Request::from(request: $serverRequest)->headers();
+
+        /** @Then the header is exposed and looked up case-insensitively */
+        self::assertSame('application/json', $actual->get('content-type'));
+        self::assertTrue($actual->has('Content-Type'));
+    }
+
+    public function testHeadersWhenMultiValueHeaderGivenThenFoldsWithComma(): void
+    {
+        /** @Given a server request carrying a multi-value Accept header */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withHeader('Accept', 'application/json')
+            ->withAddedHeader('Accept', 'text/html');
+
+        /** @When asking for the typed headers */
+        $actual = Request::from(request: $serverRequest)->headers();
+
+        /** @Then the multi-value header line is folded with a comma separator */
+        self::assertSame('application/json, text/html', $actual->get('Accept'));
+    }
+
+    public function testRawBodyWhenSeekableBodyReadThenDecodeStillSeesFullBody(): void
+    {
+        /** @Given a server request with a seekable JSON body */
+        $serverRequest = new ServerRequest(
+            method: 'POST',
+            uri: 'https://api.example.com',
+            body: $this->factory->createStream('{"name":"Hydra"}')
+        );
+
+        /** @And a typed wrapper over that request */
+        $request = Request::from(request: $serverRequest);
+
+        /** @When reading the raw body */
+        $actual = $request->rawBody();
+
+        /** @Then the raw body is returned */
+        self::assertSame('{"name":"Hydra"}', $actual);
+
+        /** @And a subsequent decode still reads the full body */
+        self::assertSame('Hydra', $request->decode()->body()->get(key: 'name')->toString());
+    }
+
+    public function testHeaderWhenHeaderPresentThenReturnsAttributeWrappingValue(): void
+    {
+        /** @Given a server request carrying a Content-Type header */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withHeader('Content-Type', 'application/json');
+
+        /** @When asking for the single header as a typed attribute */
+        $actual = Request::from(request: $serverRequest)->header(name: 'content-type');
+
+        /** @Then the attribute wraps the folded header value */
+        self::assertSame('application/json', $actual?->toString());
+    }
+
+    public function testHeaderWhenHeaderAbsentThenReturnsNull(): void
+    {
+        /** @Given a server request without the looked-up header */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com');
+
+        /** @When asking for a header that is not present */
+        /** @Then null is returned */
+        self::assertNull(Request::from(request: $serverRequest)->header(name: 'X-Missing'));
+    }
+
+    public function testOnlyWhenSeveralPresentKeysGivenThenReturnsMapOfAttributes(): void
+    {
+        /** @Given a set of route attributes */
+        $attributes = ['id' => 'dragon-id', 'skill' => 'fire-breath'];
+
+        /** @And a server request carrying those attributes under the canonical route key */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}/skills/{skill}', ...$attributes]);
+
+        /** @When extracting only the named route attributes */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->only(keys: ['id', 'skill']);
+
+        /** @Then the resulting map is keyed by exactly the requested attributes */
+        self::assertSame(['id', 'skill'], array_keys($actual));
+
+        /** @And each requested key resolves to its typed Attribute value */
+        self::assertSame($attributes['id'], $actual['id']->toString());
+        self::assertSame($attributes['skill'], $actual['skill']->toString());
+    }
+
+    public function testOnlyWhenAbsentKeyRequestedThenMapWrapsNullForThatKey(): void
+    {
+        /** @Given a server request carrying a single route attribute */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', 'id' => 'dragon-id']);
+
+        /** @When extracting a present key alongside an absent one */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->only(keys: ['id', 'missing']);
+
+        /** @Then both requested keys are present in the map */
+        self::assertSame(['id', 'missing'], array_keys($actual));
+
+        /** @And the present key resolves to its value */
+        self::assertSame('dragon-id', $actual['id']->toString());
+
+        /** @And the absent key resolves to an Attribute wrapping null */
+        self::assertSame('', $actual['missing']->toString());
+    }
+
+    public function testOnlyWhenNoKeysGivenThenReturnsEmptyMap(): void
+    {
+        /** @Given a server request carrying route attributes */
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withAttribute('__route__', ['name' => '/v1/dragons/{id}', 'id' => 'dragon-id']);
+
+        /** @When extracting with no requested keys */
+        $actual = Request::from(request: $serverRequest)->decode()->uri()->route()->only(keys: []);
+
+        /** @Then the resulting map is empty */
+        self::assertSame([], $actual);
+    }
+
     public static function httpMethodsProvider(): array
     {
         return [

@@ -372,6 +372,43 @@ final class HeadersTest extends TestCase
         self::assertCount(2, $updated->toArray());
     }
 
+    public function testAttributeWhenHeaderPresentThenReturnsAttributeWrappingValue(): void
+    {
+        /** @Given headers carrying a single entry */
+        $headers = Headers::fromArray(entries: ['X-Trace-Id' => 'abc-123']);
+
+        /** @When asking for the header as a typed attribute */
+        $actual = $headers->attribute(name: 'X-Trace-Id');
+
+        /** @Then the attribute wraps the folded header value */
+        self::assertSame('abc-123', $actual?->toString());
+    }
+
+    public function testAttributeWhenHeaderAbsentThenReturnsNull(): void
+    {
+        /** @Given headers carrying a single entry */
+        $headers = Headers::fromArray(entries: ['X-Trace-Id' => 'abc-123']);
+
+        /** @When asking for a header that is not present */
+        /** @Then null is returned */
+        self::assertNull($headers->attribute(name: 'X-Missing'));
+    }
+
+    public function testAttributeWhenHeaderPresentButEmptyThenReturnsAttributeWrappingEmptyString(): void
+    {
+        /** @Given headers carrying an entry with an empty value */
+        $headers = Headers::fromArray(entries: ['X-Empty' => '']);
+
+        /** @When asking for the header as a typed attribute */
+        $actual = $headers->attribute(name: 'X-Empty');
+
+        /** @Then a non-null attribute is returned, distinct from an absent header */
+        self::assertNotNull($actual);
+
+        /** @And it wraps the empty string */
+        self::assertSame('', $actual->toString());
+    }
+
     public static function validHeaderNameProvider(): array
     {
         return [

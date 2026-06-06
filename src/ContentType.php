@@ -83,12 +83,32 @@ final readonly class ContentType implements Headerable
 
     public function toArray(): array
     {
+        return ['Content-Type' => [$this->toString()]];
+    }
+
+    /**
+     * Returns the media type as a typed enum, without charset parameters.
+     *
+     * @return MimeType The MIME type carried by this Content-Type.
+     */
+    public function mimeType(): MimeType
+    {
+        return $this->mimeType;
+    }
+
+    /**
+     * Returns the ContentType as a Content-Type header value.
+     *
+     * @return string The media type, with the charset parameter appended when present.
+     */
+    public function toString(): string
+    {
         if (is_null($this->charset)) {
-            return ['Content-Type' => [$this->mimeType->value]];
+            return $this->mimeType->value;
         }
 
         $template = '%s; %s';
 
-        return ['Content-Type' => [sprintf($template, $this->mimeType->value, $this->charset->toString())]];
+        return sprintf($template, $this->mimeType->value, $this->charset->toString());
     }
 }

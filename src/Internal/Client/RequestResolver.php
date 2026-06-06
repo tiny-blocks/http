@@ -17,13 +17,13 @@ final readonly class RequestResolver
         'Content-Type' => 'application/json'
     ];
 
-    private function __construct(private string $baseUrl)
+    private function __construct(private string $baseUrl, private Headers $defaultHeaders)
     {
     }
 
-    public static function withBaseUrl(string $baseUrl): RequestResolver
+    public static function withBaseUrl(string $baseUrl, Headers $defaultHeaders): RequestResolver
     {
-        return new RequestResolver(baseUrl: $baseUrl);
+        return new RequestResolver(baseUrl: $baseUrl, defaultHeaders: $defaultHeaders);
     }
 
     public function resolve(Request $request): Request
@@ -40,6 +40,7 @@ final readonly class RequestResolver
 
         return $request
             ->withUrl(url: $url)
+            ->withMergedHeaders(defaults: $this->defaultHeaders)
             ->withMergedHeaders(defaults: Headers::fromArray(entries: RequestResolver::JSON_DEFAULTS))
             ->withQueryParameters(queryParameters: null);
     }

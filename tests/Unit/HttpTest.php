@@ -15,6 +15,7 @@ use TinyBlocks\Http\Exceptions\HttpNetworkFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestFailed;
 use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
 use TinyBlocks\Http\Exceptions\MalformedPath;
+use TinyBlocks\Http\Headers;
 use TinyBlocks\Http\Http;
 use TinyBlocks\Http\Method;
 
@@ -584,5 +585,118 @@ final class HttpTest extends TestCase
         /** @Then the composed URI joins them with exactly one slash */
         self::assertNotNull($client->captured);
         self::assertSame('https://api.example.com/dragons', (string)$client->captured->getUri());
+    }
+
+    public function testSendWhenDefaultHeaderProvidedThenReachesTransport(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And an Http instance carrying a default Authorization header */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: NetworkTransport::with(client: $client, factory: $this->factory),
+            defaultHeaders: Headers::fromArray(entries: ['Authorization' => 'Bearer token'])
+        );
+
+        /** @When sending a request that does not set that header */
+        $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the default header reaches the transport */
+        self::assertNotNull($client->captured);
+        self::assertSame('Bearer token', $client->captured->getHeaderLine('Authorization'));
+    }
+
+    public function testSendWhenNoDefaultHeadersGivenThenJsonDefaultsStillApply(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And an Http instance without default headers */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: NetworkTransport::with(client: $client, factory: $this->factory)
+        );
+
+        /** @When sending a plain request */
+        $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the JSON defaults are applied */
+        self::assertNotNull($client->captured);
+        self::assertSame('application/json', $client->captured->getHeaderLine('Accept'));
+        self::assertSame('application/json', $client->captured->getHeaderLine('Content-Type'));
+    }
+
+    public function testSendWhenPerRequestHeaderMatchesDefaultThenPerRequestWins(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And an Http instance carrying a default Authorization header */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: NetworkTransport::with(client: $client, factory: $this->factory),
+            defaultHeaders: Headers::fromArray(entries: ['Authorization' => 'Bearer default'])
+        );
+
+        /** @And a request setting its own Authorization header */
+        $request = Request::get(
+            url: '/dragons',
+            headers: Headers::fromArray(entries: ['Authorization' => 'Bearer per-request'])
+        );
+
+        /** @When sending the request */
+        $http->send(request: $request);
+
+        /** @Then the per-request header wins over the default */
+        self::assertNotNull($client->captured);
+        self::assertSame('Bearer per-request', $client->captured->getHeaderLine('Authorization'));
+    }
+
+    public function testSendWhenDefaultHeaderMatchesJsonDefaultThenDefaultWins(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And an Http instance whose default Content-Type differs from the JSON default */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: NetworkTransport::with(client: $client, factory: $this->factory),
+            defaultHeaders: Headers::fromArray(entries: ['Content-Type' => 'application/xml'])
+        );
+
+        /** @When sending a request that does not set Content-Type */
+        $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the default Content-Type wins while the JSON Accept default still applies */
+        self::assertNotNull($client->captured);
+        self::assertSame('application/xml', $client->captured->getHeaderLine('Content-Type'));
+        self::assertSame('application/json', $client->captured->getHeaderLine('Accept'));
+    }
+
+    public function testSendWhenPerRequestContentTypeGivenThenOverridesJsonDefault(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And an Http instance without default headers */
+        $http = Http::with(
+            baseUrl: 'https://api.example.com',
+            transport: NetworkTransport::with(client: $client, factory: $this->factory)
+        );
+
+        /** @And a request setting its own Content-Type */
+        $request = Request::post(
+            url: '/dragons',
+            body: ['name' => 'Hydra'],
+            headers: Headers::fromArray(entries: ['Content-Type' => 'application/xml'])
+        );
+
+        /** @When sending the request */
+        $http->send(request: $request);
+
+        /** @Then the per-request Content-Type overrides the JSON default */
+        self::assertNotNull($client->captured);
+        self::assertSame('application/xml', $client->captured->getHeaderLine('Content-Type'));
     }
 }

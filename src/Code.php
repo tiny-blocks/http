@@ -126,6 +126,21 @@ enum Code: int
     }
 
     /**
+     * Resolves a Code from a nullable status code.
+     *
+     * @param int|null $code The HTTP status code to resolve, or null when absent.
+     * @return Code|null The matching Code, or null when the input is null or not represented.
+     */
+    public static function tryFromNullable(?int $code): ?Code
+    {
+        if (is_null($code)) {
+            return null;
+        }
+
+        return Code::tryFrom($code);
+    }
+
+    /**
      * Tells whether the status code falls in the 4xx or 5xx range.
      *
      * Equivalent to <code>isClientError() || isServerError()</code>.
@@ -163,6 +178,20 @@ enum Code: int
     public function isSuccess(): bool
     {
         return Code::isSuccessCode(code: $this->value);
+    }
+
+    /**
+     * Tells whether the status code represents a request or gateway timeout.
+     *
+     * @return bool True when the code is 408 Request Timeout or 504 Gateway Timeout.
+     */
+    public function isTimeout(): bool
+    {
+        return match ($this) {
+            Code::REQUEST_TIMEOUT,
+            Code::GATEWAY_TIMEOUT => true,
+            default               => false
+        };
     }
 
     /**
