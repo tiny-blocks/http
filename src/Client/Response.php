@@ -7,6 +7,7 @@ namespace TinyBlocks\Http\Client;
 use Psr\Http\Message\ResponseInterface;
 use TinyBlocks\Http\Body;
 use TinyBlocks\Http\Code;
+use TinyBlocks\Http\Exceptions\HttpResponseUnsuccessful;
 use TinyBlocks\Http\Exceptions\SynthesizedResponseHasNoRaw;
 use TinyBlocks\Http\Headers;
 
@@ -96,6 +97,25 @@ final readonly class Response
     public function code(): Code
     {
         return $this->code;
+    }
+
+    /**
+     * Returns this response when its status is in the 2xx range, otherwise throws.
+     *
+     * <p>Opt-in, explicit alternative to checking {@see Response::isSuccess()} at the call site. A 4xx or
+     * 5xx is a well-formed response, not a transport failure, so the {@see Transport} contract still
+     * returns it. The thrown {@see HttpResponseUnsuccessful} carries the {@see Code} and {@see Body}.</p>
+     *
+     * @return Response This response, when the status is successful.
+     * @throws HttpResponseUnsuccessful When the status is not in the 2xx range.
+     */
+    public function orFail(): Response
+    {
+        if ($this->isSuccess()) {
+            return $this;
+        }
+
+        throw HttpResponseUnsuccessful::from(code: $this->code, body: $this->body);
     }
 
     /**
