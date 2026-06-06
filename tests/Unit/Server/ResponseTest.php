@@ -550,7 +550,7 @@ final class ResponseTest extends TestCase
 
     public function testOkWhenArbitraryObjectGivenThenThrowsBodyTypeIsUnsupported(): void
     {
-        /** @Given an arbitrary object that is not a Mapper, BackedEnum, or UnitEnum */
+        /** @Given an arbitrary object that is not a Serializable, BackedEnum, or UnitEnum */
         $body = new Dragon(name: 'Drakengard Firestorm', weight: 6000.0);
 
         /** @Then an exception indicating the body type is unsupported is thrown */

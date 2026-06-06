@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Models;
 
-use TinyBlocks\Mapper\ObjectMappability;
-use TinyBlocks\Mapper\ObjectMapper;
+use TinyBlocks\Mapper\Mappable;
+use TinyBlocks\Mapper\MappableBehavior;
 
-final readonly class Order implements ObjectMapper
+final readonly class Order implements Mappable
 {
-    use ObjectMappability;
+    use MappableBehavior;
 
     public function __construct(public int $id, public Products $products)
     {

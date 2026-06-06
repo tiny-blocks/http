@@ -7,7 +7,7 @@ namespace TinyBlocks\Http\Internal\Server\Stream;
 use BackedEnum;
 use Psr\Http\Message\StreamInterface;
 use TinyBlocks\Http\Exceptions\BodyTypeIsUnsupported;
-use TinyBlocks\Mapper\Mapper;
+use TinyBlocks\Mapper\Serializable;
 use UnitEnum;
 
 final readonly class StreamFactory
@@ -23,7 +23,7 @@ final readonly class StreamFactory
     public static function fromBody(mixed $body): StreamFactory
     {
         $dataToWrite = match (true) {
-            $body instanceof Mapper             => $body->toJson(),
+            $body instanceof Serializable       => $body->toJson(),
             $body instanceof BackedEnum         => StreamFactory::toJsonFrom(body: $body->value),
             $body instanceof UnitEnum           => $body->name,
             is_object($body)                    => throw BodyTypeIsUnsupported::for(class: $body::class),
