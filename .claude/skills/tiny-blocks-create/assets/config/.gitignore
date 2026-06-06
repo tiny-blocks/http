@@ -2,15 +2,13 @@
 /vendor/
 composer.lock
 
-# Tooling cache
-.phpcs-cache
-.phpunit.cache/
-.php-cs-fixer.cache
-.phpunit.result.cache
-
-# Local config overrides
+# Local config overrides (committed baselines are the .dist files)
 /phpstan.neon
 /infection.json
+
+# Tooling cache
+.phpunit.cache/
+.phpunit.result.cache
 
 # Coverage and reports
 build/

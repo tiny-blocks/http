@@ -44,7 +44,9 @@ algorithm. If any item fails, revise before outputting.
 12. Exceptions are pure. No transport-specific fields (HTTP status in `code`, formatted message
     for end-user display). They signal invariant violations only, never control flow.
 13. Enums are PHP backed enums. They include methods only when those methods carry vocabulary
-    meaning.
+    meaning. A value or behavior a case owns lives on the enum as that method, called instead of a
+    `match` on the case at the site. See "Polymorphism and tell-don't-ask" in
+    `php-library-code-style.md`.
 14. Extension points use `class` instead of `final readonly class`. They expose a private
     constructor with static factory methods as the only creation path. Internal state is
     injected via the constructor.
@@ -52,6 +54,9 @@ algorithm. If any item fails, revise before outputting.
     or worse needs explicit justification.
 16. Prefer lazy or streaming evaluation over materializing intermediate results. Memory usage
     is bounded and proportional to the output, not to the sum of intermediate stages.
+17. A configuration-like value object whose fields are mostly optional exposes a no-argument
+    baseline factory (`default()`) plus fluent immutable `with*` copies, not a single factory
+    whose signature lists every field. See "Value objects".
 
 ## Modeling principles
 
@@ -63,7 +68,8 @@ Apply the following principles where they sharpen the design. Treat them as guid
   domain uses. Code and conversation share the same terms.
 - SOLID. Interfaces define narrow contracts. Composition is preferred to inheritance.
   Substitutability holds at every interface boundary.
-- DRY. No duplicated logic across two or more places.
+- DRY. No duplicated logic across two or more places. See "Duplication" in
+  `php-library-code-style.md` for how to resolve it without inheritance or private helpers.
 - KISS. No abstraction without real duplication or isolation need.
 
 ## Nomenclature
@@ -126,6 +132,14 @@ The test. If the consumer instantiates or extends this class to integrate with t
 role name is legitimate. If the class models a concept the consumer manipulates (a money amount,
 a country code, a color), the role name is wrong.
 
+**Scope.** The architectural-role banlist and the anemic-verb banlist apply to the **public
+surface**: types at the `src/` root, types in public `<ConceptGroup>/` folders, and public
+exception and contract names. Inside `src/Internal/` (implementation detail by definition, where
+the namespace is the boundary), a collaborator may carry a mechanical role or operation name that
+describes its job (`Decoder`, `Encoder`, `Parser`, `Resolver`), since consumers never see or
+manipulate it. The always-banned names (`Data`, `Info`, `Utils`, `Item`, `Record`, `Entity`)
+remain banned everywhere, `Internal/` included.
+
 ## Value objects
 
 - Are immutable. No setters. No mutation after construction. Operations return new instances.
@@ -169,6 +183,26 @@ final readonly class Money
 
 Money::of(amount: 1000, currency: Currency::BRL);
 Money::zero(currency: Currency::USD);
+```
+
+When a value object is configuration-like and most of its fields are optional with defaults, prefer
+a baseline factory that takes no required arguments (`default()`, or `from()` with every parameter
+defaulted) together with fluent immutable `with*` copies, over a single factory whose signature
+carries every field. Each `with*` returns a new instance. Prefer the `with*` methods on the value
+object itself over a separate mutable builder class: the value object is already immutable, so it
+is its own builder. The smell is a factory signature that lists every field while most are
+optional.
+
+**Prohibited.** A single factory whose signature carries every field, most of them optional:
+
+```php
+MoneyFormat::from(scale: 4, symbol: '€', grouping: ',');
+```
+
+**Correct.** A baseline `default()` plus fluent `with*` copies that override only what differs:
+
+```php
+MoneyFormat::default()->withScale(scale: 4)->withGrouping(grouping: ',');
 ```
 
 ## Exceptions
@@ -227,7 +261,11 @@ if ($value < 0 || $value > 16) {
 
 - Are PHP backed enums.
 - Include methods only when those methods carry vocabulary meaning. Examples are
-  `Order::ASCENDING_KEY` and `RoundingMode::apply()`.
+  `OrderStatus::isFinal()` and `RoundingMode::apply()`.
+- A value or behavior a case owns (a token, a flag, a derived value) is one of those vocabulary
+  methods, a predicate `isXxx()` or a method returning the value, called at the site instead of a
+  `match` comparing the case. This is the enum form of tell-don't-ask. See "Polymorphism and
+  tell-don't-ask" in `php-library-code-style.md`.
 
 ## Extension points
 
