@@ -31,6 +31,40 @@ final class InMemoryTransportTest extends TestCase
         $transport->send(request: $request);
     }
 
+    public function testSendWhenMultipleRequestsSentThenRecordsThemInOrder(): void
+    {
+        /** @Given a transport seeded with two responses */
+        $transport = InMemoryTransport::with(responses: [
+            Response::with(code: Code::OK),
+            Response::with(code: Code::CREATED)
+        ]);
+
+        /** @And a first request to dispatch */
+        $first = Request::get(url: '/dragons');
+
+        /** @And a second request to dispatch */
+        $second = Request::post(url: '/dragons', body: ['name' => 'Smaug']);
+
+        /** @When both requests are dispatched in order */
+        $transport->send(request: $first);
+        $transport->send(request: $second);
+
+        /** @Then the recorded requests preserve the dispatch order */
+        self::assertSame([$first, $second], $transport->receivedRequests());
+    }
+
+    public function testLastReceivedRequestWhenNoRequestSentThenReturnsNull(): void
+    {
+        /** @Given a transport seeded with no responses */
+        $transport = InMemoryTransport::with(responses: []);
+
+        /** @When the last received request is read before any send */
+        $lastReceived = $transport->lastReceivedRequest();
+
+        /** @Then no request has been recorded yet */
+        self::assertNull($lastReceived);
+    }
+
     public function testSendWhenMultipleResponsesQueuedThenServesInFifoOrder(): void
     {
         /** @Given a first queued response carrying OK */
@@ -69,6 +103,45 @@ final class InMemoryTransportTest extends TestCase
 
         /** @When sending a request against the empty queue */
         $transport->send(request: $request);
+    }
+
+    public function testSendWhenQueueExhaustedThenRecordsRequestBeforeThrowing(): void
+    {
+        /** @Given a transport seeded with no responses */
+        $transport = InMemoryTransport::with(responses: []);
+
+        /** @And a request to dispatch */
+        $request = Request::get(url: '/dragons');
+
+        try {
+            /** @When sending the request against the exhausted queue */
+            $transport->send(request: $request);
+        } catch (NoMoreResponses) {
+            /** @Then the request was recorded despite the exhausted queue */
+            self::assertSame([$request], $transport->receivedRequests());
+        }
+    }
+
+    public function testLastReceivedRequestWhenRequestsSentThenReturnsMostRecent(): void
+    {
+        /** @Given a transport seeded with two responses */
+        $transport = InMemoryTransport::with(responses: [
+            Response::with(code: Code::OK),
+            Response::with(code: Code::CREATED)
+        ]);
+
+        /** @And an initial request to dispatch */
+        $initial = Request::get(url: '/dragons');
+
+        /** @And a most recent request to dispatch */
+        $latest = Request::delete(url: '/dragons/1');
+
+        /** @When both requests are dispatched in order */
+        $transport->send(request: $initial);
+        $transport->send(request: $latest);
+
+        /** @Then the last received request is the most recently dispatched one */
+        self::assertSame($latest, $transport->lastReceivedRequest());
     }
 
     public function testSendWhenSingleResponseQueuedThenReturnsTheQueuedResponse(): void

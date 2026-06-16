@@ -742,6 +742,30 @@ $http = Http::create()
 
 Calls consume responses in FIFO order. Exhaustion raises `NoMoreResponses`.
 
+The transport records every request it receives, so a test can assert on the outbound request a consumer built
+without a hand-written transport double:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use TinyBlocks\Http\Client\Request;
+use TinyBlocks\Http\Client\Response;
+use TinyBlocks\Http\Client\Transports\InMemoryTransport;
+use TinyBlocks\Http\Code;
+
+$transport = InMemoryTransport::with(responses: [Response::with(code: Code::OK)]);
+
+$transport->send(request: Request::post(url: 'https://api.example.com/charges', body: ['amount' => 1000]));
+
+# The most recently received request, or null when none was received.
+$lastReceived = $transport->lastReceivedRequest();
+
+# Every received request, in the order they were sent.
+$received = $transport->receivedRequests();
+```
+
 #### Extending with custom transports
 
 Implement `Transport` to add retry, logging, circuit breaker, or any other cross-cutting concern. The decorator wraps
