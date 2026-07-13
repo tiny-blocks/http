@@ -20,6 +20,9 @@
         - [Default headers](#default-headers)
         - [Setting the User-Agent](#setting-the-user-agent)
         - [Error handling](#error-handling)
+        - [Retrying failed requests](#retrying-failed-requests)
+        - [Backoff policies](#backoff-policies)
+        - [Setting outbound headers](#setting-outbound-headers)
         - [Configuring timeouts](#configuring-timeouts)
         - [Testing with InMemoryTransport](#testing-with-inmemorytransport)
         - [Extending with custom transports](#extending-with-custom-transports)
@@ -35,6 +38,9 @@ The library covers both sides of an HTTP exchange:
   outgoing `ResponseInterface` instances with cookies, cache-control, and status codes.
 - **Client side** (`TinyBlocks\Http\Client`) - composes outbound requests, sends them through a `Transport` port backed
   by any PSR-18 client, and exposes responses with typed body and header access.
+- **Client resilience** (`TinyBlocks\Http\Client\Resilience`) - decorates any PSR-18 client with retries, backoff
+  policies, and notification of failed attempts, measuring each attempt with
+  [tiny-blocks/time](https://github.com/tiny-blocks/time).
 
 Shared primitives at `TinyBlocks\Http\`: `Method`, `Code`, `Headers`, `Headerable`, `ContentType`, `MimeType`,
 `Charset`, `Cookie`, `SameSite`, `CacheControl`, `ResponseCacheDirectives`, `Link`, `LinkRelation`, `UserAgent`.
@@ -681,8 +687,150 @@ try {
 | `MalformedPath`               | Path attempts to escape the base URL (scheme, protocol-relative, control characters). |
 | `NoMoreResponses`             | `InMemoryTransport` exhausted (programmer error).                                     |
 | `HttpConfigurationInvalid`    | Builder called without required dependencies.                                         |
+| `ClientNotConfigured`         | `RetryingClientBuilder::build()` called without a PSR-18 client.                      |
 | `SynthesizedResponseHasNoRaw` | `Response::raw()` called on a response created via `Response::with(...)`.             |
 | `HttpResponseUnsuccessful`    | `Response::orFail()` called on a non-2xx response.                                    |
+
+#### Retrying failed requests
+
+`RetryingClient` is a PSR-18 decorator that retries transient failures. A network failure or a server error (HTTP 5xx)
+is retried until the attempt ceiling is reached, sleeping the configured [backoff](#backoff-policies) delay between
+attempts. A client error (HTTP 4xx) is never retried: the response is returned as is. Any other failure raised by the
+decorated client propagates immediately. When the attempts are exhausted, the last response is returned or the last
+exception is rethrown. The `maxAttempts` ceiling counts the first attempt, so `maxAttempts: 2` means one retry.
+
+Every failed attempt, the final one included, is reported to an optional `RetryListener` with the elapsed interval of
+the attempt (an `Elapsed` from [tiny-blocks/time](https://github.com/tiny-blocks/time)), its `AttemptOutcome`
+classification, the request, and the attempt number. Successful attempts are never reported.
+
+| `AttemptOutcome`                   | Trigger                                           | Retried |
+|------------------------------------|---------------------------------------------------|---------|
+| `AttemptOutcome::TIMEOUT`          | Network failure whose message mentions a timeout, or an HTTP 408 or 504 response. | Yes     |
+| `AttemptOutcome::CONNECTION_RESET` | Any other network failure.                                                         | Yes     |
+| `AttemptOutcome::SERVER_ERROR`     | Any other HTTP 5xx response, non-RFC codes included.                               | Yes     |
+| `AttemptOutcome::CLIENT_ERROR`     | Any other HTTP 4xx response.                                                       | No      |
+
+Assemble the decorator with the fluent builder returned by `RetryingClient::create()`. Only the PSR-18 client is
+required, and `build()` raises `ClientNotConfigured` without one. Every other collaborator falls back to an
+opinionated default: an `ExponentialBackoff` with random jitter, an attempt ceiling of three, the system monotonic
+clock and sleeper, and a listener that ignores failures.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use Psr\Http\Message\RequestInterface;
+use Psr\Log\LoggerInterface;
+use TinyBlocks\Http\Client\Resilience\AttemptOutcome;
+use TinyBlocks\Http\Client\Resilience\FixedDelay;
+use TinyBlocks\Http\Client\Resilience\RetryListener;
+use TinyBlocks\Http\Client\Resilience\RetryingClient;
+use TinyBlocks\Time\Elapsed;
+
+final readonly class LoggingRetryListener implements RetryListener
+{
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
+
+    public function attemptFailed(
+        Elapsed $elapsed,
+        AttemptOutcome $outcome,
+        RequestInterface $request,
+        int $attemptNumber
+    ): void {
+        $this->logger->warning('http_attempt_failed', [
+            'target'         => (string)$request->getUri(),
+            'outcome'        => $outcome->value,
+            'elapsed_ms'     => $elapsed->toMilliseconds(),
+            'attempt_number' => $attemptNumber
+        ]);
+    }
+}
+
+# One retry after a fixed 500 ms delay.
+$client = RetryingClient::create()
+    ->withClient(client: new Client(config: ['timeout' => 10, 'connect_timeout' => 5]))
+    ->withBackoff(backoff: FixedDelay::ofMicroseconds(microseconds: 500000))
+    ->withListener(listener: new LoggingRetryListener(logger: $logger))
+    ->withMaxAttempts(maxAttempts: 2)
+    ->build();
+
+$response = $client->sendRequest($request);
+```
+
+The listener is optional. When omitted, failed attempts are silently ignored. Because `RetryingClient` is itself a
+PSR-18 client, it plugs into anything that accepts one, including the library's own transport:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Psr7\HttpFactory;
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Http;
+
+$http = Http::with(
+    baseUrl: 'https://api.example.com',
+    transport: NetworkTransport::with(client: $client, factory: new HttpFactory())
+);
+```
+
+#### Backoff policies
+
+`Backoff` computes the delay, in microseconds, slept before the next attempt. Two implementations ship with the
+library. Implement the interface for any other curve.
+
+`FixedDelay` waits the same delay before every retry:
+
+```php
+FixedDelay::ofMicroseconds(microseconds: 500000); # always 500 ms
+```
+
+`ExponentialBackoff` doubles a base delay of 100 ms on every attempt and spreads it with a uniformly random jitter of
+up to 30 percent of that value in either direction, keeping concurrent clients from retrying in lockstep against a
+recovering dependency:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Random\Randomizer;
+use TinyBlocks\Http\Client\Resilience\ExponentialBackoff;
+
+$backoff = ExponentialBackoff::with(randomizer: new Randomizer());
+
+$backoff->delayFor(attempt: 1); # 100 ms, give or take up to 30 percent
+$backoff->delayFor(attempt: 2); # 200 ms, give or take up to 30 percent
+$backoff->delayFor(attempt: 3); # 400 ms, give or take up to 30 percent
+```
+
+#### Setting outbound headers
+
+`HeaderSettingClient` is a PSR-18 decorator that sets headers on every outbound request, resolving each value at
+send time. Values that change between requests (a correlation identifier, a rotating token) are always current. A
+resolved value replaces any header of the same name already on the request, and a value resolving to an empty
+string leaves the request untouched for that name.
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use TinyBlocks\Http\Client\HeaderSettingClient;
+
+$client = HeaderSettingClient::with(client: new Client(), headerValues: [
+    'Correlation-Id' => static fn(): string => $correlationId->toString()
+]);
+```
+
+It composes with the other client decorators. Wrapping it with `RetryingClient` re-resolves the headers on every
+attempt.
 
 #### Configuring timeouts
 
@@ -769,7 +917,8 @@ $received = $transport->receivedRequests();
 #### Extending with custom transports
 
 Implement `Transport` to add retry, logging, circuit breaker, or any other cross-cutting concern. The decorator wraps
-any inner `Transport`.
+any inner `Transport`. For retries at the PSR-18 client level, the library ships `RetryingClient`. See
+[Retrying failed requests](#retrying-failed-requests).
 
 ```php
 <?php
