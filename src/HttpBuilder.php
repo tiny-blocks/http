@@ -46,7 +46,7 @@ final readonly class HttpBuilder
         return Http::with(
             baseUrl: $this->baseUrl,
             transport: $this->transport,
-            defaultHeaders: $this->defaultHeaders ?? Headers::empty()
+            defaultHeaders: ($this->defaultHeaders ?? Headers::empty())
         );
     }
 

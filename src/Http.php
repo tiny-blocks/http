@@ -31,7 +31,7 @@ final readonly class Http
         $baseUrl = BaseUrl::from(value: $baseUrl);
         $this->resolver = RequestResolver::withBaseUrl(
             baseUrl: $baseUrl->toString(),
-            defaultHeaders: $defaultHeaders ?? Headers::empty()
+            defaultHeaders: ($defaultHeaders ?? Headers::empty())
         );
     }
 

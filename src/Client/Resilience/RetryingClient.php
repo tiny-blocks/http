@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace TinyBlocks\Http\Client\Resilience;
 
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Client\NetworkExceptionInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use TinyBlocks\Http\Internal\Client\Resilience\RetryLoop;
 use TinyBlocks\Time\MonotonicClock;
-use TinyBlocks\Time\Stopwatch;
 
 /**
  * PSR-18 decorator that retries transient failures with a configurable {@see Backoff}.
@@ -26,14 +25,24 @@ use TinyBlocks\Time\Stopwatch;
  */
 final readonly class RetryingClient implements ClientInterface
 {
+    private RetryLoop $loop;
+
     public function __construct(
-        private MonotonicClock $clock,
-        private ClientInterface $client,
-        private Backoff $backoff,
-        private Sleeper $sleeper,
-        private RetryListener $listener,
-        private int $maxAttempts
+        MonotonicClock $clock,
+        ClientInterface $client,
+        Backoff $backoff,
+        Sleeper $sleeper,
+        RetryListener $listener,
+        int $maxAttempts
     ) {
+        $this->loop = new RetryLoop(
+            clock: $clock,
+            client: $client,
+            backoff: $backoff,
+            sleeper: $sleeper,
+            listener: $listener,
+            maxAttempts: $maxAttempts
+        );
     }
 
     /**
@@ -52,47 +61,6 @@ final readonly class RetryingClient implements ClientInterface
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        for ($attemptNumber = 1; true; $attemptNumber++) {
-            $stopwatch = Stopwatch::start(clock: $this->clock);
-
-            try {
-                $response = $this->client->sendRequest($request);
-            } catch (NetworkExceptionInterface $exception) {
-                $this->listener->attemptFailed(
-                    elapsed: $stopwatch->elapsed(),
-                    outcome: AttemptOutcome::fromThrowable(throwable: $exception),
-                    request: $request,
-                    attemptNumber: $attemptNumber
-                );
-
-                if ($attemptNumber >= $this->maxAttempts) {
-                    throw $exception;
-                }
-
-                $microseconds = $this->backoff->delayFor(attempt: $attemptNumber);
-                $this->sleeper->sleep(microseconds: $microseconds);
-                continue;
-            }
-
-            $outcome = AttemptOutcome::fromStatusCode(statusCode: $response->getStatusCode());
-
-            if (is_null($outcome)) {
-                return $response;
-            }
-
-            $this->listener->attemptFailed(
-                elapsed: $stopwatch->elapsed(),
-                outcome: $outcome,
-                request: $request,
-                attemptNumber: $attemptNumber
-            );
-
-            if (!$outcome->isRetryable() || $attemptNumber >= $this->maxAttempts) {
-                return $response;
-            }
-
-            $microseconds = $this->backoff->delayFor(attempt: $attemptNumber);
-            $this->sleeper->sleep(microseconds: $microseconds);
-        }
+        return $this->loop->run(request: $request);
     }
 }

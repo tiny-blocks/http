@@ -45,11 +45,11 @@ final class RetryingClientBuilder
         }
 
         return new RetryingClient(
-            clock: $this->clock ?? new SystemMonotonicClock(),
+            clock: ($this->clock ?? new SystemMonotonicClock()),
             client: $this->client,
-            backoff: $this->backoff ?? ExponentialBackoff::with(randomizer: new Randomizer()),
-            sleeper: $this->sleeper ?? new SystemSleeper(),
-            listener: $this->listener ?? new IgnoringRetryListener(),
+            backoff: ($this->backoff ?? ExponentialBackoff::with(randomizer: new Randomizer())),
+            sleeper: ($this->sleeper ?? new SystemSleeper()),
+            listener: ($this->listener ?? new IgnoringRetryListener()),
             maxAttempts: $this->maxAttempts
         );
     }

@@ -25,27 +25,34 @@ use TinyBlocks\Http\Exceptions\HttpRequestInvalid;
  */
 final readonly class NetworkTransport implements Transport
 {
-    private const int JSON_FLAGS = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+    private const int JSON_FLAGS = (JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
 
     private function __construct(
         private ClientInterface $client,
-        private RequestFactoryInterface&StreamFactoryInterface $factory
+        private RequestFactoryInterface&StreamFactoryInterface $factory,
+        private ?int $maxBytes
     ) {
     }
 
     /**
      * Creates a NetworkTransport backed by a PSR-18 client and a PSR-17 factory.
      *
+     * <p>The byte ceiling bounds how much of each response body is materialized before decoding.
+     * Crossing it raises ResponseBodyTooLarge instead of letting an oversized payload exhaust
+     * the process memory. The ceiling defaults to 16 MiB.</p>
+     *
      * @param ClientInterface $client The PSR-18 client that performs the actual network call.
      * @param RequestFactoryInterface&StreamFactoryInterface $factory The PSR-17 factory used to build the
      *                                                                PSR-7 request and body stream.
+     * @param int|null $maxBytes The byte ceiling applied to every response body, or null for the 16 MiB default.
      * @return NetworkTransport A transport that dispatches each request through the given client.
      */
     public static function with(
         ClientInterface $client,
-        RequestFactoryInterface&StreamFactoryInterface $factory
+        RequestFactoryInterface&StreamFactoryInterface $factory,
+        ?int $maxBytes = null
     ): NetworkTransport {
-        return new NetworkTransport(client: $client, factory: $factory);
+        return new NetworkTransport(client: $client, factory: $factory, maxBytes: $maxBytes);
     }
 
     public function send(Request $request): Response
@@ -70,6 +77,6 @@ final readonly class NetworkTransport implements Transport
             throw HttpRequestFailed::fromClientException(request: $request, exception: $exception);
         }
 
-        return Response::from(response: $psrResponse);
+        return Response::from(response: $psrResponse, maxBytes: $this->maxBytes);
     }
 }

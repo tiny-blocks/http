@@ -776,7 +776,7 @@ final class ResponseTest extends TestCase
                         ['name' => 'Product One', 'amount' => ['value' => 100.50, 'currency' => 'USD']],
                         ['name' => 'Product Two', 'amount' => ['value' => 200.75, 'currency' => 'BRL']]
                     ]
-                ], JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION)
+                ], (JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION))
             ],
             'Boolean true value' => [
                 'body'     => true,

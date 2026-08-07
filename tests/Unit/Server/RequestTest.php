@@ -46,10 +46,11 @@ final class RequestTest extends TestCase
         ];
 
         /** @And a real PSR-7 server request with that JSON body */
+        $json = json_encode($payload, (JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION));
         $serverRequest = new ServerRequest(
             method: 'POST',
             uri: 'https://api.example.com/dragons',
-            body: $this->factory->createStream(json_encode($payload, JSON_THROW_ON_ERROR | JSON_PRESERVE_ZERO_FRACTION))
+            body: $this->factory->createStream($json)
         );
 
         /** @When decoding the request body */
@@ -272,6 +273,29 @@ final class RequestTest extends TestCase
         self::assertSame('42', $route->get(key: 'id')->toString());
         self::assertSame(42, $route->get(key: 'id')->toInteger());
         self::assertSame('dragon@fire.com', $route->get(key: 'email')->toString());
+    }
+
+    public function testDecodeWhenRouteObjectExposesMethodAndPropertyThenMethodWins(): void
+    {
+        /** @Given a route object exposing both getArguments() and a public $arguments property */
+        $routeObject = new class {
+            public array $arguments = ['id' => '99', 'source' => 'property'];
+
+            public function getArguments(): array
+            {
+                return ['id' => '42', 'source' => 'method'];
+            }
+        };
+
+        $serverRequest = new ServerRequest(method: 'GET', uri: 'https://api.example.com')
+            ->withAttribute('__route__', $routeObject);
+
+        /** @When decoding the route */
+        $route = Request::from(request: $serverRequest)->decode()->uri()->route();
+
+        /** @Then the method wins over the property */
+        self::assertSame('42', $route->get(key: 'id')->toString());
+        self::assertSame('method', $route->get(key: 'source')->toString());
     }
 
     public function testDecodeWhenSymfonyAttributePresentThenFallbackScanFindsIt(): void

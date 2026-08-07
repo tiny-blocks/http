@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit;
 
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\Exceptions\UserAgentProductIsEmpty;
 use TinyBlocks\Http\Exceptions\UserAgentValueIsInvalid;

@@ -55,6 +55,32 @@ final readonly class RouteParameterResolver
         return [];
     }
 
+    private function fromMethods(object $object): ?array
+    {
+        foreach (RouteParameterResolver::OBJECT_METHODS as $method) {
+            $parameters = method_exists($object, $method) ? $object->{$method}() : null;
+
+            if (is_array($parameters)) {
+                return $parameters;
+            }
+        }
+
+        return null;
+    }
+
+    private function fromProperties(object $object): ?array
+    {
+        foreach (RouteParameterResolver::OBJECT_PROPERTIES as $property) {
+            $parameters = property_exists($object, $property) ? $object->{$property} : null;
+
+            if (is_array($parameters)) {
+                return $parameters;
+            }
+        }
+
+        return null;
+    }
+
     private function resolveFallback(string $key, bool $scanKnownAttributes): mixed
     {
         if ($scanKnownAttributes) {
@@ -87,27 +113,7 @@ final readonly class RouteParameterResolver
 
     private function extractFromObject(object $object): array
     {
-        foreach (RouteParameterResolver::OBJECT_METHODS as $method) {
-            if (method_exists($object, $method)) {
-                $parameters = $object->{$method}();
-
-                if (is_array($parameters)) {
-                    return $parameters;
-                }
-            }
-        }
-
-        foreach (RouteParameterResolver::OBJECT_PROPERTIES as $property) {
-            if (property_exists($object, $property)) {
-                $parameters = $object->{$property};
-
-                if (is_array($parameters)) {
-                    return $parameters;
-                }
-            }
-        }
-
-        return [];
+        return ($this->fromMethods(object: $object) ?? $this->fromProperties(object: $object) ?? []);
     }
 
     private function resolveFromKnownAttributes(): array

@@ -47,7 +47,7 @@ final readonly class Request
             url: $url,
             body: $body,
             method: $method,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -66,7 +66,7 @@ final readonly class Request
             url: $url,
             body: null,
             method: Method::GET,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -90,7 +90,7 @@ final readonly class Request
             url: $url,
             body: $body,
             method: Method::PUT,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -109,7 +109,7 @@ final readonly class Request
             url: $url,
             body: null,
             method: Method::HEAD,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -133,7 +133,7 @@ final readonly class Request
             url: $url,
             body: $body,
             method: Method::POST,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -157,7 +157,7 @@ final readonly class Request
             url: $url,
             body: $body,
             method: Method::PATCH,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
@@ -176,7 +176,7 @@ final readonly class Request
             url: $url,
             body: null,
             method: Method::DELETE,
-            headers: $headers ?? Headers::empty(),
+            headers: ($headers ?? Headers::empty()),
             queryParameters: $queryParameters
         );
     }
