@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface;
 use TinyBlocks\Http\Body;
 use TinyBlocks\Http\Code;
 use TinyBlocks\Http\Exceptions\HttpResponseUnsuccessful;
+use TinyBlocks\Http\Exceptions\ResponseBodyTooLarge;
 use TinyBlocks\Http\Exceptions\SynthesizedResponseHasNoRaw;
 use TinyBlocks\Http\Headers;
 
@@ -32,14 +33,19 @@ final readonly class Response
     /**
      * Creates a Response from a PSR-7 response.
      *
+     * <p>The byte ceiling bounds how much of the PSR-7 body is materialized before decoding.
+     * Crossing it raises {@see ResponseBodyTooLarge}. The ceiling defaults to 16 MiB.</p>
+     *
      * @param ResponseInterface $response The underlying PSR-7 response.
+     * @param int|null $maxBytes The byte ceiling applied to the response body, or null for the 16 MiB default.
      * @return Response A wrapped Response carrying the PSR-7 message.
+     * @throws ResponseBodyTooLarge If the response body exceeds the byte ceiling.
      */
-    public static function from(ResponseInterface $response): Response
+    public static function from(ResponseInterface $response, ?int $maxBytes = null): Response
     {
         return new Response(
             psr: $response,
-            body: Body::fromResponse(response: $response),
+            body: Body::fromResponse(response: $response, maxBytes: $maxBytes),
             code: Code::from($response->getStatusCode()),
             headers: Headers::fromMessage(message: $response)
         );
@@ -57,9 +63,9 @@ final readonly class Response
     {
         return new Response(
             psr: null,
-            body: Body::fromArray(data: $body ?? []),
+            body: Body::fromArray(data: ($body ?? [])),
             code: $code,
-            headers: $headers ?? Headers::fromArray(entries: [])
+            headers: ($headers ?? Headers::fromArray(entries: []))
         );
     }
 

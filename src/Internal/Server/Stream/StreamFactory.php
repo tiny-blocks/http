@@ -12,12 +12,8 @@ use UnitEnum;
 
 final readonly class StreamFactory
 {
-    private Stream $stream;
-
     private function __construct(private string $body)
     {
-        $resource = fopen('php://memory', 'wb+');
-        $this->stream = Stream::from(resource: $resource);
     }
 
     public static function fromBody(mixed $body): StreamFactory
@@ -64,10 +60,13 @@ final readonly class StreamFactory
 
     public function write(): StreamInterface
     {
-        $this->stream->write($this->body);
-        $this->stream->rewind();
+        $resource = fopen('php://memory', 'wb+');
+        $stream = Stream::from(resource: $resource);
 
-        return $this->stream;
+        $stream->write($this->body);
+        $stream->rewind();
+
+        return $stream;
     }
 
     public function content(): string

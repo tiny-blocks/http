@@ -120,7 +120,7 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function getReasonPhrase(): string
     {
-        return $this->customReasonPhrase ?? $this->code->message();
+        return ($this->customReasonPhrase ?? $this->code->message());
     }
 
     public function withAddedHeader(string $name, mixed $value): MessageInterface

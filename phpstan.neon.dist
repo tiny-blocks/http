@@ -18,6 +18,9 @@ parameters:
         # PHPDoc is prohibited inside tests/; Closure return type in DataProvider factories is not statically inferrable.
         - identifier: method.nonObject
           path: tests/Unit/Client/RequestTest.php
+        # The PSR-7 StreamInterface contract declares the nullable return type this double must mirror.
+        - identifier: return.unusedType
+          path: tests/Unit/ChunkedStream.php
         # PHPStan knows all Code enum values are >= 100, making the lower-bound comparison always true.
         - identifier: greaterOrEqual.alwaysTrue
           path: src/Code.php

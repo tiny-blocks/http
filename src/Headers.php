@@ -24,7 +24,7 @@ final readonly class Headers
     {
         $lowerIndex = [];
 
-        foreach ($entries as $name => $value) {
+        foreach (array_keys($entries) as $name) {
             $lowerIndex[strtolower($name)] = $name;
         }
 
@@ -43,12 +43,13 @@ final readonly class Headers
         $entries = [];
 
         foreach ($headers as $header) {
-            foreach ($header->toArray() as $name => $value) {
-                $entries[$name] = is_array($value) ? implode(', ', $value) : $value;
-            }
+            $entries = array_replace($entries, $header->toArray());
         }
 
-        return Headers::fromArray(entries: $entries);
+        return Headers::fromArray(entries: array_map(
+            static fn(mixed $value): mixed => is_array($value) ? implode(', ', $value) : $value,
+            $entries
+        ));
     }
 
     /**
@@ -147,7 +148,7 @@ final readonly class Headers
         $key = strtolower($name);
         $entries = $this->entries;
 
-        $canonical = $this->lowerIndex[$key] ?? $name;
+        $canonical = ($this->lowerIndex[$key] ?? $name);
         $entries[$canonical] = $value;
 
         return Headers::fromArray(entries: $entries);

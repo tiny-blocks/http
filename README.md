@@ -24,6 +24,7 @@
         - [Backoff policies](#backoff-policies)
         - [Setting outbound headers](#setting-outbound-headers)
         - [Configuring timeouts](#configuring-timeouts)
+        - [Bounding the response body](#bounding-the-response-body)
         - [Testing with InMemoryTransport](#testing-with-inmemorytransport)
         - [Extending with custom transports](#extending-with-custom-transports)
 * [FAQ](#faq)
@@ -101,9 +102,9 @@ use TinyBlocks\Http\Server\Request;
 $method = Request::from(request: $psrRequest)->method();
 ```
 
-`Server\Request` also exposes the headers, the query parameters, and the raw body directly,
-without decoding the payload. `rawBody()` returns the exact bytes received (handy for verifying a
-signature) and rewinds seekable streams, so a later `decode()` still observes the full body.
+`Server\Request` also exposes the headers, the query parameters, and the raw body directly, without decoding the
+payload. `rawBody()` returns the exact bytes received (handy for verifying a signature) and rewinds seekable streams, so
+a later `decode()` still observes the full body.
 
 ```php
 <?php
@@ -172,8 +173,8 @@ Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
-`withStatus($code, $reasonPhrase)` honors the supplied reason phrase: when a non-empty string is
-passed, `getReasonPhrase()` returns it instead of the enum-derived phrase.
+`withStatus($code, $reasonPhrase)` honors the supplied reason phrase: when a non-empty string is passed,
+`getReasonPhrase()` returns it instead of the enum-derived phrase.
 
 ```php
 <?php
@@ -219,9 +220,8 @@ The four targets fold into a single comma-separated `Link` response header in th
 `withSameSite(SameSite::NONE)` automatically enables the `Secure` flag. Browsers reject
 `SameSite=None` cookies that lack it. Calling `secure()` separately is not required.
 
-`withMaxAge(...)` and `withExpires(...)` are mutually exclusive (last-write-wins): setting one
-clears the other. This follows RFC 6265 §4.1.2.2, which specifies that `Max-Age` takes precedence
-over `Expires` when both are present.
+`withMaxAge(...)` and `withExpires(...)` are mutually exclusive (last-write-wins): setting one clears the other. This
+follows RFC 6265 §4.1.2.2, which specifies that `Max-Age` takes precedence over `Expires` when both are present.
 
 ```php
 <?php
@@ -260,9 +260,9 @@ $crossSite = Cookie::create(name: 'session', value: $token)
 Response::ok(['ok' => true], $crossSite);
 ```
 
-To expire a cookie, use `Cookie::expire(...)` with the same `Path` and `Domain` used at creation.
-The expired cookie carries both `Max-Age=0` and `Expires` set to the Unix epoch: modern browsers
-honor `Max-Age`. The `Expires` fallback covers legacy user agents.
+To expire a cookie, use `Cookie::expire(...)` with the same `Path` and `Domain` used at creation. The expired cookie
+carries both `Max-Age=0` and `Expires` set to the Unix epoch: modern browsers honor `Max-Age`. The `Expires` fallback
+covers legacy user agents.
 
 ```php
 <?php
@@ -363,8 +363,8 @@ $http = Http::with(
 
 #### Making a request
 
-Six shortcut factories cover the most common HTTP methods. Supply only the arguments the request
-needs. The `body`, `queryParameters`, and `headers` all default to absent or empty.
+Six shortcut factories cover the most common HTTP methods. Supply only the arguments the request needs. The `body`,
+`queryParameters`, and `headers` all default to absent or empty.
 
 ```php
 <?php
@@ -388,8 +388,8 @@ $response = $http->send(
 $response = $http->send(request: Request::delete(url: '/v1/charges/abc123'));
 ```
 
-For HTTP methods not covered by the six shortcuts (`OPTIONS`, `TRACE`, `CONNECT`, or any custom
-method), use `Request::for(...)`, which accepts an explicit `Method` argument:
+For HTTP methods not covered by the six shortcuts (`OPTIONS`, `TRACE`, `CONNECT`, or any custom method), use
+`Request::for(...)`, which accepts an explicit `Method` argument:
 
 ```php
 <?php
@@ -445,8 +445,8 @@ $trace = $response->headers()->attribute(name: 'X-Trace-Id');   # Attribute, or 
 ```
 
 `orFail()` returns the response unchanged on a 2xx status and throws `HttpResponseUnsuccessful`
-otherwise. The exception carries the `Code` and the decoded `Body`, so a non-2xx status can be
-branched on and its payload inspected in one place, then mapped to a domain error:
+otherwise. The exception carries the `Code` and the decoded `Body`, so a non-2xx status can be branched on and its
+payload inspected in one place, then mapped to a domain error:
 
 ```php
 $body = $response->orFail()->body(); # throws HttpResponseUnsuccessful when the status is not 2xx
@@ -517,8 +517,8 @@ $response = $http->send(
 
 Custom headers always win over the library's JSON defaults.
 
-To add or replace a single header on an existing request, use `withHeader(...)`. The lookup is
-case-insensitive: replacing `Content-Type` via `content-type` still finds and replaces the entry.
+To add or replace a single header on an existing request, use `withHeader(...)`. The lookup is case-insensitive:
+replacing `Content-Type` via `content-type` still finds and replaces the entry.
 
 ```php
 <?php
@@ -531,8 +531,7 @@ $updated = Request::get(url: '/v1/charges')
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
-`ContentType` renders its raw header value via `toString()`, useful when composing the header by
-hand:
+`ContentType` renders its raw header value via `toString()`, useful when composing the header by hand:
 
 ```php
 ContentType::applicationJson(charset: Charset::UTF_8)->toString(); # "application/json; charset=utf-8"
@@ -542,9 +541,8 @@ ContentType::applicationJson(charset: Charset::UTF_8)->mimeType(); # MimeType::A
 #### Default headers
 
 Carry headers applied to every request (for example a static authorization header) by passing
-`defaultHeaders` to the builder or to `Http::with(...)`. Precedence per request is: a header set on
-the request wins over a default, and a default wins over the JSON defaults
-(`Accept`/`Content-Type: application/json`).
+`defaultHeaders` to the builder or to `Http::with(...)`. Precedence per request is: a header set on the request wins
+over a default, and a default wins over the JSON defaults (`Accept`/`Content-Type: application/json`).
 
 ```php
 <?php
@@ -585,8 +583,8 @@ $http = Http::with(
 #### Setting the User-Agent
 
 The `UserAgent` value object implements `Headerable` and renders the standard
-`User-Agent` header. An absent or empty version is normalized to "no version". The rendered
-header carries only the product token in that case.
+`User-Agent` header. An absent or empty version is normalized to "no version". The rendered header carries only the
+product token in that case.
 
 ```php
 <?php
@@ -648,9 +646,9 @@ $response = $http->send(
 
 Every failure raises an `HttpException`. `TransportFailure` (which extends `HttpException`) carries `url()`,
 `method()`, and `reason()`, and is implemented by every exception raised by the transport layer. The remaining
-`HttpException` implementations carry only the marker contract. Inspect their concrete class for the invariant
-they violated. Catch the specific class when you need to react to a particular failure mode. Order of catch
-branches matters because PHP matches the first applicable branch.
+`HttpException` implementations carry only the marker contract. Inspect their concrete class for the invariant they
+violated. Catch the specific class when you need to react to a particular failure mode. Order of catch branches matters
+because PHP matches the first applicable branch.
 
 ```php
 <?php
@@ -703,17 +701,17 @@ Every failed attempt, the final one included, is reported to an optional `RetryL
 the attempt (an `Elapsed` from [tiny-blocks/time](https://github.com/tiny-blocks/time)), its `AttemptOutcome`
 classification, the request, and the attempt number. Successful attempts are never reported.
 
-| `AttemptOutcome`                   | Trigger                                           | Retried |
-|------------------------------------|---------------------------------------------------|---------|
+| `AttemptOutcome`                   | Trigger                                                                           | Retried |
+|------------------------------------|-----------------------------------------------------------------------------------|---------|
 | `AttemptOutcome::TIMEOUT`          | Network failure whose message mentions a timeout, or an HTTP 408 or 504 response. | Yes     |
-| `AttemptOutcome::CONNECTION_RESET` | Any other network failure.                                                         | Yes     |
-| `AttemptOutcome::SERVER_ERROR`     | Any other HTTP 5xx response, non-RFC codes included.                               | Yes     |
-| `AttemptOutcome::CLIENT_ERROR`     | Any other HTTP 4xx response.                                                       | No      |
+| `AttemptOutcome::CONNECTION_RESET` | Any other network failure.                                                        | Yes     |
+| `AttemptOutcome::SERVER_ERROR`     | Any other HTTP 5xx response, non-RFC codes included.                              | Yes     |
+| `AttemptOutcome::CLIENT_ERROR`     | Any other HTTP 4xx response.                                                      | No      |
 
 Assemble the decorator with the fluent builder returned by `RetryingClient::create()`. Only the PSR-18 client is
-required, and `build()` raises `ClientNotConfigured` without one. Every other collaborator falls back to an
-opinionated default: an `ExponentialBackoff` with random jitter, an attempt ceiling of three, the system monotonic
-clock and sleeper, and a listener that ignores failures.
+required, and `build()` raises `ClientNotConfigured` without one. Every other collaborator falls back to an opinionated
+default: an `ExponentialBackoff` with random jitter, an attempt ceiling of three, the system monotonic clock and
+sleeper, and a listener that ignores failures.
 
 ```php
 <?php
@@ -781,8 +779,8 @@ $http = Http::with(
 
 #### Backoff policies
 
-`Backoff` computes the delay, in microseconds, slept before the next attempt. Two implementations ship with the
-library. Implement the interface for any other curve.
+`Backoff` computes the delay, in microseconds, slept before the next attempt. Two implementations ship with the library.
+Implement the interface for any other curve.
 
 `FixedDelay` waits the same delay before every retry:
 
@@ -790,8 +788,8 @@ library. Implement the interface for any other curve.
 FixedDelay::ofMicroseconds(microseconds: 500000); # always 500 ms
 ```
 
-`ExponentialBackoff` doubles a base delay of 100 ms on every attempt and spreads it with a uniformly random jitter of
-up to 30 percent of that value in either direction, keeping concurrent clients from retrying in lockstep against a
+`ExponentialBackoff` doubles a base delay of 100 ms on every attempt and spreads it with a uniformly random jitter of up
+to 30 percent of that value in either direction, keeping concurrent clients from retrying in lockstep against a
 recovering dependency:
 
 ```php
@@ -811,10 +809,10 @@ $backoff->delayFor(attempt: 3); # 400 ms, give or take up to 30 percent
 
 #### Setting outbound headers
 
-`HeaderSettingClient` is a PSR-18 decorator that sets headers on every outbound request, resolving each value at
-send time. Values that change between requests (a correlation identifier, a rotating token) are always current. A
-resolved value replaces any header of the same name already on the request, and a value resolving to an empty
-string leaves the request untouched for that name.
+`HeaderSettingClient` is a PSR-18 decorator that sets headers on every outbound request, resolving each value at send
+time. Values that change between requests (a correlation identifier, a rotating token) are always current. A resolved
+value replaces any header of the same name already on the request, and a value resolving to an empty string leaves the
+request untouched for that name.
 
 ```php
 <?php
@@ -861,6 +859,43 @@ use Symfony\Component\HttpClient\Psr18Client;
 $client = new Psr18Client(client: HttpClient::create(defaultOptions: ['timeout' => 30]));
 ```
 
+#### Bounding the response body
+
+Every response body is materialized into a PHP string before it is decoded. A ceiling bounds how much is read, so an
+oversized payload from a hostile or misbehaving upstream cannot exhaust the process memory. The ceiling defaults to 16
+MiB and crossing it raises `ResponseBodyTooLarge`
+without decoding the payload.
+
+Pass `maxBytes` to raise or lower it:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\HttpFactory;
+use TinyBlocks\Http\Client\Transports\NetworkTransport;
+use TinyBlocks\Http\Http;
+
+$client = new Client(config: ['timeout' => 30, 'connect_timeout' => 5]);
+$factory = new HttpFactory();
+
+$http = Http::create()
+    ->withBaseUrl(url: 'https://api.example.com')
+    ->withTransport(
+        transport: NetworkTransport::with(
+            client: $client,
+            factory: $factory,
+            maxBytes: 1024 * 1024
+        )
+    )
+    ->build();
+```
+
+The ceiling is configured on the transport because that is where the body is read. A custom
+`Transport` owns the decision for the responses it produces.
+
 #### Testing with InMemoryTransport
 
 Pre-program responses with `Response::with(...)` and feed them to `InMemoryTransport`:
@@ -890,8 +925,8 @@ $http = Http::create()
 
 Calls consume responses in FIFO order. Exhaustion raises `NoMoreResponses`.
 
-The transport records every request it receives, so a test can assert on the outbound request a consumer built
-without a hand-written transport double:
+The transport records every request it receives, so a test can assert on the outbound request a consumer built without a
+hand-written transport double:
 
 ```php
 <?php

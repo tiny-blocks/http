@@ -171,15 +171,6 @@ final class Stream implements StreamInterface
         return is_array($size) ? $size['size'] : null;
     }
 
-    public function __toString(): string
-    {
-        if ($this->isSeekable()) {
-            $this->rewind();
-        }
-
-        return $this->getContents();
-    }
-
     public function isReadable(): bool
     {
         if (!is_resource($this->resource)) {
@@ -230,6 +221,15 @@ final class Stream implements StreamInterface
             return $metaData;
         }
 
-        return $metaData[$key] ?? null;
+        return ($metaData[$key] ?? null);
+    }
+
+    public function __toString(): string
+    {
+        if ($this->isSeekable()) {
+            $this->rewind();
+        }
+
+        return $this->getContents();
     }
 }

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http;
 
-use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TinyBlocks\Http\Exceptions\ResponseBodyTooLarge;
+use TinyBlocks\Http\Internal\BoundedContent;
+use TinyBlocks\Http\Internal\JsonPayload;
 use TinyBlocks\Http\Internal\Server\Stream\StreamFactory;
 
 /**
@@ -19,7 +21,7 @@ use TinyBlocks\Http\Internal\Server\Stream\StreamFactory;
  */
 final readonly class Body
 {
-    private const int MAX_JSON_DEPTH = 64;
+    private const int DEFAULT_MAX_BYTES = (16 * 1024 * 1024);
 
     private function __construct(private array $data)
     {
@@ -39,35 +41,23 @@ final readonly class Body
     /**
      * Creates a Body from a PSR-7 response, decoding the JSON payload and degrading to empty on failure.
      *
+     * <p>The body is materialized into a PHP string, so a byte ceiling bounds how much of the
+     * response is read. Crossing the ceiling raises {@see ResponseBodyTooLarge} and the payload
+     * is never decoded. The ceiling defaults to 16 MiB when no value is supplied.</p>
+     *
      * @param ResponseInterface $response The PSR-7 response whose body is decoded.
+     * @param int|null $maxBytes The byte ceiling applied to the response body, or null for the 16 MiB default.
      * @return Body A Body carrying the decoded payload, or an empty Body when decoding fails.
+     * @throws ResponseBodyTooLarge If the response body exceeds the byte ceiling.
      */
-    public static function fromResponse(ResponseInterface $response): Body
+    public static function fromResponse(ResponseInterface $response, ?int $maxBytes = null): Body
     {
-        $stream = $response->getBody();
+        $content = BoundedContent::from(
+            stream: $response->getBody(),
+            maxBytes: ($maxBytes ?? Body::DEFAULT_MAX_BYTES)
+        );
 
-        if ($stream->isSeekable()) {
-            $stream->rewind();
-        }
-
-        $raw = $stream->getContents();
-
-        if ($stream->isSeekable()) {
-            $stream->rewind();
-        }
-
-        try {
-            $decoded = json_decode(
-                $raw,
-                true,
-                Body::MAX_JSON_DEPTH,
-                JSON_THROW_ON_ERROR
-            );
-        } catch (JsonException) {
-            return new Body(data: []);
-        }
-
-        return new Body(data: is_array($decoded) ? $decoded : []);
+        return new Body(data: JsonPayload::from(content: $content->toString())->toArray());
     }
 
     /**
@@ -85,24 +75,13 @@ final readonly class Body
     {
         $streamFactory = StreamFactory::fromStream(stream: $request->getBody());
 
-        if (!$streamFactory->isEmptyContent()) {
-            try {
-                $decoded = json_decode(
-                    $streamFactory->content(),
-                    true,
-                    Body::MAX_JSON_DEPTH,
-                    JSON_THROW_ON_ERROR
-                );
-            } catch (JsonException) {
-                return new Body(data: []);
-            }
+        if ($streamFactory->isEmptyContent()) {
+            $parsedBody = $request->getParsedBody();
 
-            return new Body(data: is_array($decoded) ? $decoded : []);
+            return new Body(data: is_array($parsedBody) ? $parsedBody : []);
         }
 
-        $parsedBody = $request->getParsedBody();
-
-        return new Body(data: is_array($parsedBody) ? $parsedBody : []);
+        return new Body(data: JsonPayload::from(content: $streamFactory->content())->toArray());
     }
 
     /**

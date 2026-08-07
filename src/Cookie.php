@@ -11,6 +11,7 @@ use TinyBlocks\Http\Internal\Server\Cookies\CookieDomain;
 use TinyBlocks\Http\Internal\Server\Cookies\CookieName;
 use TinyBlocks\Http\Internal\Server\Cookies\CookiePath;
 use TinyBlocks\Http\Internal\Server\Cookies\CookieValue;
+use TinyBlocks\Http\Internal\Server\Cookies\SetCookieHeader;
 use TinyBlocks\Http\Internal\Server\Exceptions\CookieDomainIsInvalid;
 use TinyBlocks\Http\Internal\Server\Exceptions\CookieNameIsInvalid;
 use TinyBlocks\Http\Internal\Server\Exceptions\CookiePathIsInvalid;
@@ -29,8 +30,6 @@ use TinyBlocks\Http\Internal\Server\Exceptions\CookieValueIsInvalid;
  */
 final readonly class Cookie implements Headerable
 {
-    private const string EXPIRES_FORMAT = 'D, d M Y H:i:s \G\M\T';
-
     private function __construct(
         private CookieName $name,
         private ?string $path,
@@ -122,47 +121,20 @@ final readonly class Cookie implements Headerable
 
     public function toArray(): array
     {
-        $nameValueTemplate = '%s=%s';
-        $parts = [sprintf($nameValueTemplate, $this->name->toString(), $this->value->toString())];
+        $header = SetCookieHeader::from(
+            name: $this->name,
+            path: $this->path,
+            value: $this->value,
+            domain: $this->domain,
+            maxAge: $this->maxAge,
+            secure: $this->secure,
+            expires: $this->expires,
+            httpOnly: $this->httpOnly,
+            sameSite: $this->sameSite,
+            partitioned: $this->partitioned
+        );
 
-        if (!is_null($this->maxAge)) {
-            $maxAgeTemplate = 'Max-Age=%d';
-            $parts[] = sprintf($maxAgeTemplate, $this->maxAge);
-        }
-
-        if (!is_null($this->expires)) {
-            $expiresTemplate = 'Expires=%s';
-            $parts[] = sprintf($expiresTemplate, $this->expires->format(Cookie::EXPIRES_FORMAT));
-        }
-
-        if (!is_null($this->path)) {
-            $pathTemplate = 'Path=%s';
-            $parts[] = sprintf($pathTemplate, $this->path);
-        }
-
-        if (!is_null($this->domain)) {
-            $domainTemplate = 'Domain=%s';
-            $parts[] = sprintf($domainTemplate, $this->domain);
-        }
-
-        if ($this->secure) {
-            $parts[] = 'Secure';
-        }
-
-        if ($this->httpOnly) {
-            $parts[] = 'HttpOnly';
-        }
-
-        if (!is_null($this->sameSite)) {
-            $sameSiteTemplate = 'SameSite=%s';
-            $parts[] = sprintf($sameSiteTemplate, $this->sameSite->value);
-        }
-
-        if ($this->partitioned) {
-            $parts[] = 'Partitioned';
-        }
-
-        return ['Set-Cookie' => [implode('; ', $parts)]];
+        return ['Set-Cookie' => [$header->toString()]];
     }
 
     /**

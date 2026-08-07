@@ -6,6 +6,8 @@ namespace TinyBlocks\Http;
 
 use TinyBlocks\Http\Exceptions\UserAgentProductIsEmpty;
 use TinyBlocks\Http\Exceptions\UserAgentValueIsInvalid;
+use TinyBlocks\Http\Internal\Client\UserAgentProduct;
+use TinyBlocks\Http\Internal\Client\UserAgentVersion;
 
 /**
  * HTTP User-Agent header value composed of a product token and an optional version.
@@ -14,7 +16,7 @@ use TinyBlocks\Http\Exceptions\UserAgentValueIsInvalid;
  */
 final readonly class UserAgent implements Headerable
 {
-    private function __construct(private string $product, private ?string $version)
+    private function __construct(private UserAgentProduct $product, private UserAgentVersion $version)
     {
     }
 
@@ -33,32 +35,22 @@ final readonly class UserAgent implements Headerable
      */
     public static function from(string $product, ?string $version = null): UserAgent
     {
-        if ($product === '') {
-            throw UserAgentProductIsEmpty::create();
-        }
-
-        if (preg_match('/[\x00-\x1F\x7F\/]/', $product) === 1) {
-            throw UserAgentValueIsInvalid::for(value: $product);
-        }
-
-        if (!is_null($version) && $version !== '' && preg_match('/[\x00-\x1F\x7F]/', $version) === 1) {
-            throw UserAgentValueIsInvalid::for(value: $version);
-        }
-
         return new UserAgent(
-            product: $product,
-            version: ($version === null || $version === '') ? null : $version
+            product: UserAgentProduct::from(value: $product),
+            version: UserAgentVersion::from(value: $version)
         );
     }
 
     public function toArray(): array
     {
-        if (is_null($this->version)) {
-            return ['User-Agent' => $this->product];
+        $version = $this->version->toString();
+
+        if (is_null($version)) {
+            return ['User-Agent' => $this->product->toString()];
         }
 
         $template = '%s/%s';
 
-        return ['User-Agent' => sprintf($template, $this->product, $this->version)];
+        return ['User-Agent' => sprintf($template, $this->product->toString(), $version)];
     }
 }

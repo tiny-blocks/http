@@ -14,6 +14,16 @@ final readonly class ResponseHeaders
     {
     }
 
+    private static function mergeInto(Headerable $header, array $merged): array
+    {
+        foreach ($header->toArray() as $name => $value) {
+            $values = is_array($value) ? $value : [$value];
+            $merged[$name] = isset($merged[$name]) ? array_merge($merged[$name], $values) : $values;
+        }
+
+        return $merged;
+    }
+
     public static function fromOrDefault(Headerable ...$headers): ResponseHeaders
     {
         if (empty($headers)) {
@@ -23,10 +33,7 @@ final readonly class ResponseHeaders
         $merged = [];
 
         foreach ($headers as $header) {
-            foreach ($header->toArray() as $name => $value) {
-                $values = is_array($value) ? $value : [$value];
-                $merged[$name] = isset($merged[$name]) ? array_merge($merged[$name], $values) : $values;
-            }
+            $merged = ResponseHeaders::mergeInto(header: $header, merged: $merged);
         }
 
         return new ResponseHeaders(headers: $merged);
@@ -97,7 +104,7 @@ final readonly class ResponseHeaders
     {
         $headers = $this->headers;
         $existingKey = $this->findKey(name: $name);
-        $targetKey = $existingKey ?? $name;
+        $targetKey = ($existingKey ?? $name);
         $headers[$targetKey] = is_array($value) ? $value : [$value];
 
         return new ResponseHeaders(headers: $headers);

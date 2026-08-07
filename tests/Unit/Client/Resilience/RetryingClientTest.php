@@ -150,7 +150,7 @@ final class RetryingClientTest extends TestCase
         self::assertSame(200, $response->getStatusCode());
 
         /** @And at least ten milliseconds of real suspension elapsed */
-        self::assertGreaterThanOrEqual(10000, intdiv(hrtime(true) - $startedAt, 1000));
+        self::assertGreaterThanOrEqual(10000, intdiv((hrtime(true) - $startedAt), 1000));
     }
 
     public function testSendRequestWhenNetworkKeepsFailingThenRethrowsTheLastFailure(): void
