@@ -10,6 +10,8 @@ use TinyBlocks\Http\Headerable;
 
 final readonly class ResponseHeaders
 {
+    private const string CONTENT_TYPE = 'Content-Type';
+
     private function __construct(private array $headers)
     {
     }
@@ -24,19 +26,23 @@ final readonly class ResponseHeaders
         return $merged;
     }
 
-    public static function fromOrDefault(Headerable ...$headers): ResponseHeaders
+    public static function fromWithDefaultContentType(Headerable ...$headers): ResponseHeaders
     {
-        if (empty($headers)) {
-            return new ResponseHeaders(headers: ContentType::applicationJson(charset: Charset::UTF_8)->toArray());
-        }
-
         $merged = [];
 
         foreach ($headers as $header) {
             $merged = ResponseHeaders::mergeInto(header: $header, merged: $merged);
         }
 
-        return new ResponseHeaders(headers: $merged);
+        $provided = new ResponseHeaders(headers: $merged);
+
+        if ($provided->hasHeader(name: ResponseHeaders::CONTENT_TYPE)) {
+            return $provided;
+        }
+
+        $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
+
+        return new ResponseHeaders(headers: ResponseHeaders::mergeInto(header: $contentType, merged: $merged));
     }
 
     private function findKey(string $name): ?string

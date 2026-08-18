@@ -289,7 +289,11 @@ final class HeadersTest extends TestCase
 
         self::assertSame($expected, $actual->getHeaderLine('Cache-Control'));
         self::assertSame([$expected], $actual->getHeader('Cache-Control'));
-        self::assertSame($cacheControl->toArray(), $actual->getHeaders());
+
+        /** @And the default Content-Type sits beside it, because a caller header adds rather than replaces */
+        $expectedHeaders = [...$cacheControl->toArray(), 'Content-Type' => ['application/json; charset=utf-8']];
+
+        self::assertSame($expectedHeaders, $actual->getHeaders());
     }
 
     public function testWithHeaderWhenChainedWithDistinctKeysThenBothPresentAlongsideDefault(): void

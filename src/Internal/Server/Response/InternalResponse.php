@@ -27,7 +27,7 @@ final readonly class InternalResponse implements ResponseInterface
         return new InternalResponse(
             body: StreamFactory::fromBody(body: $body)->write(),
             code: $code,
-            headers: ResponseHeaders::fromOrDefault(...$headers),
+            headers: ResponseHeaders::fromWithDefaultContentType(...$headers),
             protocolVersion: ProtocolVersion::default(),
             customReasonPhrase: null
         );
@@ -38,7 +38,7 @@ final readonly class InternalResponse implements ResponseInterface
         return new InternalResponse(
             body: StreamFactory::fromEmptyBody()->write(),
             code: $code,
-            headers: ResponseHeaders::fromOrDefault(...$headers),
+            headers: ResponseHeaders::fromWithDefaultContentType(...$headers),
             protocolVersion: ProtocolVersion::default(),
             customReasonPhrase: null
         );
