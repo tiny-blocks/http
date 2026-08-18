@@ -153,7 +153,9 @@ use TinyBlocks\Http\Server\Response;
 Response::from(body: ['status' => 'accepted'], code: Code::ACCEPTED);
 ```
 
-Attach additional headers via varargs of `Headerable`:
+Attach additional headers via varargs of `Headerable`. They add to the `application/json` default rather than replacing
+it, so a response carrying a `Link` or a `Cache-Control` header still declares its media type. Passing a `ContentType`
+is what changes the media type, and it replaces the default instead of appending a second one:
 
 ```php
 <?php
