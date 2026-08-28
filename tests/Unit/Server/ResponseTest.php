@@ -189,6 +189,18 @@ final class ResponseTest extends TestCase
         self::assertNull($stream->getSize());
     }
 
+    public function testOkWhenContentTypeGivenThenReplacesTheDefault(): void
+    {
+        /** @Given a media type the caller chose */
+        $contentType = ContentType::textPlain(charset: Charset::UTF_8);
+
+        /** @When the response is created with it */
+        $actual = Response::ok('Hydra', $contentType);
+
+        /** @Then the caller wins and no second media type is appended */
+        self::assertSame(['text/plain; charset=utf-8'], $actual->getHeader('Content-Type'));
+    }
+
     public function testGetBodyWhenSeekedToOffsetThenTellMatchesOffset(): void
     {
         /** @Given a response with a body */
@@ -433,6 +445,21 @@ final class ResponseTest extends TestCase
         self::assertSame($expected, $actual->getBody()->__toString());
     }
 
+    public function testOkWhenUnrelatedHeaderGivenThenKeepsDefaultContentType(): void
+    {
+        /** @Given a header that says nothing about the media type */
+        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
+
+        /** @When the response is created with that header alongside a body */
+        $actual = Response::ok(['name' => 'Hydra'], $link);
+
+        /** @Then the header is carried */
+        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
+
+        /** @And the default Content-Type survives, because the body is still JSON */
+        self::assertSame(['application/json; charset=utf-8'], $actual->getHeader('Content-Type'));
+    }
+
     public function testForbiddenWhenBodyGivenThenReturnsResponseWithStatus403(): void
     {
         /** @Given a body with error details */
@@ -602,6 +629,19 @@ final class ResponseTest extends TestCase
 
         /** @Then an empty array is returned */
         self::assertSame([], $metadata);
+    }
+
+    public function testNoContentWhenUnrelatedHeaderGivenThenKeepsDefaultContentType(): void
+    {
+        /** @Given a header that says nothing about the media type */
+        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
+
+        /** @When a bodiless response is created with that header */
+        $actual = Response::noContent($link);
+
+        /** @Then the header is carried and the default Content-Type still applies */
+        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
+        self::assertSame(['application/json; charset=utf-8'], $actual->getHeader('Content-Type'));
     }
 
     public function testResponseFacadeForbidsInstantiationThroughAPrivateConstructor(): void
@@ -826,45 +866,5 @@ final class ResponseTest extends TestCase
                 'expectedBody' => '{"error":{"code":500,"message":"Crash"}}'
             ]
         ];
-    }
-
-    public function testOkWhenUnrelatedHeaderGivenThenKeepsDefaultContentType(): void
-    {
-        /** @Given a header that says nothing about the media type */
-        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
-
-        /** @When the response is created with that header alongside a body */
-        $actual = Response::ok(['name' => 'Hydra'], $link);
-
-        /** @Then the header is carried */
-        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
-
-        /** @And the default Content-Type survives, because the body is still JSON */
-        self::assertSame(['application/json; charset=utf-8'], $actual->getHeader('Content-Type'));
-    }
-
-    public function testOkWhenContentTypeGivenThenReplacesTheDefault(): void
-    {
-        /** @Given a media type the caller chose */
-        $contentType = ContentType::textPlain(charset: Charset::UTF_8);
-
-        /** @When the response is created with it */
-        $actual = Response::ok('Hydra', $contentType);
-
-        /** @Then the caller wins and no second media type is appended */
-        self::assertSame(['text/plain; charset=utf-8'], $actual->getHeader('Content-Type'));
-    }
-
-    public function testNoContentWhenUnrelatedHeaderGivenThenKeepsDefaultContentType(): void
-    {
-        /** @Given a header that says nothing about the media type */
-        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
-
-        /** @When a bodiless response is created with that header */
-        $actual = Response::noContent($link);
-
-        /** @Then the header is carried and the default Content-Type still applies */
-        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
-        self::assertSame(['application/json; charset=utf-8'], $actual->getHeader('Content-Type'));
     }
 }
