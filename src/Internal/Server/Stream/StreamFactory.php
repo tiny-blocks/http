@@ -12,6 +12,12 @@ use UnitEnum;
 
 final readonly class StreamFactory
 {
+    /**
+     * Accented text and paths are written as themselves, because the body is read by people as often as by
+     * parsers, and escaping them only grows the payload.
+     */
+    private const int JSON_FLAGS = (JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
     private function __construct(private string $body)
     {
     }
@@ -48,7 +54,7 @@ final readonly class StreamFactory
 
     private static function toJsonFrom(mixed $body): string
     {
-        $encoded = json_encode($body, JSON_PRESERVE_ZERO_FRACTION);
+        $encoded = json_encode($body, StreamFactory::JSON_FLAGS);
 
         return $encoded === false ? '' : $encoded;
     }

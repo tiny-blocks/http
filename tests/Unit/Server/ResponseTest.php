@@ -759,6 +759,21 @@ final class ResponseTest extends TestCase
         self::assertSame(strlen('{"name":"Hydra"}+'), $stream->getSize());
     }
 
+    public function testFromWhenBodyCarriesAccentsAndSlashesThenTheyAreWrittenAsThemselves(): void
+    {
+        /** @Given a body carrying accented text and a path */
+        $body = ['message' => 'O serviço está indisponível.', 'link' => '/v1/orders'];
+
+        /** @When a response is built from it */
+        $response = Response::from(body: $body, code: Code::SERVICE_UNAVAILABLE);
+
+        /** @Then the payload reads as it was written, with nothing escaped */
+        self::assertSame(
+            '{"message":"O serviço está indisponível.","link":"/v1/orders"}',
+            (string)$response->getBody()
+        );
+    }
+
     public function testGetBodyWhenContentsReadThenReturnsTheWrittenJsonWithoutRequiringRewind(): void
     {
         /** @Given a response with a body */
