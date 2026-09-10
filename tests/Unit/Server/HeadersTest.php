@@ -6,6 +6,7 @@ namespace Test\TinyBlocks\Http\Unit\Server;
 
 use PHPUnit\Framework\TestCase;
 use TinyBlocks\Http\CacheControl;
+use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\ResponseCacheDirectives;
 use TinyBlocks\Http\Server\Response;
@@ -16,7 +17,7 @@ final class HeadersTest extends TestCase
     public function testWithoutHeaderWhenAbsentThenIsNoOp(): void
     {
         /** @Given an HTTP response without the target header */
-        $response = Response::noContent();
+        $response = Response::noContent(ContentType::applicationJson(charset: Charset::UTF_8));
 
         /** @When the missing header is requested to be removed */
         $actual = $response->withoutHeader('X-Trace');
@@ -62,18 +63,40 @@ final class HeadersTest extends TestCase
         self::assertSame('application/pdf', $actual->getHeaderLine('Content-Type'));
     }
 
-    public function testNoContentWhenInvokedThenCarriesDefaultContentType(): void
+    public function testNoContentWhenInvokedThenCarriesNoContentType(): void
     {
         /** @When a no-content response is created */
         $response = Response::noContent();
 
-        /** @Then the response carries the default Content-Type header */
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $response->getHeaders());
+        /** @Then no Content-Type is announced, because there is no payload for it to describe */
+        self::assertFalse($response->hasHeader('Content-Type'));
+        self::assertSame([], $response->getHeaders());
+    }
+
+    public function testNoContentWhenContentTypeGivenThenTheExplicitValueSurvives(): void
+    {
+        /** @Given a media type the caller chose for a bodiless response */
+        $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
+
+        /** @When the response is created with it */
+        $actual = Response::noContent($contentType);
+
+        /** @Then the caller's value is carried, since dropping the default never drops an explicit header */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+    }
+
+    public function testOkWhenNoContentTypeGivenThenCarriesDefaultContentType(): void
+    {
+        /** @When a response with a body is created without a media type */
+        $actual = Response::ok(body: ['name' => 'Hydra']);
+
+        /** @Then the default Content-Type still applies, because there is a payload to describe */
+        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
     }
 
     public function testWithHeaderWhenSameHeaderSetTwiceThenLastValueWins(): void
     {
-        /** @Given an HTTP response with a default Content-Type */
+        /** @Given an HTTP response carrying no Content-Type */
         $response = Response::noContent();
 
         /** @When we add the 'Content-Type' header twice with different values */
@@ -122,7 +145,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the header is no longer present */
         self::assertFalse($actual->hasHeader('X-Trace'));
-        self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual->getHeaders());
+        self::assertSame([], $actual->getHeaders());
     }
 
     public function testWithHeaderWhenCaseMismatchedThenReplacesExistingHeader(): void
@@ -135,10 +158,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the original casing is preserved and the value replaced */
         self::assertSame(['second'], $actual->getHeader('X-Trace'));
-        self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['second']],
-            $actual->getHeaders()
-        );
+        self::assertSame(['X-Trace' => ['second']], $actual->getHeaders());
     }
 
     public function testNoContentWhenContentTypeIsPlainTextThenHeaderReflectsIt(): void
@@ -187,10 +207,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the value is appended preserving the original case of the header name */
         self::assertSame(['first', 'second'], $actual->getHeader('X-Trace'));
-        self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['first', 'second']],
-            $actual->getHeaders()
-        );
+        self::assertSame(['X-Trace' => ['first', 'second']], $actual->getHeaders());
     }
 
     public function testWithAddedHeaderWhenHeaderAbsentThenCreatesItWithGivenValue(): void
@@ -203,10 +220,7 @@ final class HeadersTest extends TestCase
 
         /** @Then the header is created carrying the given value */
         self::assertSame(['only-value'], $actual->getHeader('X-Trace'));
-        self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-Trace' => ['only-value']],
-            $actual->getHeaders()
-        );
+        self::assertSame(['X-Trace' => ['only-value']], $actual->getHeaders());
     }
 
     public function testNoContentWhenContentTypeIsFormUrlEncodedThenHeaderReflectsIt(): void
@@ -249,7 +263,7 @@ final class HeadersTest extends TestCase
         self::assertSame(['first', 'second'], $actual->getHeader('X-Trace'));
     }
 
-    public function testNoContentWhenMultipleHeaderablesGivenThenContentTypeReplacesDefault(): void
+    public function testNoContentWhenMultipleHeaderablesGivenThenContentTypeIsPreserved(): void
     {
         /** @Given a Cache-Control header */
         $cacheControl = CacheControl::fromResponseDirectives(ResponseCacheDirectives::noStore());
@@ -260,7 +274,7 @@ final class HeadersTest extends TestCase
         /** @When a response is created with both */
         $actual = Response::noContent($cacheControl, $contentType);
 
-        /** @Then the Content-Type header replaces the default */
+        /** @Then the Content-Type header is the one the caller passed */
         self::assertSame(['text/plain'], $actual->getHeader('Content-Type'));
     }
 
@@ -290,13 +304,11 @@ final class HeadersTest extends TestCase
         self::assertSame($expected, $actual->getHeaderLine('Cache-Control'));
         self::assertSame([$expected], $actual->getHeader('Cache-Control'));
 
-        /** @And the default Content-Type sits beside it, because a caller header adds rather than replaces */
-        $expectedHeaders = [...$cacheControl->toArray(), 'Content-Type' => ['application/json; charset=utf-8']];
-
-        self::assertSame($expectedHeaders, $actual->getHeaders());
+        /** @And nothing sits beside it, because a bodiless response invents no media type of its own */
+        self::assertSame($cacheControl->toArray(), $actual->getHeaders());
     }
 
-    public function testWithHeaderWhenChainedWithDistinctKeysThenBothPresentAlongsideDefault(): void
+    public function testWithHeaderWhenChainedWithDistinctKeysThenBothArePresent(): void
     {
         /** @Given an HTTP response */
         $response = Response::noContent();
@@ -306,10 +318,7 @@ final class HeadersTest extends TestCase
             ->withHeader('X-ID', '100')
             ->withHeader('X-NAME', 'Xpto');
 
-        /** @Then both custom headers are present alongside the default Content-Type */
-        self::assertSame(
-            ['Content-Type' => ['application/json; charset=utf-8'], 'X-ID' => ['100'], 'X-NAME' => ['Xpto']],
-            $actual->getHeaders()
-        );
+        /** @Then both custom headers are present */
+        self::assertSame(['X-ID' => ['100'], 'X-NAME' => ['Xpto']], $actual->getHeaders());
     }
 }

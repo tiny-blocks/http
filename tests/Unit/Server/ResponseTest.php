@@ -631,7 +631,7 @@ final class ResponseTest extends TestCase
         self::assertSame([], $metadata);
     }
 
-    public function testNoContentWhenUnrelatedHeaderGivenThenKeepsDefaultContentType(): void
+    public function testNoContentWhenUnrelatedHeaderGivenThenAddsNoContentType(): void
     {
         /** @Given a header that says nothing about the media type */
         $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
@@ -639,9 +639,9 @@ final class ResponseTest extends TestCase
         /** @When a bodiless response is created with that header */
         $actual = Response::noContent($link);
 
-        /** @Then the header is carried and the default Content-Type still applies */
+        /** @Then the header is carried and no media type is invented for the absent body */
         self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
-        self::assertSame(['application/json; charset=utf-8'], $actual->getHeader('Content-Type'));
+        self::assertSame([], $actual->getHeader('Content-Type'));
     }
 
     public function testResponseFacadeForbidsInstantiationThroughAPrivateConstructor(): void
