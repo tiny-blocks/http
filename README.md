@@ -125,7 +125,8 @@ $rawBody = $request->rawBody();                                 # exact bytes, u
 
 #### Creating a response
 
-Each helper returns a PSR-7 `ResponseInterface` and defaults to `application/json`:
+Each body-carrying helper returns a PSR-7 `ResponseInterface` and defaults to `application/json`. `noContent()` is
+the exception: it has no payload to describe, so it declares no media type unless you pass one.
 
 ```php
 <?php
@@ -153,9 +154,10 @@ use TinyBlocks\Http\Server\Response;
 Response::from(body: ['status' => 'accepted'], code: Code::ACCEPTED);
 ```
 
-Attach additional headers via varargs of `Headerable`. They add to the `application/json` default rather than replacing
-it, so a response carrying a `Link` or a `Cache-Control` header still declares its media type. Passing a `ContentType`
-is what changes the media type, and it replaces the default instead of appending a second one:
+Attach additional headers via varargs of `Headerable`. On a response with a body they add to the `application/json`
+default rather than replacing it, so a response carrying a `Link` or a `Cache-Control` header still declares its media
+type. Passing a `ContentType` is what changes the media type, and it replaces the default instead of appending a second
+one. On `noContent()` there is no default to replace, and a `ContentType` you pass is carried as given:
 
 ```php
 <?php

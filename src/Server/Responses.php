@@ -57,6 +57,10 @@ interface Responses
     /**
      * Creates a response with a 204 No Content status.
      *
+     * Unlike the body-carrying helpers, this one adds no default media type: there is no payload to describe, and
+     * a Content-Type over zero bytes makes a strict client parse a body that was never sent. A ContentType passed
+     * by the caller is still honored.
+     *
      * @param Headerable ...$headers Optional additional headers for the response.
      * @return ResponseInterface The generated 204 No Content response.
      */

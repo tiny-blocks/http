@@ -26,7 +26,12 @@ final readonly class ResponseHeaders
         return $merged;
     }
 
-    public static function fromWithDefaultContentType(Headerable ...$headers): ResponseHeaders
+    /**
+     * Merges the supplied headers exactly as given, with no media type of the library's own. A response built
+     * without a body has no payload to describe, and announcing one over zero bytes misleads a strict client
+     * into parsing a body that was never sent.
+     */
+    public static function fromWithoutDefaultContentType(Headerable ...$headers): ResponseHeaders
     {
         $merged = [];
 
@@ -34,7 +39,12 @@ final readonly class ResponseHeaders
             $merged = ResponseHeaders::mergeInto(header: $header, merged: $merged);
         }
 
-        $provided = new ResponseHeaders(headers: $merged);
+        return new ResponseHeaders(headers: $merged);
+    }
+
+    public static function fromWithDefaultContentType(Headerable ...$headers): ResponseHeaders
+    {
+        $provided = ResponseHeaders::fromWithoutDefaultContentType(...$headers);
 
         if ($provided->hasHeader(name: ResponseHeaders::CONTENT_TYPE)) {
             return $provided;
@@ -42,7 +52,9 @@ final readonly class ResponseHeaders
 
         $contentType = ContentType::applicationJson(charset: Charset::UTF_8);
 
-        return new ResponseHeaders(headers: ResponseHeaders::mergeInto(header: $contentType, merged: $merged));
+        return new ResponseHeaders(
+            headers: ResponseHeaders::mergeInto(header: $contentType, merged: $provided->toArray())
+        );
     }
 
     private function findKey(string $name): ?string
