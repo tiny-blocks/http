@@ -32,16 +32,16 @@
         "psr/http-factory": "^1.1",
         "psr/http-message": "^2.0",
         "tiny-blocks/mapper": "^3.2",
-        "tiny-blocks/time": "^2.6"
+        "tiny-blocks/time": "^2.7"
     },
     "require-dev": {
-        "ergebnis/composer-normalize": "^2.52",
-        "guzzlehttp/guzzle": "^8.0",
-        "infection/infection": "^0.34",
-        "laminas/laminas-httphandlerrunner": "^2.13",
+        "ergebnis/composer-normalize": "^2.54",
+        "guzzlehttp/guzzle": "^8.3",
+        "infection/infection": "^0.35",
+        "laminas/laminas-httphandlerrunner": "^2.14",
         "nyholm/psr7": "^1.8",
-        "phpstan/phpstan": "^2.2",
-        "phpunit/phpunit": "^13.2",
+        "phpstan/phpstan": "^2.3",
+        "phpunit/phpunit": "^13.4",
         "psr/http-server-handler": "^1.0",
         "psr/http-server-middleware": "^1.0",
         "slevomat/coding-standard": "^8.31",
@@ -86,7 +86,7 @@
         "test-file": "@php ./vendor/bin/phpunit --configuration phpunit.xml --no-coverage --filter",
         "tests": [
             "@php -d memory_limit=2G ./vendor/bin/phpunit --configuration phpunit.xml tests",
-            "@php ./vendor/bin/infection --threads=max --logger-html=reports/coverage/mutation-report.html --coverage=reports/coverage"
+            "@php ./vendor/bin/infection --threads=max --logger-html=reports/coverage/mutation-report.html"
         ]
     }
 }
