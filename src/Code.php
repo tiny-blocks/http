@@ -8,11 +8,11 @@ namespace TinyBlocks\Http;
  * HTTP response status codes indicate whether a specific HTTP request has been successfully completed.
  * Responses are grouped in five classes:
  *
- * Informational (100 – 199)
- * Successful (200 – 299)
- * Redirection (300 – 399)
- * Client error (400 – 499)
- * Server error (500 – 599)
+ * Informational (100 to 199)
+ * Successful (200 to 299)
+ * Redirection (300 to 399)
+ * Client error (400 to 499)
+ * Server error (500 to 599)
  *
  * The <code>is*()</code> instance helpers validate by enum case, so they cover only the status codes
  * represented here. Status codes outside this list (for example 250) return false for every helper.

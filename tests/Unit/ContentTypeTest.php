@@ -59,18 +59,6 @@ final class ContentTypeTest extends TestCase
         self::assertSame(['Content-Type' => ['application/json; charset=utf-8']], $actual);
     }
 
-    public function testMimeTypeWhenJsonContentTypeGivenThenReturnsApplicationJsonMimeType(): void
-    {
-        /** @Given a ContentType for application/json */
-        $contentType = ContentType::applicationJson();
-
-        /** @When asking for its MIME type */
-        $actual = $contentType->mimeType();
-
-        /** @Then the application/json MIME type is returned */
-        self::assertSame(MimeType::APPLICATION_JSON, $actual);
-    }
-
     public function testMimeTypeWhenCharsetGivenThenReturnsMimeTypeWithoutCharset(): void
     {
         /** @Given a ContentType for text/plain carrying a charset */
@@ -81,5 +69,17 @@ final class ContentTypeTest extends TestCase
 
         /** @Then the bare text/plain MIME type is returned regardless of the charset */
         self::assertSame(MimeType::TEXT_PLAIN, $actual);
+    }
+
+    public function testMimeTypeWhenJsonContentTypeGivenThenReturnsApplicationJsonMimeType(): void
+    {
+        /** @Given a ContentType for application/json */
+        $contentType = ContentType::applicationJson();
+
+        /** @When asking for its MIME type */
+        $actual = $contentType->mimeType();
+
+        /** @Then the application/json MIME type is returned */
+        self::assertSame(MimeType::APPLICATION_JSON, $actual);
     }
 }

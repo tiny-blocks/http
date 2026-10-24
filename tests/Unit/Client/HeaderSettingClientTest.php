@@ -12,24 +12,6 @@ use TinyBlocks\Http\Client\HeaderSettingClient;
 
 final class HeaderSettingClientTest extends TestCase
 {
-    public function testSetsTheResolvedValueAsAHeader(): void
-    {
-        /** @Given a client setting a header resolved at send time */
-        $network = new ScriptedClient();
-        $network->answers(new Response());
-        $client = HeaderSettingClient::with(
-            client: $network,
-            headerValues: ['Correlation-Id' => static fn(): string => 'corr-123']
-        );
-
-        /** @When a request is sent */
-        $client->sendRequest(new Request('GET', 'https://service.test/ping'));
-
-        /** @Then the outbound request carries the resolved header */
-        $sentRequest = $network->requestAt(index: 0);
-        self::assertSame('corr-123', $sentRequest->getHeaderLine('Correlation-Id'));
-    }
-
     public function testResolvesTheValueOnEverySend(): void
     {
         /** @Given a value that changes between sends */
@@ -50,6 +32,24 @@ final class HeaderSettingClientTest extends TestCase
         /** @Then each outbound request carries the value current at its send */
         self::assertSame('first-id', $network->requestAt(index: 0)->getHeaderLine('Correlation-Id'));
         self::assertSame('second-id', $network->requestAt(index: 1)->getHeaderLine('Correlation-Id'));
+    }
+
+    public function testSetsTheResolvedValueAsAHeader(): void
+    {
+        /** @Given a client setting a header resolved at send time */
+        $network = new ScriptedClient();
+        $network->answers(new Response());
+        $client = HeaderSettingClient::with(
+            client: $network,
+            headerValues: ['Correlation-Id' => static fn(): string => 'corr-123']
+        );
+
+        /** @When a request is sent */
+        $client->sendRequest(new Request('GET', 'https://service.test/ping'));
+
+        /** @Then the outbound request carries the resolved header */
+        $sentRequest = $network->requestAt(index: 0);
+        self::assertSame('corr-123', $sentRequest->getHeaderLine('Correlation-Id'));
     }
 
     public function testOmitsTheHeaderWhenTheValueResolvesEmpty(): void
@@ -90,28 +90,6 @@ final class HeaderSettingClientTest extends TestCase
         self::assertSame('resolved-id', $network->requestAt(index: 0)->getHeaderLine('Correlation-Id'));
     }
 
-    public function testKeepsSettingTheRemainingHeadersAfterAnEmptyValue(): void
-    {
-        /** @Given a first header resolving empty followed by a second one resolving a value */
-        $network = new ScriptedClient();
-        $network->answers(new Response());
-        $client = HeaderSettingClient::with(
-            client: $network,
-            headerValues: [
-                'Correlation-Id'  => static fn(): string => '',
-                'X-Service-Token' => static fn(): string => 'token-xyz'
-            ]
-        );
-
-        /** @When a request is sent */
-        $client->sendRequest(new Request('GET', 'https://service.test/ping'));
-
-        /** @Then the empty header is omitted and the following one is still set */
-        $sentRequest = $network->requestAt(index: 0);
-        self::assertFalse($sentRequest->hasHeader('Correlation-Id'));
-        self::assertSame('token-xyz', $sentRequest->getHeaderLine('X-Service-Token'));
-    }
-
     public function testSetsSeveralHeadersPreservingUnrelatedOnes(): void
     {
         /** @Given a client setting two headers on a request carrying an unrelated one */
@@ -135,5 +113,27 @@ final class HeaderSettingClientTest extends TestCase
         self::assertSame('token-abc', $sentRequest->getHeaderLine('X-Service-Token'));
         self::assertSame('corr-999', $sentRequest->getHeaderLine('Correlation-Id'));
         self::assertSame('application/json', $sentRequest->getHeaderLine('Accept'));
+    }
+
+    public function testKeepsSettingTheRemainingHeadersAfterAnEmptyValue(): void
+    {
+        /** @Given a first header resolving empty followed by a second one resolving a value */
+        $network = new ScriptedClient();
+        $network->answers(new Response());
+        $client = HeaderSettingClient::with(
+            client: $network,
+            headerValues: [
+                'Correlation-Id'  => static fn(): string => '',
+                'X-Service-Token' => static fn(): string => 'token-xyz'
+            ]
+        );
+
+        /** @When a request is sent */
+        $client->sendRequest(new Request('GET', 'https://service.test/ping'));
+
+        /** @Then the empty header is omitted and the following one is still set */
+        $sentRequest = $network->requestAt(index: 0);
+        self::assertFalse($sentRequest->hasHeader('Correlation-Id'));
+        self::assertSame('token-xyz', $sentRequest->getHeaderLine('X-Service-Token'));
     }
 }

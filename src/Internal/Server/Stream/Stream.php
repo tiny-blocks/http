@@ -76,7 +76,7 @@ final class Stream implements StreamInterface
 
     private mixed $resource;
 
-    private function __construct(private readonly bool $seekable, mixed $resource)
+    private function __construct(mixed $resource, private readonly bool $seekable)
     {
         $this->resource = $resource;
     }

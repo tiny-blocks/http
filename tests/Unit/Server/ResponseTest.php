@@ -501,6 +501,19 @@ final class ResponseTest extends TestCase
         self::assertIsArray($metadata);
     }
 
+    public function testNoContentWhenUnrelatedHeaderGivenThenAddsNoContentType(): void
+    {
+        /** @Given a header that says nothing about the media type */
+        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
+
+        /** @When a bodiless response is created with that header */
+        $actual = Response::noContent($link);
+
+        /** @Then the header is carried and no media type is invented for the absent body */
+        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
+        self::assertSame([], $actual->getHeader('Content-Type'));
+    }
+
     public function testBadGatewayWhenBodyGivenThenReturnsResponseWithStatus502(): void
     {
         /** @Given a body with upstream failure details */
@@ -629,19 +642,6 @@ final class ResponseTest extends TestCase
 
         /** @Then an empty array is returned */
         self::assertSame([], $metadata);
-    }
-
-    public function testNoContentWhenUnrelatedHeaderGivenThenAddsNoContentType(): void
-    {
-        /** @Given a header that says nothing about the media type */
-        $link = Link::to(uri: '/dragons?page=2', relation: LinkRelation::NEXT);
-
-        /** @When a bodiless response is created with that header */
-        $actual = Response::noContent($link);
-
-        /** @Then the header is carried and no media type is invented for the absent body */
-        self::assertSame(['</dragons?page=2>; rel="next"'], $actual->getHeader('Link'));
-        self::assertSame([], $actual->getHeader('Content-Type'));
     }
 
     public function testResponseFacadeForbidsInstantiationThroughAPrivateConstructor(): void
