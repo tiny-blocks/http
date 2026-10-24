@@ -34,6 +34,17 @@ final class CodeTest extends TestCase
         self::assertTrue($actual);
     }
 
+    #[DataProvider('timeoutCodesDataProvider')]
+    public function testIsTimeoutWhenCodeGivenThenReturnsExpected(Code $code, bool $expected): void
+    {
+        /** @Given an HTTP status code */
+        /** @When checking whether it represents a request or gateway timeout */
+        $actual = $code->isTimeout();
+
+        /** @Then the result matches the expected boolean */
+        self::assertSame($expected, $actual);
+    }
+
     public function testIsRedirectionWhenCodeOkGivenThenReturnsFalse(): void
     {
         /** @Given Code::OK */
@@ -91,17 +102,6 @@ final class CodeTest extends TestCase
         self::assertSame($expected, $actual);
     }
 
-    #[DataProvider('nullableCodesDataProvider')]
-    public function testTryFromNullableWhenIntegerOrNullGivenThenResolvesExpected(?int $code, ?Code $expected): void
-    {
-        /** @Given a nullable HTTP status code */
-        /** @When resolving it through tryFromNullable */
-        $actual = Code::tryFromNullable(code: $code);
-
-        /** @Then the resolved Code matches the expected value */
-        self::assertSame($expected, $actual);
-    }
-
     #[DataProvider('messagesDataProvider')]
     public function testMessageWhenKnownCodeGivenThenReturnsRfcDescription(Code $code, string $expected): void
     {
@@ -110,17 +110,6 @@ final class CodeTest extends TestCase
         $actual = $code->message();
 
         /** @Then the message matches the expected string */
-        self::assertSame($expected, $actual);
-    }
-
-    #[DataProvider('timeoutCodesDataProvider')]
-    public function testIsTimeoutWhenCodeGivenThenReturnsExpected(Code $code, bool $expected): void
-    {
-        /** @Given an HTTP status code */
-        /** @When checking whether it represents a request or gateway timeout */
-        $actual = $code->isTimeout();
-
-        /** @Then the result matches the expected boolean */
         self::assertSame($expected, $actual);
     }
 
@@ -218,6 +207,17 @@ final class CodeTest extends TestCase
 
         /** @Then the result is false */
         self::assertFalse($actual);
+    }
+
+    #[DataProvider('nullableCodesDataProvider')]
+    public function testTryFromNullableWhenIntegerOrNullGivenThenResolvesExpected(?int $code, ?Code $expected): void
+    {
+        /** @Given a nullable HTTP status code */
+        /** @When resolving it through tryFromNullable */
+        $actual = Code::tryFromNullable(code: $code);
+
+        /** @Then the resolved Code matches the expected value */
+        self::assertSame($expected, $actual);
     }
 
     public function testIsRedirectionWhenCodePermanentRedirectGivenThenReturnsTrue(): void

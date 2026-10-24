@@ -18,6 +18,15 @@ use TinyBlocks\Http\Headerable;
 interface Responses
 {
     /**
+     * Creates a response with a 200 OK status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 200 OK response.
+     */
+    public static function ok(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
      * Creates a response with the specified status code, body, and headers.
      *
      * @param mixed $body The body of the response.
@@ -26,15 +35,6 @@ interface Responses
      * @return ResponseInterface The generated response with the specified status code, body, and headers.
      */
     public static function from(mixed $body, Code $code, Headerable ...$headers): ResponseInterface;
-
-    /**
-     * Creates a response with a 200 OK status.
-     *
-     * @param mixed $body The body of the response.
-     * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 200 OK response.
-     */
-    public static function ok(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
      * Creates a response with a 201 Created status.
@@ -55,6 +55,33 @@ interface Responses
     public static function accepted(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
+     * Creates a response with a 409 Conflict status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 409 Conflict response.
+     */
+    public static function conflict(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 404 Not Found status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 404 Not Found response.
+     */
+    public static function notFound(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 403 Forbidden status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 403 Forbidden response.
+     */
+    public static function forbidden(mixed $body, Headerable ...$headers): ResponseInterface;
+
+    /**
      * Creates a response with a 204 No Content status.
      *
      * Unlike the body-carrying helpers, this one adds no default media type: there is no payload to describe, and
@@ -65,6 +92,15 @@ interface Responses
      * @return ResponseInterface The generated 204 No Content response.
      */
     public static function noContent(Headerable ...$headers): ResponseInterface;
+
+    /**
+     * Creates a response with a 502 Bad Gateway status.
+     *
+     * @param mixed $body The body of the response.
+     * @param Headerable ...$headers Optional additional headers for the response.
+     * @return ResponseInterface The generated 502 Bad Gateway response.
+     */
+    public static function badGateway(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
      * Creates a response with a 400 Bad Request status.
@@ -85,40 +121,13 @@ interface Responses
     public static function unauthorized(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
-     * Creates a response with a 403 Forbidden status.
+     * Creates a response with a 503 Service Unavailable status.
      *
      * @param mixed $body The body of the response.
      * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 403 Forbidden response.
+     * @return ResponseInterface The generated 503 Service Unavailable response.
      */
-    public static function forbidden(mixed $body, Headerable ...$headers): ResponseInterface;
-
-    /**
-     * Creates a response with a 404 Not Found status.
-     *
-     * @param mixed $body The body of the response.
-     * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 404 Not Found response.
-     */
-    public static function notFound(mixed $body, Headerable ...$headers): ResponseInterface;
-
-    /**
-     * Creates a response with a 409 Conflict status.
-     *
-     * @param mixed $body The body of the response.
-     * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 409 Conflict response.
-     */
-    public static function conflict(mixed $body, Headerable ...$headers): ResponseInterface;
-
-    /**
-     * Creates a response with a 422 Unprocessable Entity status.
-     *
-     * @param mixed $body The body of the response.
-     * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 422 Unprocessable Entity response.
-     */
-    public static function unprocessableEntity(mixed $body, Headerable ...$headers): ResponseInterface;
+    public static function serviceUnavailable(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
      * Creates a response with a 500 Internal Server Error status.
@@ -130,20 +139,11 @@ interface Responses
     public static function internalServerError(mixed $body, Headerable ...$headers): ResponseInterface;
 
     /**
-     * Creates a response with a 502 Bad Gateway status.
+     * Creates a response with a 422 Unprocessable Entity status.
      *
      * @param mixed $body The body of the response.
      * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 502 Bad Gateway response.
+     * @return ResponseInterface The generated 422 Unprocessable Entity response.
      */
-    public static function badGateway(mixed $body, Headerable ...$headers): ResponseInterface;
-
-    /**
-     * Creates a response with a 503 Service Unavailable status.
-     *
-     * @param mixed $body The body of the response.
-     * @param Headerable ...$headers Optional additional headers for the response.
-     * @return ResponseInterface The generated 503 Service Unavailable response.
-     */
-    public static function serviceUnavailable(mixed $body, Headerable ...$headers): ResponseInterface;
+    public static function unprocessableEntity(mixed $body, Headerable ...$headers): ResponseInterface;
 }

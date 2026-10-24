@@ -139,6 +139,40 @@ final class HttpBuilderTest extends TestCase
         self::assertSame(Code::OK, $response->code());
     }
 
+    public function testBuildWhenDefaultHeadersProvidedThenReachTransport(): void
+    {
+        /** @Given a capturing client */
+        $client = CapturingClient::returningStatus(statusCode: 200);
+
+        /** @And a builder configured with a default header */
+        $http = Http::create()
+            ->withBaseUrl(url: 'https://api.example.com')
+            ->withTransport(transport: NetworkTransport::with(client: $client, factory: new Psr17Factory()))
+            ->withDefaultHeaders(headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token']))
+            ->build();
+
+        /** @When sending a request */
+        $http->send(request: Request::get(url: '/dragons'));
+
+        /** @Then the default header reaches the transport */
+        self::assertNotNull($client->captured);
+        self::assertSame('Bearer token', $client->captured->getHeaderLine('Authorization'));
+    }
+
+    public function testWithDefaultHeadersWhenInvokedThenReturnsNewBuilder(): void
+    {
+        /** @Given an empty builder */
+        $original = Http::create();
+
+        /** @When calling withDefaultHeaders */
+        $updated = $original->withDefaultHeaders(
+            headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token'])
+        );
+
+        /** @Then a new builder instance is returned */
+        self::assertNotSame($original, $updated);
+    }
+
     public function testWithBaseUrlWhenInvokedThenOriginalBuilderStillThrows(): void
     {
         /** @Given an empty builder */
@@ -265,39 +299,5 @@ final class HttpBuilderTest extends TestCase
 
         /** @When setting a base URL with the scheme embedded mid-string */
         $builder->withBaseUrl(url: 'example.com?redirect=https://api.example.com');
-    }
-
-    public function testWithDefaultHeadersWhenInvokedThenReturnsNewBuilder(): void
-    {
-        /** @Given an empty builder */
-        $original = Http::create();
-
-        /** @When calling withDefaultHeaders */
-        $updated = $original->withDefaultHeaders(
-            headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token'])
-        );
-
-        /** @Then a new builder instance is returned */
-        self::assertNotSame($original, $updated);
-    }
-
-    public function testBuildWhenDefaultHeadersProvidedThenReachTransport(): void
-    {
-        /** @Given a capturing client */
-        $client = CapturingClient::returningStatus(statusCode: 200);
-
-        /** @And a builder configured with a default header */
-        $http = Http::create()
-            ->withBaseUrl(url: 'https://api.example.com')
-            ->withTransport(transport: NetworkTransport::with(client: $client, factory: new Psr17Factory()))
-            ->withDefaultHeaders(headers: Headers::fromArray(entries: ['Authorization' => 'Bearer token']))
-            ->build();
-
-        /** @When sending a request */
-        $http->send(request: Request::get(url: '/dragons'));
-
-        /** @Then the default header reaches the transport */
-        self::assertNotNull($client->captured);
-        self::assertSame('Bearer token', $client->captured->getHeaderLine('Authorization'));
     }
 }

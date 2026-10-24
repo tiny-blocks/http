@@ -51,6 +51,16 @@ final class HeadersTest extends TestCase
         self::assertFalse($headers->has('Content-Type'));
     }
 
+    public function testAttributeWhenHeaderAbsentThenReturnsNull(): void
+    {
+        /** @Given headers carrying a single entry */
+        $headers = Headers::fromArray(entries: ['X-Trace-Id' => 'abc-123']);
+
+        /** @When asking for a header that is not present */
+        /** @Then null is returned */
+        self::assertNull($headers->attribute(name: 'X-Missing'));
+    }
+
     #[DataProvider('invalidHeaderNameProvider')]
     public function testWithWhenInvalidHeaderNameGivenThenThrows(string $name): void
     {
@@ -382,16 +392,6 @@ final class HeadersTest extends TestCase
 
         /** @Then the attribute wraps the folded header value */
         self::assertSame('abc-123', $actual?->toString());
-    }
-
-    public function testAttributeWhenHeaderAbsentThenReturnsNull(): void
-    {
-        /** @Given headers carrying a single entry */
-        $headers = Headers::fromArray(entries: ['X-Trace-Id' => 'abc-123']);
-
-        /** @When asking for a header that is not present */
-        /** @Then null is returned */
-        self::assertNull($headers->attribute(name: 'X-Missing'));
     }
 
     public function testAttributeWhenHeaderPresentButEmptyThenReturnsAttributeWrappingEmptyString(): void

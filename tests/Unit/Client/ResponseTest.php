@@ -178,6 +178,18 @@ final class ResponseTest extends TestCase
         self::assertSame($psrResponse, $response->raw());
     }
 
+    public function testOrFailWhenSuccessfulResponseGivenThenReturnsSameInstance(): void
+    {
+        /** @Given a successful synthesized response */
+        $response = Response::with(code: Code::OK);
+
+        /** @When requiring a successful status via orFail */
+        $actual = $response->orFail();
+
+        /** @Then the same response instance is returned */
+        self::assertSame($response, $actual);
+    }
+
     public function testWithWhenCodeAndBodyGivenThenSynthesizesAccessibleResponse(): void
     {
         /** @Given a status code and a body payload */
@@ -230,29 +242,27 @@ final class ResponseTest extends TestCase
         self::assertSame('123', $response->headers()->get('X-Request-ID'));
     }
 
-    public function testRawWhenSynthesizedResponseGivenThenThrowsSynthesizedResponseHasNoRaw(): void
+    public function testOrFailWhenUnsuccessfulResponseGivenThenExceptionCarriesCodeAndBody(): void
     {
-        /** @Given a synthesized response */
-        $response = Response::with(code: Code::OK);
+        /** @Given an unsuccessful status code */
+        $code = Code::UNPROCESSABLE_ENTITY;
 
-        /** @Then SynthesizedResponseHasNoRaw is thrown with the documented message */
-        $this->expectException(SynthesizedResponseHasNoRaw::class);
-        $this->expectExceptionMessage('Response was synthesized via Response::with(...)');
+        /** @And a decoded error body */
+        $body = ['error' => 'Invalid payload.'];
 
-        /** @When calling raw() */
-        $response->raw();
-    }
+        /** @And a synthesized response carrying that code and body */
+        $response = Response::with(code: $code, body: $body);
 
-    public function testOrFailWhenSuccessfulResponseGivenThenReturnsSameInstance(): void
-    {
-        /** @Given a successful synthesized response */
-        $response = Response::with(code: Code::OK);
+        try {
+            /** @When requiring a successful status via orFail */
+            $response->orFail();
+        } catch (HttpResponseUnsuccessful $exception) {
+            /** @Then the exception carries the response status code */
+            self::assertSame($code, $exception->code());
 
-        /** @When requiring a successful status via orFail */
-        $actual = $response->orFail();
-
-        /** @Then the same response instance is returned */
-        self::assertSame($response, $actual);
+            /** @And the exception carries the decoded response body */
+            self::assertSame($body['error'], $exception->body()->get(key: 'error')->toString());
+        }
     }
 
     public function testOrFailWhenClientErrorResponseGivenThenThrowsHttpResponseUnsuccessful(): void
@@ -280,26 +290,16 @@ final class ResponseTest extends TestCase
         $response->orFail();
     }
 
-    public function testOrFailWhenUnsuccessfulResponseGivenThenExceptionCarriesCodeAndBody(): void
+    public function testRawWhenSynthesizedResponseGivenThenThrowsSynthesizedResponseHasNoRaw(): void
     {
-        /** @Given an unsuccessful status code */
-        $code = Code::UNPROCESSABLE_ENTITY;
+        /** @Given a synthesized response */
+        $response = Response::with(code: Code::OK);
 
-        /** @And a decoded error body */
-        $body = ['error' => 'Invalid payload.'];
+        /** @Then SynthesizedResponseHasNoRaw is thrown with the documented message */
+        $this->expectException(SynthesizedResponseHasNoRaw::class);
+        $this->expectExceptionMessage('Response was synthesized via Response::with(...)');
 
-        /** @And a synthesized response carrying that code and body */
-        $response = Response::with(code: $code, body: $body);
-
-        try {
-            /** @When requiring a successful status via orFail */
-            $response->orFail();
-        } catch (HttpResponseUnsuccessful $exception) {
-            /** @Then the exception carries the response status code */
-            self::assertSame($code, $exception->code());
-
-            /** @And the exception carries the decoded response body */
-            self::assertSame($body['error'], $exception->body()->get(key: 'error')->toString());
-        }
+        /** @When calling raw() */
+        $response->raw();
     }
 }

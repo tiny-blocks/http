@@ -55,14 +55,14 @@ final class RetryingClientBuilder
     }
 
     /**
-     * Sets the delay policy applied between attempts and returns the builder.
+     * Sets the monotonic clock measuring each attempt and returns the builder.
      *
-     * @param Backoff $backoff The delay policy applied between attempts.
+     * @param MonotonicClock $clock The monotonic clock measuring each attempt.
      * @return RetryingClientBuilder The builder instance for fluent configuration.
      */
-    public function withBackoff(Backoff $backoff): RetryingClientBuilder
+    public function withClock(MonotonicClock $clock): RetryingClientBuilder
     {
-        $this->backoff = $backoff;
+        $this->clock = $clock;
         return $this;
     }
 
@@ -79,14 +79,26 @@ final class RetryingClientBuilder
     }
 
     /**
-     * Sets the monotonic clock measuring each attempt and returns the builder.
+     * Sets the delay policy applied between attempts and returns the builder.
      *
-     * @param MonotonicClock $clock The monotonic clock measuring each attempt.
+     * @param Backoff $backoff The delay policy applied between attempts.
      * @return RetryingClientBuilder The builder instance for fluent configuration.
      */
-    public function withClock(MonotonicClock $clock): RetryingClientBuilder
+    public function withBackoff(Backoff $backoff): RetryingClientBuilder
     {
-        $this->clock = $clock;
+        $this->backoff = $backoff;
+        return $this;
+    }
+
+    /**
+     * Sets the suspension applied between attempts and returns the builder.
+     *
+     * @param Sleeper $sleeper The suspension applied between attempts.
+     * @return RetryingClientBuilder The builder instance for fluent configuration.
+     */
+    public function withSleeper(Sleeper $sleeper): RetryingClientBuilder
+    {
+        $this->sleeper = $sleeper;
         return $this;
     }
 
@@ -114,18 +126,6 @@ final class RetryingClientBuilder
     public function withMaxAttempts(int $maxAttempts): RetryingClientBuilder
     {
         $this->maxAttempts = $maxAttempts;
-        return $this;
-    }
-
-    /**
-     * Sets the suspension applied between attempts and returns the builder.
-     *
-     * @param Sleeper $sleeper The suspension applied between attempts.
-     * @return RetryingClientBuilder The builder instance for fluent configuration.
-     */
-    public function withSleeper(Sleeper $sleeper): RetryingClientBuilder
-    {
-        $this->sleeper = $sleeper;
         return $this;
     }
 }
