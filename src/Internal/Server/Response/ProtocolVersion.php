@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace TinyBlocks\Http\Internal\Server\Response;
 
-final readonly class ProtocolVersion
+use TinyBlocks\Http\Exceptions\ProtocolVersionIsUnsupported;
+
+enum ProtocolVersion: string
 {
-    private const string DEFAULT_PROTOCOL_VERSION = '1.1';
+    case HTTP_1_0 = '1.0';
+    case HTTP_1_1 = '1.1';
+    case HTTP_2 = '2';
+    case HTTP_3 = '3';
 
-    private function __construct(public string $version)
+    public static function fromVersion(string $version): ProtocolVersion
     {
-    }
+        $canonical = match ($version) {
+            '2.0'   => self::HTTP_2->value,
+            '3.0'   => self::HTTP_3->value,
+            default => $version
+        };
 
-    public static function from(string $version): ProtocolVersion
-    {
-        return $version === '' ? ProtocolVersion::default() : new ProtocolVersion(version: $version);
-    }
-
-    public static function default(): ProtocolVersion
-    {
-        return new ProtocolVersion(version: ProtocolVersion::DEFAULT_PROTOCOL_VERSION);
+        return (ProtocolVersion::tryFrom($canonical) ?? throw ProtocolVersionIsUnsupported::for(version: $version));
     }
 }
