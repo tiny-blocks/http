@@ -28,7 +28,7 @@ final readonly class InternalResponse implements ResponseInterface
             body: StreamFactory::fromBody(body: $body)->write(),
             code: $code,
             headers: ResponseHeaders::fromWithDefaultContentType(...$headers),
-            protocolVersion: ProtocolVersion::default(),
+            protocolVersion: ProtocolVersion::HTTP_1_1,
             customReasonPhrase: null
         );
     }
@@ -39,7 +39,7 @@ final readonly class InternalResponse implements ResponseInterface
             body: StreamFactory::fromEmptyBody()->write(),
             code: $code,
             headers: ResponseHeaders::fromWithoutDefaultContentType(...$headers),
-            protocolVersion: ProtocolVersion::default(),
+            protocolVersion: ProtocolVersion::HTTP_1_1,
             customReasonPhrase: null
         );
     }
@@ -136,12 +136,12 @@ final readonly class InternalResponse implements ResponseInterface
 
     public function getProtocolVersion(): string
     {
-        return $this->protocolVersion->version;
+        return $this->protocolVersion->value;
     }
 
     public function withProtocolVersion(string $version): MessageInterface
     {
-        $protocolVersion = ProtocolVersion::from(version: $version);
+        $protocolVersion = ProtocolVersion::fromVersion(version: $version);
 
         return new InternalResponse(
             body: $this->body,

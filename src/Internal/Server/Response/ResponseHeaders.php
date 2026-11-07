@@ -19,8 +19,9 @@ final readonly class ResponseHeaders
     private static function mergeInto(Headerable $header, array $merged): array
     {
         foreach ($header->toArray() as $name => $value) {
-            $values = is_array($value) ? $value : [$value];
-            $merged[$name] = isset($merged[$name]) ? array_merge($merged[$name], $values) : $values;
+            $field = ResponseField::from(name: $name, value: $value);
+            $key = $field->name();
+            $merged[$key] = isset($merged[$key]) ? array_merge($merged[$key], $field->values()) : $field->values();
         }
 
         return $merged;
@@ -84,11 +85,12 @@ final readonly class ResponseHeaders
     public function withAdded(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
-        $existingKey = $this->findKey(name: $name);
-        $appended = is_array($value) ? $value : [$value];
+        $field = ResponseField::from(name: $name, value: $value);
+        $appended = $field->values();
+        $existingKey = $this->findKey(name: $field->name());
 
         if (is_null($existingKey)) {
-            $headers[$name] = $appended;
+            $headers[$field->name()] = $appended;
 
             return new ResponseHeaders(headers: $headers);
         }
@@ -121,9 +123,9 @@ final readonly class ResponseHeaders
     public function withReplaced(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
-        $existingKey = $this->findKey(name: $name);
-        $targetKey = ($existingKey ?? $name);
-        $headers[$targetKey] = is_array($value) ? $value : [$value];
+        $field = ResponseField::from(name: $name, value: $value);
+        $targetKey = ($this->findKey(name: $field->name()) ?? $field->name());
+        $headers[$targetKey] = $field->values();
 
         return new ResponseHeaders(headers: $headers);
     }

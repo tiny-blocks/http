@@ -177,6 +177,25 @@ Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
+Every header that reaches a response, whether through a `Headerable`, `withHeader()` or `withAddedHeader()`, is
+checked against RFC 9110. A name that is not a token raises `HeaderNameIsInvalid`, and a value carrying a control
+character other than horizontal tab (CR, LF, and NUL included) raises `HeaderValueIsInvalid`. Both extend
+`InvalidArgumentException`, as PSR-7 requires, so a header can never smuggle a line break into the response.
+
+The connection-specific headers `Connection`, `Keep-Alive`, `Proxy-Connection`, `Transfer-Encoding` and `Upgrade`, and
+`TE` with any value other than `trailers`, raise `HeaderIsConnectionSpecific` on the same paths, with names compared
+case-insensitively and the `TE` value trimmed and compared case-insensitively. They describe the connection rather than
+the message, HTTP/2 (RFC 9113 section 8.2.2) and HTTP/3 (RFC 9114 section 4.2) treat a message carrying one as
+malformed, and the server that writes the response to the wire owns them.
+
+A response starts on protocol version `1.1`, the PSR-7 convention. `withProtocolVersion()` accepts `1.0`, `1.1`, `2`
+and `3`, stores `2.0` and `3.0` as `2` and `3`, and raises `ProtocolVersionIsUnsupported` for anything else, since an
+emitter writes the version into the status line. To answer in the protocol the request arrived on, mirror its version:
+
+```php
+$response = Response::ok(body: ['ok' => true])->withProtocolVersion($request->getProtocolVersion());
+```
+
 `withStatus($code, $reasonPhrase)` honors the supplied reason phrase: when a non-empty string is passed,
 `getReasonPhrase()` returns it instead of the enum-derived phrase.
 
