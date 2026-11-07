@@ -7,6 +7,8 @@ namespace TinyBlocks\Http;
 use Psr\Http\Message\MessageInterface;
 use TinyBlocks\Http\Exceptions\HeaderNameIsInvalid;
 use TinyBlocks\Http\Exceptions\HeaderValueIsInvalid;
+use TinyBlocks\Http\Internal\HeaderName;
+use TinyBlocks\Http\Internal\HeaderValue;
 
 /**
  * Case-insensitive collection of HTTP headers represented as a name-to-value map.
@@ -73,17 +75,13 @@ final readonly class Headers
      */
     public static function fromArray(array $entries): Headers
     {
-        foreach ($entries as $name => $value) {
-            if (!preg_match('/^[!#$%&\'*+\-.^_`|~0-9A-Za-z]+$/', $name)) {
-                throw HeaderNameIsInvalid::for(name: $name);
-            }
+        $fields = [];
 
-            if (preg_match('/[\x00-\x08\x0A-\x1F\x7F]/', $value) === 1) {
-                throw HeaderValueIsInvalid::for(value: $value);
-            }
+        foreach ($entries as $name => $value) {
+            $fields[HeaderName::from(value: $name)->toString()] = HeaderValue::from(value: $value)->toString();
         }
 
-        return new Headers(entries: $entries);
+        return new Headers(entries: $fields);
     }
 
     /**

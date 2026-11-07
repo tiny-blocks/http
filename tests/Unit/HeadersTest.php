@@ -437,7 +437,9 @@ final class HeadersTest extends TestCase
             'Name with CR'         => ["foo\r"],
             'Name with CRLF'       => ["foo\r\nbar"],
             'Name with tab'        => ["foo\tbar"],
-            'Name with null byte'  => ["foo\x00bar"]
+            'Name with null byte'  => ["foo\x00bar"],
+            'Name ending in LF'    => ["foo\n"],
+            'Name ending in CRLF'  => ["foo\r\n"]
         ];
     }
 
@@ -447,7 +449,8 @@ final class HeadersTest extends TestCase
             'Value with LF'           => ["foo\nbar"],
             'Value with CR'           => ["foo\rbar"],
             'CRLF injection'          => ["foo\r\nbar: injected"],
-            'Value with null byte'    => ["foo\x00bar"]
+            'Value with null byte'    => ["foo\x00bar"],
+            'Value ending in LF'      => ["foo\n"]
         ];
     }
 }
