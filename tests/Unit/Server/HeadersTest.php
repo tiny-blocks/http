@@ -10,6 +10,7 @@ use Test\TinyBlocks\Http\Unit\RawHeader;
 use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Exceptions\HeaderIsConnectionSpecific;
 use TinyBlocks\Http\Exceptions\HeaderNameIsInvalid;
 use TinyBlocks\Http\Exceptions\HeaderValueIsInvalid;
 use TinyBlocks\Http\ResponseCacheDirectives;
@@ -50,6 +51,18 @@ final class HeadersTest extends TestCase
         /** @Then no Content-Type is announced, because there is no payload for it to describe */
         self::assertFalse($response->hasHeader('Content-Type'));
         self::assertSame([], $response->getHeaders());
+    }
+
+    public function testWithHeaderWhenTeCarriesOnlyTrailersThenKeepsIt(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @When TE is set to trailers, in another case and padded, the only value HTTP/2 and HTTP/3 admit */
+        $actual = $response->withHeader('te', ' Trailers ');
+
+        /** @Then the value is kept as given */
+        self::assertSame([' Trailers '], $actual->getHeader('TE'));
     }
 
     public function testGetHeaderWhenHeaderMissingThenReturnsEmptyArray(): void
@@ -428,6 +441,64 @@ final class HeadersTest extends TestCase
         self::assertSame($cacheControl->toArray(), $actual->getHeaders());
     }
 
+    #[DataProvider('connectionSpecificHeaderProvider')]
+    public function testWithHeaderWhenHeaderIsConnectionSpecificThenHeaderIsConnectionSpecific(
+        string $name,
+        string $value
+    ): void {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the header is rejected */
+        $this->expectException(HeaderIsConnectionSpecific::class);
+
+        /** @When a connection-specific header is set */
+        $response->withHeader($name, $value);
+    }
+
+    #[DataProvider('connectionSpecificHeaderProvider')]
+    public function testNoContentWhenHeaderableIsConnectionSpecificThenHeaderIsConnectionSpecific(
+        string $name,
+        string $value
+    ): void {
+        /** @Given a Headerable emitting a connection-specific header */
+        $header = new RawHeader(name: $name, value: $value);
+
+        /** @Then the header is rejected */
+        $this->expectException(HeaderIsConnectionSpecific::class);
+
+        /** @When a response is created with that header */
+        Response::noContent($header);
+    }
+
+    public function testWithHeaderWhenTeListMixesTrailersWithACodingThenHeaderIsConnectionSpecific(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the header is rejected, naming it and the rules that forbid it */
+        $this->expectException(HeaderIsConnectionSpecific::class);
+        $this->expectExceptionMessage('Header <TE> is connection-specific and must not be set on a response.');
+
+        /** @When TE is set to a list holding trailers and a transfer coding */
+        $response->withHeader('TE', ['trailers', 'gzip']);
+    }
+
+    #[DataProvider('connectionSpecificHeaderProvider')]
+    public function testWithAddedHeaderWhenHeaderIsConnectionSpecificThenHeaderIsConnectionSpecific(
+        string $name,
+        string $value
+    ): void {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the header is rejected */
+        $this->expectException(HeaderIsConnectionSpecific::class);
+
+        /** @When a value is added under a connection-specific header */
+        $response->withAddedHeader($name, $value);
+    }
+
     public static function invalidHeaderNameProvider(): array
     {
         return [
@@ -447,6 +518,19 @@ final class HeadersTest extends TestCase
             'CRLF injection'       => ["first\r\nX-Injected: yes"],
             'Value ending in LF'   => ["first\n"],
             'Value with null byte' => ["first\x00"]
+        ];
+    }
+
+    public static function connectionSpecificHeaderProvider(): array
+    {
+        return [
+            'Connection'                 => ['name' => 'Connection', 'value' => 'close'],
+            'Keep-Alive'                 => ['name' => 'Keep-Alive', 'value' => 'timeout=5'],
+            'Proxy-Connection in upper'  => ['name' => 'PROXY-CONNECTION', 'value' => 'keep-alive'],
+            'Transfer-Encoding'          => ['name' => 'Transfer-Encoding', 'value' => 'chunked'],
+            'Upgrade in lower case'      => ['name' => 'upgrade', 'value' => 'h2c'],
+            'TE with a coding'           => ['name' => 'TE', 'value' => 'gzip'],
+            'TE with trailers and more'  => ['name' => 'te', 'value' => 'trailers, deflate']
         ];
     }
 }

@@ -7,8 +7,6 @@ namespace TinyBlocks\Http\Internal\Server\Response;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
 use TinyBlocks\Http\Headerable;
-use TinyBlocks\Http\Internal\HeaderName;
-use TinyBlocks\Http\Internal\HeaderValue;
 
 final readonly class ResponseHeaders
 {
@@ -21,20 +19,12 @@ final readonly class ResponseHeaders
     private static function mergeInto(Headerable $header, array $merged): array
     {
         foreach ($header->toArray() as $name => $value) {
-            $key = HeaderName::from(value: $name)->toString();
-            $values = ResponseHeaders::valuesFrom(value: $value);
-            $merged[$key] = isset($merged[$key]) ? array_merge($merged[$key], $values) : $values;
+            $field = ResponseField::from(name: $name, value: $value);
+            $key = $field->name();
+            $merged[$key] = isset($merged[$key]) ? array_merge($merged[$key], $field->values()) : $field->values();
         }
 
         return $merged;
-    }
-
-    private static function valuesFrom(string|array $value): array
-    {
-        return array_map(
-            static fn(string $fieldValue): string => HeaderValue::from(value: $fieldValue)->toString(),
-            is_array($value) ? $value : [$value]
-        );
     }
 
     public static function fromWithDefaultContentType(Headerable ...$headers): ResponseHeaders
@@ -95,12 +85,12 @@ final readonly class ResponseHeaders
     public function withAdded(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
-        $fieldName = HeaderName::from(value: $name)->toString();
-        $appended = ResponseHeaders::valuesFrom(value: $value);
-        $existingKey = $this->findKey(name: $fieldName);
+        $field = ResponseField::from(name: $name, value: $value);
+        $appended = $field->values();
+        $existingKey = $this->findKey(name: $field->name());
 
         if (is_null($existingKey)) {
-            $headers[$fieldName] = $appended;
+            $headers[$field->name()] = $appended;
 
             return new ResponseHeaders(headers: $headers);
         }
@@ -133,10 +123,9 @@ final readonly class ResponseHeaders
     public function withReplaced(string $name, string|array $value): ResponseHeaders
     {
         $headers = $this->headers;
-        $fieldName = HeaderName::from(value: $name)->toString();
-        $existingKey = $this->findKey(name: $fieldName);
-        $targetKey = ($existingKey ?? $fieldName);
-        $headers[$targetKey] = ResponseHeaders::valuesFrom(value: $value);
+        $field = ResponseField::from(name: $name, value: $value);
+        $targetKey = ($this->findKey(name: $field->name()) ?? $field->name());
+        $headers[$targetKey] = $field->values();
 
         return new ResponseHeaders(headers: $headers);
     }
