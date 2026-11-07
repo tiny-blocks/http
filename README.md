@@ -177,6 +177,11 @@ Response::ok(['ok' => true], $cacheControl, ContentType::applicationJson())
     ->withHeader(name: 'X-Trace-Id', value: 'abc-123');
 ```
 
+Every header that reaches a response, whether through a `Headerable`, `withHeader()` or `withAddedHeader()`, is
+checked against RFC 9110. A name that is not a token raises `HeaderNameIsInvalid`, and a value carrying a control
+character other than horizontal tab (CR, LF, and NUL included) raises `HeaderValueIsInvalid`. Both extend
+`InvalidArgumentException`, as PSR-7 requires, so a header can never smuggle a line break into the response.
+
 `withStatus($code, $reasonPhrase)` honors the supplied reason phrase: when a non-empty string is passed,
 `getReasonPhrase()` returns it instead of the enum-derived phrase.
 

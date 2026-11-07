@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Test\TinyBlocks\Http\Unit\Server;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Test\TinyBlocks\Http\Unit\RawHeader;
 use TinyBlocks\Http\CacheControl;
 use TinyBlocks\Http\Charset;
 use TinyBlocks\Http\ContentType;
+use TinyBlocks\Http\Exceptions\HeaderNameIsInvalid;
+use TinyBlocks\Http\Exceptions\HeaderValueIsInvalid;
 use TinyBlocks\Http\ResponseCacheDirectives;
 use TinyBlocks\Http\Server\Response;
 use TinyBlocks\Http\UserAgent;
@@ -114,6 +118,44 @@ final class HeadersTest extends TestCase
         self::assertSame('application/json', $actual->getHeaderLine('Content-Type'));
     }
 
+    #[DataProvider('invalidHeaderNameProvider')]
+    public function testWithHeaderWhenNameIsInvalidThenHeaderNameIsInvalid(string $name): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the name is rejected */
+        $this->expectException(HeaderNameIsInvalid::class);
+
+        /** @When a header is set under a name that is not an RFC 9110 token */
+        $response->withHeader($name, 'value');
+    }
+
+    public function testWithHeaderWhenValueCarriesHorizontalTabThenKeepsIt(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @When a header is set to a value carrying a horizontal tab, which RFC 9110 allows inside a value */
+        $actual = $response->withHeader('X-Trace', "first\tsecond");
+
+        /** @Then the value is kept as given */
+        self::assertSame(["first\tsecond"], $actual->getHeader('X-Trace'));
+    }
+
+    #[DataProvider('invalidHeaderValueProvider')]
+    public function testWithHeaderWhenValueIsInvalidThenHeaderValueIsInvalid(string $value): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the value is rejected */
+        $this->expectException(HeaderValueIsInvalid::class);
+
+        /** @When a header is set to a value carrying a forbidden control character */
+        $response->withHeader('X-Trace', $value);
+    }
+
     public function testOkWhenNoContentTypeGivenThenCarriesDefaultContentType(): void
     {
         /** @When a response with a body is created without a media type */
@@ -159,6 +201,19 @@ final class HeadersTest extends TestCase
 
         /** @Then the response carries Content-Type: text/plain */
         self::assertSame('text/plain', $actual->getHeaderLine('Content-Type'));
+    }
+
+    #[DataProvider('invalidHeaderNameProvider')]
+    public function testWithAddedHeaderWhenNameIsInvalidThenHeaderNameIsInvalid(string $name): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the name is rejected */
+        $this->expectException(HeaderNameIsInvalid::class);
+
+        /** @When a value is added under a name that is not an RFC 9110 token */
+        $response->withAddedHeader($name, 'value');
     }
 
     public function testWithHeaderWhenChainedWithDistinctKeysThenBothArePresent(): void
@@ -211,6 +266,19 @@ final class HeadersTest extends TestCase
         self::assertSame('application/octet-stream', $actual->getHeaderLine('Content-Type'));
     }
 
+    #[DataProvider('invalidHeaderValueProvider')]
+    public function testWithAddedHeaderWhenValueIsInvalidThenHeaderValueIsInvalid(string $value): void
+    {
+        /** @Given an HTTP response already carrying the header */
+        $response = Response::noContent()->withHeader('X-Trace', 'first');
+
+        /** @Then the value is rejected */
+        $this->expectException(HeaderValueIsInvalid::class);
+
+        /** @When a value carrying a forbidden control character is added to it */
+        $response->withAddedHeader('X-Trace', $value);
+    }
+
     public function testWithAddedHeaderWhenCaseMismatchedThenMatchesExistingHeader(): void
     {
         /** @Given an HTTP response with a custom header */
@@ -237,6 +305,19 @@ final class HeadersTest extends TestCase
         self::assertSame(['X-Trace' => ['only-value']], $actual->getHeaders());
     }
 
+    #[DataProvider('invalidHeaderNameProvider')]
+    public function testNoContentWhenHeaderableNameIsInvalidThenHeaderNameIsInvalid(string $name): void
+    {
+        /** @Given a Headerable emitting a name that is not an RFC 9110 token */
+        $header = new RawHeader(name: $name, value: 'value');
+
+        /** @Then the name is rejected */
+        $this->expectException(HeaderNameIsInvalid::class);
+
+        /** @When a response is created with that header */
+        Response::noContent($header);
+    }
+
     public function testNoContentWhenContentTypeIsFormUrlEncodedThenHeaderReflectsIt(): void
     {
         /** @Given the Content-Type header set to application/x-www-form-urlencoded */
@@ -247,6 +328,31 @@ final class HeadersTest extends TestCase
 
         /** @Then the response carries Content-Type: application/x-www-form-urlencoded */
         self::assertSame('application/x-www-form-urlencoded', $actual->getHeaderLine('Content-Type'));
+    }
+
+    #[DataProvider('invalidHeaderValueProvider')]
+    public function testNoContentWhenHeaderableValueIsInvalidThenHeaderValueIsInvalid(string $value): void
+    {
+        /** @Given a Headerable emitting a value carrying a forbidden control character */
+        $header = new RawHeader(name: 'X-Trace', value: $value);
+
+        /** @Then the value is rejected */
+        $this->expectException(HeaderValueIsInvalid::class);
+
+        /** @When a response is created with that header */
+        Response::noContent($header);
+    }
+
+    public function testWithHeaderWhenListCarriesInvalidValueThenHeaderValueIsInvalid(): void
+    {
+        /** @Given an HTTP response */
+        $response = Response::noContent();
+
+        /** @Then the list is rejected */
+        $this->expectException(HeaderValueIsInvalid::class);
+
+        /** @When a header is set to a list whose second value ends in a line feed */
+        $response->withHeader('X-Trace', ['first', "second\n"]);
     }
 
     public function testNoContentWhenMultipleHeaderablesGivenThenCacheControlIsPresent(): void
@@ -320,5 +426,27 @@ final class HeadersTest extends TestCase
 
         /** @And nothing sits beside it, because a bodiless response invents no media type of its own */
         self::assertSame($cacheControl->toArray(), $actual->getHeaders());
+    }
+
+    public static function invalidHeaderNameProvider(): array
+    {
+        return [
+            'Empty name'          => [''],
+            'Name with space'     => ['X Trace'],
+            'Name with colon'     => ['X-Trace:'],
+            'Name ending in LF'   => ["X-Trace\n"],
+            'Name ending in CRLF' => ["X-Trace\r\n"],
+            'Name with null byte' => ["X-Trace\x00"]
+        ];
+    }
+
+    public static function invalidHeaderValueProvider(): array
+    {
+        return [
+            'Value with CR'        => ["first\rsecond"],
+            'CRLF injection'       => ["first\r\nX-Injected: yes"],
+            'Value ending in LF'   => ["first\n"],
+            'Value with null byte' => ["first\x00"]
+        ];
     }
 }
